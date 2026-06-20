@@ -10,9 +10,14 @@ class Member extends Model
     /** @use HasFactory<\Database\Factories\MemberFactory> */
     use HasFactory;
 
-    protected $fillable = ['first_name', 'last_name', 'phone', 'sms_sent_at'];
+    protected $fillable = ['organization_id', 'first_name', 'last_name', 'phone', 'sms_sent_at'];
 
     protected $casts = ['sms_sent_at' => 'datetime'];
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
 
     public function attendances()
     {
