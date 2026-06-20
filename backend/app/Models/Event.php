@@ -10,9 +10,14 @@ class Event extends Model
     /** @use HasFactory<\Database\Factories\EventFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'type', 'date', 'description'];
+    protected $fillable = ['organization_id', 'name', 'type', 'date', 'description'];
 
     protected $casts = ['date' => 'date'];
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
 
     public function attendances()
     {

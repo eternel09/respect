@@ -40,9 +40,10 @@ class AttendanceController extends Controller
 
         try {
             $attendance = Attendance::create([
-                'member_id'     => $member->id,
-                'event_id'      => $request->event_id,
-                'attended_date' => $today,
+                'organization_id' => $member->organization_id,
+                'member_id'       => $member->id,
+                'event_id'        => $request->event_id,
+                'attended_date'   => $today,
             ]);
         } catch (QueryException) {
             return response()->json([
