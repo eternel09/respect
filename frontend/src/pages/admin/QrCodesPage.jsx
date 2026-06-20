@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
+import PageShell from '../../components/PageShell'
 import Card from '../../components/ui/Card'
 import api from '../../lib/axios'
 
@@ -20,7 +21,7 @@ function QrCard({ title, subtitle, base64 }) {
           <img src={`data:image/png;base64,${base64}`} alt={title} className="w-48 h-48 mb-4" />
           <button
             onClick={download}
-            className="text-sm text-violet-600 hover:text-violet-800 font-medium"
+            className="text-sm text-brand hover:text-brand-dark font-medium"
           >
             ↓ Télécharger
           </button>
@@ -47,12 +48,11 @@ export default function QrCodesPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-900">QR Codes</h2>
-
+      <PageShell title="QR Codes" subtitle="Téléchargez les QR codes d'inscription et de présence.">
+       <div className="space-y-6">
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-violet-600 border-t-transparent rounded-full" />
+            <div className="animate-spin h-8 w-8 border-4 border-brand border-t-transparent rounded-full" />
           </div>
         ) : (
           <>
@@ -80,7 +80,8 @@ export default function QrCodesPage() {
             </div>
           </>
         )}
-      </div>
+       </div>
+      </PageShell>
     </AdminLayout>
   )
 }

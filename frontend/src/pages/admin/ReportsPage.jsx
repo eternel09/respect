@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
+import PageShell from '../../components/PageShell'
 import Alert from '../../components/ui/Alert'
 import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
@@ -40,9 +41,8 @@ export default function ReportsPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 max-w-lg">
-        <h2 className="text-2xl font-bold text-gray-900">Rapports PDF</h2>
-
+      <PageShell title="Rapports PDF" subtitle="Exportez les présences au format PDF.">
+       <div className="space-y-6 max-w-lg">
         {error && <Alert type="error">{error}</Alert>}
 
         <Card>
@@ -51,7 +51,7 @@ export default function ReportsPage() {
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${mode === m ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition ${mode === m ? 'bg-brand text-white shadow-sm shadow-brand/20' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               >
                 {m === 'date' ? 'Par date' : 'Par période'}
               </button>
@@ -76,7 +76,8 @@ export default function ReportsPage() {
             Télécharger le PDF
           </Button>
         </Card>
-      </div>
+       </div>
+      </PageShell>
     </AdminLayout>
   )
 }
