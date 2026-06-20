@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Member extends Model
 {
@@ -13,6 +14,18 @@ class Member extends Model
     protected $fillable = ['organization_id', 'first_name', 'last_name', 'phone', 'sms_sent_at'];
 
     protected $casts = ['sms_sent_at' => 'datetime'];
+
+    /**
+     * Génère automatiquement le jeton de check-in (QR personnel) à la création.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Member $member) {
+            if (empty($member->check_in_token)) {
+                $member->check_in_token = (string) Str::uuid();
+            }
+        });
+    }
 
     public function organization()
     {
