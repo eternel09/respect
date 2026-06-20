@@ -1,0 +1,42 @@
+# Journal des problèmes & décisions
+
+Suivi des problèmes rencontrés, de leur cause et de leur résolution. Le plus récent en haut.
+
+## 2026-06-20
+
+### Erreur « CSRF token mismatch » (419) au login navigateur
+- **Cause** : `statefulApi()` (Sanctum) dans `bootstrap/app.php` appliquait la protection CSRF/session aux requêtes API venant de `localhost`. L'auth du SPA est en **token Bearer** (localStorage), pas en cookies → CSRF non satisfait. En curl ça passait (pas d'`Origin` navigateur).
+- **Fix** : retrait de `statefulApi()` → API stateless. Commit `d0e489c`.
+
+### Latence des requêtes en local (~6 s)
+- **Cause** : base **PostgreSQL distante** (`prodevipga.saas.cd`) + `php artisan serve` mono-thread (les requêtes concurrentes se mettent en file).
+- **Statut** : non bloquant. Chaque page met quelques secondes. À surveiller pour la prod.
+
+### QR en PNG impossible (extension imagick absente en dev)
+- **Cause** : `simple-qrcode` génère le PNG via BaconQrCode→imagick, non installé.
+- **Fix** : badges générés avec un **QR en SVG** (pur PHP). Les anciens QR PNG publics (onboarding/événement) ne s'affichent pas en dev mais sont voués à disparaître avec le pivot.
+
+### Outillage PR : `gh` et Python absents
+- **Cause** : ni GitHub CLI ni Python sur la machine.
+- **Contournement** : PR créées via l'**API GitHub en PHP**, jeton récupéré par `git credential`.
+
+### Branches : retour sur `main` a « effacé » le redesign du working tree
+- **Cause** : le redesign frontend n'était que sur `feature/redesign-frontend` ; partir le backend depuis `main` ramenait l'ancien code.
+- **Fix** : création de `develop` (= main + redesign) ; les `feature/*` partent de `develop`.
+
+### `organization_id NOT NULL` cassait les créations
+- **Cause** : après la migration multi-tenant, onboarding/événement/pointage ne renseignaient pas l'org.
+- **Fix** : câblage de `organization_id` (org par défaut pour le public, org de l'utilisateur pour l'admin). Commit `afba499`.
+
+### Front : layout cassé / non responsive
+- **Cause** : reste du template Vite dans `index.css` (`#root { width: 1126px; … }`) + dark-mode fantôme.
+- **Fix** : nettoyage + thème chaleureux en tokens Tailwind v4. Commit `d975c6e`.
+
+### Front : page « Présences » inaccessible
+- **Cause** : la route `/admin/attendance` était un simple `Navigate` vers le dashboard (placeholder MVP).
+- **Fix** : vraie `AttendancePage` branchée sur `/admin/attendances`.
+
+## Dettes connues (à traiter)
+- Scoping des **lectures** par organisation (endpoints admin renvoient toutes les orgs).
+- Pas d'endpoint de **création de comptes staff** (rôles `secretaire`/`scanner` créés en base/seed pour l'instant).
+- Page **QR Codes** (ancien modèle événement) à remplacer par les badges.
