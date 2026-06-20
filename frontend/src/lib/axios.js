@@ -23,6 +23,22 @@ api.interceptors.response.use(
 )
 
 /**
+ * Télécharge un fichier (PDF, etc.) depuis un endpoint authentifié et
+ * déclenche l'enregistrement côté navigateur.
+ */
+export async function downloadFile(url, filename) {
+  const res = await api.get(url, { responseType: 'blob' })
+  const blobUrl = window.URL.createObjectURL(new Blob([res.data]))
+  const a = document.createElement('a')
+  a.href = blobUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(blobUrl)
+}
+
+/**
  * Traduit une erreur axios en message clair pour l'utilisateur.
  * Couvre les cas sans réponse HTTP (serveur injoignable, timeout)
  * et les statuts serveur courants.
@@ -37,6 +53,7 @@ export function apiErrorMessage(err, fallback = 'Une erreur inattendue est surve
   }
 
   const { status, data } = err.response
+  if (status === 403) return data?.message || "Accès non autorisé pour votre rôle."
   if (status === 429) return "Trop de tentatives. Patientez un instant avant de réessayer."
   if (status === 404) return data?.message || "Service introuvable. Contactez un responsable si le problème persiste."
   if (status >= 500) return "Le serveur rencontre un problème technique. Veuillez réessayer dans quelques instants."

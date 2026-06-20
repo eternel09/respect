@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
-import api from '../../lib/axios'
+import api, { downloadFile, apiErrorMessage } from '../../lib/axios'
 
 function Avatar({ name }) {
   const initials = name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'
@@ -47,6 +47,28 @@ export default function MembersPage() {
   const [page, setPage]       = useState(1)
   const [loading, setLoading] = useState(true)
   const [stats, setStats]     = useState({ total: 0, avg: 84, new: 0 })
+  const [badgeBusy, setBadgeBusy] = useState(null) // id du membre, ou 'all'
+  const [badgeError, setBadgeError] = useState(null)
+
+  const slugify = name => (name || 'membre').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+  const downloadBadge = async m => {
+    setBadgeBusy(m.id); setBadgeError(null)
+    try {
+      await downloadFile(`/admin/members/${m.id}/badge`, `badge-${slugify(m.full_name)}.pdf`)
+    } catch (err) {
+      setBadgeError(apiErrorMessage(err, "Impossible de générer le badge."))
+    } finally { setBadgeBusy(null) }
+  }
+
+  const downloadAllBadges = async () => {
+    setBadgeBusy('all'); setBadgeError(null)
+    try {
+      await downloadFile('/admin/badges', 'badges-famille-respect.pdf')
+    } catch (err) {
+      setBadgeError(apiErrorMessage(err, "Impossible de générer les badges."))
+    } finally { setBadgeBusy(null) }
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -65,6 +87,12 @@ export default function MembersPage() {
   return (
     <AdminLayout>
       <PageShell title="Member Directory" subtitle="Manage your community's active families and individuals.">
+
+        {badgeError && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">
+            {badgeError}
+          </div>
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
@@ -118,9 +146,16 @@ export default function MembersPage() {
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z" /></svg>
               Sort
             </button>
-            <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-medium text-white rounded-xl px-3 py-2 transition-colors hover:bg-brand-dark bg-brand">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
-              Export
+            <button
+              onClick={downloadAllBadges}
+              disabled={badgeBusy === 'all'}
+              title="Télécharger tous les badges en PDF"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-medium text-white rounded-xl px-3 py-2 transition-colors hover:bg-brand-dark bg-brand disabled:opacity-60"
+            >
+              {badgeBusy === 'all'
+                ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>}
+              Badges
             </button>
           </div>
         </div>
@@ -162,9 +197,21 @@ export default function MembersPage() {
                     <td className="px-5 py-4"><AttendanceBar pct={Math.min(100, (m.attendance_count || 0) * 10)} /></td>
                     <td className="px-5 py-4 text-gray-500">{m.created_at?.slice(0, 10)}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => downloadBadge(m)}
+                          disabled={badgeBusy === m.id}
+                          title="Télécharger le badge"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand hover:bg-sand transition-colors disabled:opacity-50"
+                        >
+                          {badgeBusy === m.id
+                            ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" />
+                            : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm12 0h2v2h-2v-2zm0 4h2v2h-2v-2zm-2-4h2v2h-2v-2zm4 0h2v2h-2v-2zm0 4h2v2h-2v-2z" /></svg>}
+                        </button>
+                        <button className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-sand transition-colors">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
