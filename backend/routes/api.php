@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ScanController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -24,6 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/me', [AdminAuthController::class, 'me']);
 
     Route::get('/admin/dashboard', [DashboardController::class, 'index']);
+
+    // Scan du QR personnel (app mobile staff)
+    Route::post('/scan', [ScanController::class, 'store']);
 
     Route::get('/admin/members', [MemberController::class, 'index']);
     Route::get('/admin/members/{member}', [MemberController::class, 'show']);
