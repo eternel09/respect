@@ -1,8 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import Splash from './components/Loader'
 import { AuthProvider } from './context/AuthContext'
 import OnboardingPage from './pages/OnboardingPage'
 import PresencePage from './pages/PresencePage'
+import AttendancePage from './pages/admin/AttendancePage'
 import DashboardPage from './pages/admin/DashboardPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
@@ -14,6 +16,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Splash />
         <Routes>
           {/* Public */}
           <Route path="/onboarding" element={<OnboardingPage />} />
@@ -23,11 +26,13 @@ export default function App() {
           <Route path="/admin/login" element={<LoginPage />} />
 
           {/* Admin protected */}
-          <Route path="/admin/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/admin/members"   element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />
-          <Route path="/admin/events"    element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-          <Route path="/admin/reports"   element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-          <Route path="/admin/qrcodes"   element={<ProtectedRoute><QrCodesPage /></ProtectedRoute>} />
+          <Route path="/admin/dashboard"  element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/admin/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
+          <Route path="/admin/members"    element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />
+          <Route path="/admin/events"     element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+          <Route path="/admin/reports"    element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+          <Route path="/admin/qrcodes"    element={<ProtectedRoute><QrCodesPage /></ProtectedRoute>} />
+          <Route path="/admin/settings"   element={<ProtectedRoute><Navigate to="/admin/dashboard" replace /></ProtectedRoute>} />
 
           {/* Fallbacks */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
