@@ -29,6 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Scan du QR personnel (app mobile staff)
     Route::post('/scan', [ScanController::class, 'store']);
+    Route::get('/scan/manifest', [ScanController::class, 'manifest']);
+    Route::post('/scan/sync', [ScanController::class, 'sync']);
 
     Route::get('/admin/members', [MemberController::class, 'index']);
     Route::get('/admin/members/{member}', [MemberController::class, 'show']);
