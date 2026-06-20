@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\BadgeController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\MemberController;
@@ -31,6 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/admin/members', [MemberController::class, 'index']);
     Route::get('/admin/members/{member}', [MemberController::class, 'show']);
+    Route::get('/admin/members/{member}/badge', [BadgeController::class, 'single']);
+
+    // Badges PDF (QR personnels)
+    Route::get('/admin/badges', [BadgeController::class, 'batch']);
 
     Route::get('/admin/attendances', [AttendanceController::class, 'index']);
     Route::get('/admin/attendances/today', [AttendanceController::class, 'today']);
