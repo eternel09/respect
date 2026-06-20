@@ -10,9 +10,19 @@ class Attendance extends Model
     /** @use HasFactory<\Database\Factories\AttendanceFactory> */
     use HasFactory;
 
-    protected $fillable = ['member_id', 'event_id', 'attended_date'];
+    protected $fillable = ['organization_id', 'member_id', 'event_id', 'attended_date', 'scanned_by'];
 
     protected $casts = ['attended_date' => 'date'];
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function scannedBy()
+    {
+        return $this->belongsTo(User::class, 'scanned_by');
+    }
 
     public function member()
     {

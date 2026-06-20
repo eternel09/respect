@@ -6,7 +6,7 @@ export default function Alert({ type = 'info', children }) {
     warning: 'bg-yellow-50 text-yellow-800 border-yellow-300',
   }
   return (
-    <div className={`border rounded-lg px-4 py-3 text-sm ${styles[type]}`}>
+    <div className={`border rounded-xl px-4 py-3 text-sm ${styles[type]}`}>
       {children}
     </div>
   )

@@ -22,7 +22,10 @@ class EventController extends Controller
 
     public function store(StoreEventRequest $request): JsonResponse
     {
-        $event = Event::create($request->validated());
+        $event = Event::create([
+            ...$request->validated(),
+            'organization_id' => $request->user()->organization_id,
+        ]);
 
         return response()->json(new EventResource($event), 201);
     }

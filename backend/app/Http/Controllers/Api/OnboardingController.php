@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OnboardingRequest;
 use App\Models\Member;
+use App\Models\Organization;
 use App\Services\SmsService;
 use Illuminate\Http\JsonResponse;
 
@@ -21,7 +22,10 @@ class OnboardingController extends Controller
             ], 409);
         }
 
-        $member = Member::create($request->validated());
+        $member = Member::create([
+            ...$request->validated(),
+            'organization_id' => Organization::defaultId(),
+        ]);
 
         try {
             $sms->sendWelcome($member);
