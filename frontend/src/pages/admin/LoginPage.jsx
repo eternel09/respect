@@ -9,7 +9,7 @@ function Logo({ className = '' }) {
       <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
         <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
       </div>
-      <span className="text-white font-bold">Famille Respect</span>
+      <span className="text-white font-bold">Signiq</span>
     </div>
   )
 }
@@ -54,7 +54,7 @@ export default function LoginPage() {
           <h2 className="text-white text-3xl font-bold leading-tight mb-4 tracking-tight">Gérez votre communauté en toute simplicité</h2>
           <p className="text-white/70 text-sm">Suivi des présences, gestion des membres et rapports — tout en un seul endroit.</p>
         </motion.div>
-        <p className="text-white/40 text-xs relative">© 2026 Famille Respect · Family Management Systems</p>
+        <p className="text-white/40 text-xs relative">© 2026 Signiq · Family Management Systems</p>
       </div>
 
       {/* Formulaire (droite) */}
@@ -70,7 +70,7 @@ export default function LoginPage() {
             <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
             </div>
-            <span className="font-bold text-gray-900">Famille Respect</span>
+            <span className="font-bold text-gray-900">Signiq</span>
           </div>
 
           <h1 className="text-gray-900 text-2xl font-bold mb-1 tracking-tight">Connexion</h1>

@@ -48,7 +48,7 @@ export default function Splash({ duration = 700 }) {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.25, duration: 0.5 }}
           >
-            Famille Respect
+            Signiq
           </motion.p>
 
           {/* Barre de progression */}

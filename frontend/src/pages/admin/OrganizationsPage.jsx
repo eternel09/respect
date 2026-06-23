@@ -35,7 +35,7 @@ export default function OrganizationsPage() {
               <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
             </div>
             <div>
-              <p className="font-bold text-sm leading-tight text-brand">Famille Respect</p>
+              <p className="font-bold text-sm leading-tight text-brand">Signiq</p>
               <p className="text-gray-400 text-xs">Plateforme · Super-admin</p>
             </div>
           </div>
