@@ -4,6 +4,10 @@ Suivi des problèmes rencontrés, de leur cause et de leur résolution. Le plus 
 
 ## 2026-06-23
 
+### Une nouvelle organisation affichait les données de Famille Respect
+- **Cause** : dette multi-tenant connue — les endpoints de **lecture** (dashboard, membres, événements…) ne filtraient pas par `organization_id`. Avec une 2ᵉ org, son admin voyait les données de l'org par défaut.
+- **Fix** : trait `BelongsToOrganization` (scope global Eloquent filtrant sur l'org de l'utilisateur connecté ; super-admin et contextes sans user non restreints) appliqué à Member/Event/Attendance, + `DashboardController` (SQL brut) scopé explicitement. Isolation vérifiée (`a8c36a6`).
+
 ### Lenteur générale (composants longs à charger)
 - **Causes** : (1) `DashboardController` lançait 5 requêtes (~1 s/req sur la DB distante ≈ 11 s) ; (2) la page **Membres** appelait `/admin/dashboard` en parallèle → héritait des 11 s ; (3) latence + **pics de connexion à froid** de la base distante (jusqu'à 48 s une fois).
 - **Fix** : compteurs du dashboard regroupés en 1 requête (`766a0db`) ; suppression de l'appel dashboard sur Membres + splash réduit 1400→700 ms (`fb04e8d`) ; **bascule du dev sur SQLite local** (`.env`, gitignoré) → ~0,6–1,9 s/req, constant, plus de pics. Seeders/factories rendus multi-tenant pour seeder à neuf (`faf8ae8`).
