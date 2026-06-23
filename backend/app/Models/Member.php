@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -9,7 +10,7 @@ use Illuminate\Support\Str;
 class Member extends Model
 {
     /** @use HasFactory<\Database\Factories\MemberFactory> */
-    use HasFactory;
+    use BelongsToOrganization, HasFactory;
 
     protected $fillable = ['organization_id', 'first_name', 'last_name', 'phone', 'sms_sent_at'];
 
