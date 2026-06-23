@@ -7,6 +7,7 @@ use App\Http\Requests\StoreMemberRequest;
 use App\Http\Resources\AttendanceResource;
 use App\Http\Resources\MemberResource;
 use App\Models\Member;
+use App\Services\QrCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -55,5 +56,15 @@ class MemberController extends Controller
             'member'      => new MemberResource($member->loadCount('attendances')),
             'attendances' => AttendanceResource::collection($attendances),
         ];
+    }
+
+    /**
+     * QR personnel du membre (SVG base64) pour l'aperçu dans le back-office.
+     */
+    public function qr(Member $member, Request $request, QrCodeService $qr): JsonResponse
+    {
+        abort_if($member->organization_id !== $request->user()->organization_id, 404);
+
+        return response()->json(['qr' => $qr->member($member->check_in_token)]);
     }
 }

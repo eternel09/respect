@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/members', [MemberController::class, 'index']);
         Route::post('/admin/members', [MemberController::class, 'store']);
         Route::get('/admin/members/{member}', [MemberController::class, 'show']);
+        Route::get('/admin/members/{member}/qr', [MemberController::class, 'qr']);
         Route::get('/admin/members/{member}/badge', [BadgeController::class, 'single']);
         Route::get('/admin/badges', [BadgeController::class, 'batch']);
 
