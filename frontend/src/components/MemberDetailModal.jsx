@@ -77,7 +77,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
                   <div className="flex flex-col sm:flex-row gap-5 mb-6">
                     <div className="flex-shrink-0 mx-auto sm:mx-0">
                       <div className="w-36 h-36 rounded-2xl ring-1 ring-black/5 p-2 bg-white">
-                        {qr && <img src={`data:image/svg+xml;base64,${qr}`} alt="QR" className="w-full h-full" />}
+                        {qr && <img src={`data:image/png;base64,${qr}`} alt="QR" className="w-full h-full" />}
                       </div>
                       <button
                         onClick={() => onDownloadBadge(m)}
