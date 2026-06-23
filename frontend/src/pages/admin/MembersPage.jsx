@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
+import AddMemberModal from '../../components/AddMemberModal'
 import api, { downloadFile, apiErrorMessage } from '../../lib/axios'
 
 function Avatar({ name }) {
@@ -49,6 +50,15 @@ export default function MembersPage() {
   const [stats, setStats]     = useState({ total: 0, avg: 84, new: 0 })
   const [badgeBusy, setBadgeBusy] = useState(null) // id du membre, ou 'all'
   const [badgeError, setBadgeError] = useState(null)
+  const [showAdd, setShowAdd]     = useState(false)
+  const [created, setCreated]     = useState(null) // { member, message } après ajout
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const handleCreated = (member, message) => {
+    setShowAdd(false)
+    setCreated({ member, message })
+    setRefreshKey(k => k + 1)
+  }
 
   const slugify = name => (name || 'membre').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
@@ -80,7 +90,7 @@ export default function MembersPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [search, page])
+  }, [search, page, refreshKey])
 
   return (
     <AdminLayout>
@@ -89,6 +99,25 @@ export default function MembersPage() {
         {badgeError && (
           <div className="mb-5 px-4 py-3 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">
             {badgeError}
+          </div>
+        )}
+
+        {created && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-sm bg-emerald-50 text-emerald-800 border border-emerald-200 flex flex-col sm:flex-row sm:items-center gap-3">
+            <span className="flex-1">{created.message}</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => downloadBadge(created.member)}
+                disabled={badgeBusy === created.member.id}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-lg px-3 py-1.5 transition-colors disabled:opacity-60"
+              >
+                {badgeBusy === created.member.id
+                  ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>}
+                Télécharger le badge
+              </button>
+              <button onClick={() => setCreated(null)} className="text-emerald-700 hover:text-emerald-900 text-sm">✕</button>
+            </div>
           </div>
         )}
 
@@ -115,7 +144,7 @@ export default function MembersPage() {
             icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>}
           />
           {/* CTA card */}
-          <button className="rounded-2xl p-5 text-left text-white flex flex-col justify-between shadow-lg shadow-brand/20 transition-colors hover:bg-brand-dark bg-brand min-h-[120px]">
+          <button onClick={() => setShowAdd(true)} className="rounded-2xl p-5 text-left text-white flex flex-col justify-between shadow-lg shadow-brand/20 transition-colors hover:bg-brand-dark bg-brand min-h-[120px]">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center mb-3">
               <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
             </div>
@@ -245,6 +274,8 @@ export default function MembersPage() {
             </div>
           )}
         </div>
+
+        <AddMemberModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={handleCreated} />
       </PageShell>
     </AdminLayout>
   )
