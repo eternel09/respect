@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScanController;
@@ -25,6 +26,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Accessible à tout utilisateur authentifié (tous rôles)
     Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
     Route::get('/admin/me', [AdminAuthController::class, 'me']);
+
+    // Plateforme — gestion des organisations (super-admin interne)
+    Route::middleware('role:super_admin')->group(function () {
+        Route::get('/admin/organizations', [OrganizationController::class, 'index']);
+        Route::post('/admin/organizations', [OrganizationController::class, 'store']);
+    });
 
     // Terrain — scan du QR personnel (app mobile staff)
     Route::middleware('role:admin,scanner')->group(function () {
