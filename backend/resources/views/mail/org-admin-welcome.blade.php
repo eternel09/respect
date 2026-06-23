@@ -34,7 +34,7 @@
             </div>
         </div>
         <p style="font-size:11px; color:#b8bec7; text-align:center; margin:16px 0 0;">
-            © {{ date('Y') }} Famille Respect · Family Management Systems
+            © {{ date('Y') }} Signiq · Family Management Systems
         </p>
     </div>
 </body>
