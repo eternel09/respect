@@ -2,6 +2,13 @@
 
 Suivi des problèmes rencontrés, de leur cause et de leur résolution. Le plus récent en haut.
 
+## 2026-06-23
+
+### Lenteur générale (composants longs à charger)
+- **Causes** : (1) `DashboardController` lançait 5 requêtes (~1 s/req sur la DB distante ≈ 11 s) ; (2) la page **Membres** appelait `/admin/dashboard` en parallèle → héritait des 11 s ; (3) latence + **pics de connexion à froid** de la base distante (jusqu'à 48 s une fois).
+- **Fix** : compteurs du dashboard regroupés en 1 requête (`766a0db`) ; suppression de l'appel dashboard sur Membres + splash réduit 1400→700 ms (`fb04e8d`) ; **bascule du dev sur SQLite local** (`.env`, gitignoré) → ~0,6–1,9 s/req, constant, plus de pics. Seeders/factories rendus multi-tenant pour seeder à neuf (`faf8ae8`).
+- **Note** : la base PostgreSQL distante reste pour la prod (config commentée dans `.env`). Le ~0,6 s résiduel = boot PHP par requête de `artisan serve` (mode dev).
+
 ## 2026-06-20
 
 ### Erreur « CSRF token mismatch » (419) au login navigateur
