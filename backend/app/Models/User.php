@@ -18,7 +18,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    public const ROLES = ['admin', 'secretaire', 'scanner'];
+    public const ROLES = ['super_admin', 'admin', 'secretaire', 'scanner'];
 
     protected $fillable = [
         'organization_id',
@@ -36,6 +36,11 @@ class User extends Authenticatable
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
     }
 
     /**
