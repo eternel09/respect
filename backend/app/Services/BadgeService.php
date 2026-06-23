@@ -39,6 +39,7 @@ class BadgeService
             'id'        => $m->id,
             'full_name' => $m->full_name,
             'phone'     => $m->phone,
+            'serial'    => strtoupper(substr($m->check_in_token, 0, 8)),
             'qr'        => $this->qr->member($m->check_in_token),
         ]);
 

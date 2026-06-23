@@ -24,7 +24,16 @@ class QrCodeService
      */
     public function member(string $token): string
     {
-        // SVG : rendu pur-PHP (pas besoin de l'extension imagick), embarqué dans le PDF.
-        return base64_encode(QrCode::format('svg')->size(300)->margin(1)->generate($token));
+        // SVG (pur-PHP, sans imagick) avec un rendu minimal/futuriste :
+        // modules arrondis, yeux circulaires, dégradé marque → accent (restant scannable).
+        return base64_encode(
+            QrCode::format('svg')
+                ->size(300)
+                ->margin(1)
+                ->style('round')
+                ->eye('circle')
+                ->gradient(30, 58, 95, 201, 116, 43, 'diagonal')
+                ->generate($token)
+        );
     }
 }
