@@ -26,8 +26,8 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      await login(form.email, form.password)
-      navigate('/admin/dashboard')
+      const data = await login(form.email, form.password)
+      navigate(data?.user?.role === 'super_admin' ? '/admin/organizations' : '/admin/dashboard')
     } catch (err) {
       setError(err.response?.data?.message || 'Identifiants incorrects.')
     } finally {
