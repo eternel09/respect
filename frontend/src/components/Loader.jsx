@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
  * Splash de marque affiché au démarrage de l'app.
  * Disparaît en fondu après `duration` ms (ou immédiatement si déjà chargé).
  */
-export default function Splash({ duration = 1400 }) {
+export default function Splash({ duration = 700 }) {
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {

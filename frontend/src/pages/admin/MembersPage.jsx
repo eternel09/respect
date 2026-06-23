@@ -72,15 +72,13 @@ export default function MembersPage() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([
-      api.get('/admin/members', { params: { search, page } }),
-      api.get('/admin/dashboard'),
-    ]).then(([membersRes, dashRes]) => {
-      setMembers(membersRes.data.data)
-      setMeta(membersRes.data.meta)
-      const s = dashRes.data.stats
-      setStats({ total: s.total_members, avg: 84, new: s.today_attendance_count })
-    }).catch(() => {})
+    api.get('/admin/members', { params: { search, page } })
+      .then(res => {
+        setMembers(res.data.data)
+        setMeta(res.data.meta)
+        setStats(s => ({ ...s, total: res.data.meta?.total ?? res.data.data.length }))
+      })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [search, page])
 
@@ -110,9 +108,9 @@ export default function MembersPage() {
             icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" /></svg>}
           />
           <StatCard
-            label="New Members"
-            value={stats.new}
-            sub="This month"
+            label="Sur cette page"
+            value={members.length}
+            sub="Membres affichés"
             iconWrap="bg-accent-soft text-accent-dark"
             icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>}
           />
