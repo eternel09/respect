@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Event;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,6 +19,7 @@ class EventFactory extends Factory
     public function definition(): array
     {
         return [
+            'organization_id' => Organization::query()->value('id'),
             'name' => $this->faker->sentence(3),
             'type' => $this->faker->randomElement(['reunion', 'priere', 'autre']),
             'date' => $this->faker->dateTimeBetween('-30 days', '+30 days')->format('Y-m-d'),

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Member;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,6 +19,7 @@ class MemberFactory extends Factory
     public function definition(): array
     {
         return [
+            'organization_id' => Organization::query()->value('id'),
             'first_name' => $this->faker->firstName(),
             'last_name'  => $this->faker->lastName(),
             'phone'      => '+243' . $this->faker->unique()->numerify('#########'),

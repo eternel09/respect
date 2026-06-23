@@ -16,11 +16,14 @@ class MemberSeeder extends Seeder
 
         foreach ($members as $member) {
             foreach ($events->random(rand(1, $events->count())) as $event) {
-                Attendance::firstOrCreate([
-                    'member_id'     => $member->id,
-                    'event_id'      => $event->id,
-                    'attended_date' => $event->date,
-                ]);
+                Attendance::firstOrCreate(
+                    [
+                        'member_id'     => $member->id,
+                        'event_id'      => $event->id,
+                        'attended_date' => $event->date,
+                    ],
+                    ['organization_id' => $member->organization_id],
+                );
             }
         }
     }

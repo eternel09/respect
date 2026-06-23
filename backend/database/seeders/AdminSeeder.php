@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -13,9 +14,10 @@ class AdminSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@famillerespect.cd'],
             [
-                'name'     => 'Admin',
-                'password' => Hash::make('password'),
-                'role'     => 'admin',
+                'name'            => 'Admin',
+                'password'        => Hash::make('password'),
+                'role'            => 'admin',
+                'organization_id' => Organization::query()->value('id'),
             ]
         );
     }
