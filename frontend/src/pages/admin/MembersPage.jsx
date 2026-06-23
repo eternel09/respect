@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
 import AddMemberModal from '../../components/AddMemberModal'
+import MemberDetailModal from '../../components/MemberDetailModal'
 import api, { downloadFile, apiErrorMessage } from '../../lib/axios'
 
 function Avatar({ name }) {
@@ -53,6 +54,7 @@ export default function MembersPage() {
   const [showAdd, setShowAdd]     = useState(false)
   const [created, setCreated]     = useState(null) // { member, message } après ajout
   const [refreshKey, setRefreshKey] = useState(0)
+  const [detailId, setDetailId]   = useState(null) // membre dont on affiche la fiche
 
   const handleCreated = (member, message) => {
     setShowAdd(false)
@@ -214,8 +216,10 @@ export default function MembersPage() {
                       <div className="flex items-center gap-3">
                         <Avatar name={m.full_name} />
                         <div>
-                          <p className="font-medium text-gray-900">{m.full_name}</p>
-                          <span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">Active</span>
+                          <button onClick={() => setDetailId(m.id)} className="font-medium text-gray-900 hover:text-brand transition-colors text-left">
+                            {m.full_name}
+                          </button>
+                          <div><span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">Active</span></div>
                         </div>
                       </div>
                     </td>
@@ -235,8 +239,8 @@ export default function MembersPage() {
                             ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" />
                             : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm12 0h2v2h-2v-2zm0 4h2v2h-2v-2zm-2-4h2v2h-2v-2zm4 0h2v2h-2v-2zm0 4h2v2h-2v-2z" /></svg>}
                         </button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-sand transition-colors">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
+                        <button onClick={() => setDetailId(m.id)} title="Voir la fiche" className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand hover:bg-sand transition-colors">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-7a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" /></svg>
                         </button>
                       </div>
                     </td>
@@ -276,6 +280,7 @@ export default function MembersPage() {
         </div>
 
         <AddMemberModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={handleCreated} />
+        <MemberDetailModal memberId={detailId} onClose={() => setDetailId(null)} onDownloadBadge={downloadBadge} badgeBusy={badgeBusy} />
       </PageShell>
     </AdminLayout>
   )
