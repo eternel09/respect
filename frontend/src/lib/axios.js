@@ -31,14 +31,17 @@ api.interceptors.response.use(
  */
 export async function downloadFile(url, filename) {
   const res = await api.get(url, { responseType: 'blob' })
-  const blobUrl = window.URL.createObjectURL(new Blob([res.data]))
+  // Conserve le blob d'origine (donc son type, ex. application/pdf).
+  const blob = res.data instanceof Blob ? res.data : new Blob([res.data])
+  const blobUrl = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = blobUrl
   a.download = filename
   document.body.appendChild(a)
   a.click()
   a.remove()
-  window.URL.revokeObjectURL(blobUrl)
+  // Révoquer trop tôt annule le téléchargement (fichier 0 octet) → on diffère.
+  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000)
 }
 
 /**
