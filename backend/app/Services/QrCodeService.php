@@ -21,18 +21,43 @@ class QrCodeService
     }
 
     /**
-     * QR personnel d'un membre : encode son jeton opaque (aucune donnée perso).
-     * L'app scanner lit ce jeton et l'envoie à POST /api/scan.
-     */
-    /**
-     * QR personnel d'un membre, rendu en PNG (GD, sans imagick) avec un style
-     * minimal/futuriste : modules arrondis et dégradé marque → accent.
-     *
-     * On dessine la matrice nous-mêmes car le moteur SVG de dompdf n'imprime
-     * ni les dégradés ni les arrondis — ainsi l'aperçu écran et le badge
-     * imprimé sont rigoureusement identiques. Encode le jeton opaque.
+     * QR personnel d'un membre en PNG base64 — pour l'aperçu web (navigateur).
+     * Encode le jeton opaque. Style minimal/futuriste : modules arrondis +
+     * dégradé marque → accent (on dessine la matrice nous-mêmes via GD).
      */
     public function member(string $token): string
+    {
+        $img = $this->buildImage($token);
+        ob_start();
+        imagepng($img);
+        $data = ob_get_clean();
+        imagedestroy($img);
+
+        return base64_encode($data);
+    }
+
+    /**
+     * Même QR en JPEG base64 — pour le badge PDF. dompdf encode les PNG d'une
+     * façon que certains lecteurs PDF affichent en blanc (alpha/SMask) ; le
+     * JPEG (fond blanc, opaque) se rend correctement dans tous les lecteurs.
+     */
+    public function memberJpeg(string $token): string
+    {
+        $img = $this->buildImage($token);
+        ob_start();
+        imagejpeg($img, null, 92);
+        $data = ob_get_clean();
+        imagedestroy($img);
+
+        return base64_encode($data);
+    }
+
+    /**
+     * Dessine le QR du jeton avec GD (sans imagick) : modules arrondis reliés
+     * et dégradé diagonal marque → accent, suréchantillonné puis réduit pour
+     * lisser les bords. Retourne la ressource GD (à détruire par l'appelant).
+     */
+    private function buildImage(string $token): \GdImage
     {
         $matrix = Encoder::encode($token, ErrorCorrectionLevel::M(), Encoder::DEFAULT_BYTE_MODE_ECODING)->getMatrix();
         $n = $matrix->getWidth();
@@ -74,13 +99,8 @@ class QrCodeService
         $final = ($n + 2 * $quiet) * $module;
         $out   = imagecreatetruecolor($final, $final);
         imagecopyresampled($out, $img, 0, 0, 0, 0, $final, $final, $dim, $dim);
-
-        ob_start();
-        imagepng($out);
-        $png = ob_get_clean();
         imagedestroy($img);
-        imagedestroy($out);
 
-        return base64_encode($png);
+        return $out;
     }
 }

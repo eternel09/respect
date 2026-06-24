@@ -54,7 +54,7 @@
                 <table style="width:100%; border-collapse:collapse; margin-top:6px;">
                     <tr>
                         <td style="width:100px; vertical-align:top;">
-                            <img class="qr" src="data:image/png;base64,{{ $m['qr'] }}" alt="QR">
+                            <img class="qr" src="data:image/jpeg;base64,{{ $m['qr'] }}" alt="QR">
                         </td>
                         <td style="padding-left:10px; vertical-align:top;">
                             <div class="name">{{ $m['full_name'] }}</div>
