@@ -17,6 +17,9 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/admin/login'
+    } else if (!err.response && err.code !== 'ERR_CANCELED' && typeof window !== 'undefined') {
+      // Pas de réponse HTTP = problème réseau (serveur injoignable / connexion instable)
+      window.dispatchEvent(new CustomEvent('connection-issue'))
     }
     return Promise.reject(err)
   }
