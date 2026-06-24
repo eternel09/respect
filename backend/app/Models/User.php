@@ -18,16 +18,24 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    public const ROLES = ['admin', 'secretaire', 'scanner'];
+
     protected $fillable = [
         'organization_id',
         'name',
         'email',
         'password',
+        'role',
     ];
 
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
     }
 
     /**
