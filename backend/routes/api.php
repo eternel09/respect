@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\OrganizationSettingsController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScanController;
@@ -38,6 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/scan', [ScanController::class, 'store']);
         Route::get('/scan/manifest', [ScanController::class, 'manifest']);
         Route::post('/scan/sync', [ScanController::class, 'sync']);
+    });
+
+    // Paramètres de l'organisation (administrateur de l'org)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/admin/organization', [OrganizationSettingsController::class, 'show']);
+        Route::post('/admin/organization', [OrganizationSettingsController::class, 'update']);
     });
 
     // Back-office — gestion (administrateur & secrétaire)

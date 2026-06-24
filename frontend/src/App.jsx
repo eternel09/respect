@@ -1,12 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import Splash from './components/Loader'
+import ConnectionToast from './components/ConnectionToast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import OnboardingPage from './pages/OnboardingPage'
 import PresencePage from './pages/PresencePage'
 import AttendancePage from './pages/admin/AttendancePage'
 import DashboardPage from './pages/admin/DashboardPage'
 import OrganizationsPage from './pages/admin/OrganizationsPage'
+import SettingsPage from './pages/admin/SettingsPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
 import MembersPage from './pages/admin/MembersPage'
@@ -24,6 +26,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Splash />
+        <ConnectionToast />
         <Routes>
           {/* Public */}
           <Route path="/onboarding" element={<OnboardingPage />} />
@@ -42,7 +45,7 @@ export default function App() {
           <Route path="/admin/events"     element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
           <Route path="/admin/reports"    element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="/admin/qrcodes"    element={<ProtectedRoute><QrCodesPage /></ProtectedRoute>} />
-          <Route path="/admin/settings"   element={<ProtectedRoute><Navigate to="/admin/dashboard" replace /></ProtectedRoute>} />
+          <Route path="/admin/settings"   element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
           {/* Fallbacks */}
           <Route path="/admin" element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />
