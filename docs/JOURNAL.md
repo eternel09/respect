@@ -4,6 +4,10 @@ Suivi des problèmes rencontrés, de leur cause et de leur résolution. Le plus 
 
 ## 2026-06-23
 
+### QR du badge PDF affiché en blanc (« 0 octet »)
+- **Cause** : dompdf encode les PNG en data-URI avec un SMask (alpha) que certains lecteurs PDF rendent en blanc. L'image était bien embarquée (444×444, données non nulles) mais invisible.
+- **Fix** : QR du badge généré en **JPEG** (DCTDecode, fond blanc opaque, q92) → rendu fiable dans tous les lecteurs ; l'aperçu web reste en PNG. Même design (dégradé + modules arrondis). (`9f22531`)
+
 ### Une nouvelle organisation affichait les données de Famille Respect
 - **Cause** : dette multi-tenant connue — les endpoints de **lecture** (dashboard, membres, événements…) ne filtraient pas par `organization_id`. Avec une 2ᵉ org, son admin voyait les données de l'org par défaut.
 - **Fix** : trait `BelongsToOrganization` (scope global Eloquent filtrant sur l'org de l'utilisateur connecté ; super-admin et contextes sans user non restreints) appliqué à Member/Event/Attendance, + `DashboardController` (SQL brut) scopé explicitement. Isolation vérifiée (`a8c36a6`).
