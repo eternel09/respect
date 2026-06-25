@@ -29,27 +29,22 @@ api.interceptors.response.use(
  * Télécharge un fichier (PDF, etc.) depuis un endpoint authentifié et
  * déclenche l'enregistrement côté navigateur.
  */
-export async function downloadFile(url, filename) {
-  // L'endpoint renvoie une URL signée temporaire.
-  const res = await api.get(url)
-  const signedUrl = res.data?.url
-  if (!signedUrl) throw new Error('URL de téléchargement indisponible.')
+/**
+ * Télécharge un fichier protégé via navigation native (iframe cachée).
+ * Le token est passé en query (?token=) : pas de requête XHR/blob, pas d'URL
+ * signée, pas d'await → robuste derrière le proxy de dev. `path` est relatif
+ * à /api (ex. '/download/badge/9').
+ */
+export function downloadFile(path, filename) {
+  const token = localStorage.getItem('token')
+  const sep = path.includes('?') ? '&' : '?'
+  const href = `/api${path}${sep}token=${encodeURIComponent(token || '')}`
 
-  // On l'utilise en chemin RELATIF (même origine, via le proxy) : ainsi
-  // l'attribut `download` est respecté (un lien cross-origin l'ignorerait) et
-  // la signature reste valide. Le téléchargement est natif (pas de blob/XHR).
-  let href = signedUrl
-  try {
-    const u = new URL(signedUrl)
-    href = u.pathname + u.search
-  } catch { /* garde l'URL telle quelle si parsing impossible */ }
-
-  const a = document.createElement('a')
-  a.href = href
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  const frame = document.createElement('iframe')
+  frame.style.display = 'none'
+  frame.src = href
+  document.body.appendChild(frame)
+  setTimeout(() => frame.remove(), 120000)
 }
 
 /**

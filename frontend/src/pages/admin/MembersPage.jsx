@@ -67,7 +67,7 @@ export default function MembersPage() {
   const downloadBadge = async m => {
     setBadgeBusy(m.id); setBadgeError(null)
     try {
-      await downloadFile(`/admin/members/${m.id}/badge`, `badge-${slugify(m.full_name)}.pdf`)
+      await downloadFile(`/download/badge/${m.id}`, `badge-${slugify(m.full_name)}.pdf`)
     } catch (err) {
       setBadgeError(apiErrorMessage(err, "Impossible de générer le badge."))
     } finally { setBadgeBusy(null) }
@@ -76,7 +76,7 @@ export default function MembersPage() {
   const downloadAllBadges = async () => {
     setBadgeBusy('all'); setBadgeError(null)
     try {
-      await downloadFile('/admin/badges', 'badges-famille-respect.pdf')
+      await downloadFile('/download/badges', 'badges-famille-respect.pdf')
     } catch (err) {
       setBadgeError(apiErrorMessage(err, "Impossible de générer les badges."))
     } finally { setBadgeBusy(null) }
