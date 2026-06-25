@@ -49,7 +49,10 @@ export default function App() {
 
           {/* Fallbacks */}
           <Route path="/admin" element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />
-          <Route path="/"      element={<Navigate to="/onboarding" replace />} />
+          <Route path="/"      element={<Navigate to="/admin/login" replace />} />
+
+          {/* Toute URL inconnue → connexion (évite la page blanche) */}
+          <Route path="*"      element={<Navigate to="/admin/login" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
