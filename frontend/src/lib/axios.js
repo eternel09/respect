@@ -30,16 +30,23 @@ api.interceptors.response.use(
  * déclenche l'enregistrement côté navigateur.
  */
 export async function downloadFile(url, filename) {
-  // L'endpoint renvoie une URL signée temporaire ; on déclenche un
-  // téléchargement natif du navigateur (pas de blob/XHR → fiable).
+  // L'endpoint renvoie une URL signée temporaire.
   const res = await api.get(url)
   const signedUrl = res.data?.url
   if (!signedUrl) throw new Error('URL de téléchargement indisponible.')
 
+  // On l'utilise en chemin RELATIF (même origine, via le proxy) : ainsi
+  // l'attribut `download` est respecté (un lien cross-origin l'ignorerait) et
+  // la signature reste valide. Le téléchargement est natif (pas de blob/XHR).
+  let href = signedUrl
+  try {
+    const u = new URL(signedUrl)
+    href = u.pathname + u.search
+  } catch { /* garde l'URL telle quelle si parsing impossible */ }
+
   const a = document.createElement('a')
-  a.href = signedUrl
+  a.href = href
   a.download = filename
-  a.rel = 'noopener'
   document.body.appendChild(a)
   a.click()
   a.remove()
