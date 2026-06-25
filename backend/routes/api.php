@@ -19,6 +19,10 @@ Route::post('/onboarding', [OnboardingController::class, 'store']);
 Route::post('/attendance', [AttendanceController::class, 'store']);
 Route::get('/events/public', [EventController::class, 'public']);
 
+// Téléchargement de badges via URL signée (navigation native, sans auth header)
+Route::get('/download/badge/{member}', [BadgeController::class, 'single'])->name('badge.single')->middleware('signed');
+Route::get('/download/badges', [BadgeController::class, 'batch'])->name('badge.batch')->middleware('signed');
+
 // Admin auth
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
@@ -55,8 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/members', [MemberController::class, 'store']);
         Route::get('/admin/members/{member}', [MemberController::class, 'show']);
         Route::get('/admin/members/{member}/qr', [MemberController::class, 'qr']);
-        Route::get('/admin/members/{member}/badge', [BadgeController::class, 'single']);
-        Route::get('/admin/badges', [BadgeController::class, 'batch']);
+        Route::get('/admin/members/{member}/badge', [BadgeController::class, 'singleLink']);
+        Route::get('/admin/badges', [BadgeController::class, 'batchLink']);
 
         Route::get('/admin/attendances', [AttendanceController::class, 'index']);
         Route::get('/admin/attendances/today', [AttendanceController::class, 'today']);

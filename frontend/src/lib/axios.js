@@ -30,18 +30,19 @@ api.interceptors.response.use(
  * déclenche l'enregistrement côté navigateur.
  */
 export async function downloadFile(url, filename) {
-  const res = await api.get(url, { responseType: 'blob' })
-  // Conserve le blob d'origine (donc son type, ex. application/pdf).
-  const blob = res.data instanceof Blob ? res.data : new Blob([res.data])
-  const blobUrl = window.URL.createObjectURL(blob)
+  // L'endpoint renvoie une URL signée temporaire ; on déclenche un
+  // téléchargement natif du navigateur (pas de blob/XHR → fiable).
+  const res = await api.get(url)
+  const signedUrl = res.data?.url
+  if (!signedUrl) throw new Error('URL de téléchargement indisponible.')
+
   const a = document.createElement('a')
-  a.href = blobUrl
+  a.href = signedUrl
   a.download = filename
+  a.rel = 'noopener'
   document.body.appendChild(a)
   a.click()
   a.remove()
-  // Révoquer trop tôt annule le téléchargement (fichier 0 octet) → on diffère.
-  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000)
 }
 
 /**
