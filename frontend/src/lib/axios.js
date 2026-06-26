@@ -38,14 +38,11 @@ api.interceptors.response.use(
 export function downloadFile(path, filename) {
   const token = localStorage.getItem('token')
   const sep = path.includes('?') ? '&' : '?'
+  const href = `/api${path}${sep}token=${encodeURIComponent(token || '')}`
 
-  // On vise le backend DIRECTEMENT (port 8000), en contournant le proxy Vite
-  // qui tronque les grosses réponses binaires (→ 204 / fichier vide). Le token
-  // en query fait une requête simple (CORS *). En prod (même origine) le
-  // remplacement est sans effet.
-  const base = window.location.origin.replace(':5173', ':8000')
-  const href = `${base}/api${path}${sep}token=${encodeURIComponent(token || '')}`
-
+  // Vrai lien de téléchargement (navigation native). Un éventuel gestionnaire
+  // de téléchargement (IDM…) l'intercepte et télécharge le fichier ; contrairement
+  // à fetch/blob qu'il vide (réponse 204 côté JS).
   const a = document.createElement('a')
   a.href = href
   a.download = filename
