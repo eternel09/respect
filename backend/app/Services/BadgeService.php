@@ -46,6 +46,10 @@ class BadgeService
         return Pdf::loadView('pdf.badges', [
             'organization' => $organization,
             'members'      => $cards,
-        ])->setPaper('a4');
+        ])
+            // N'embarque que les glyphes utilisés → PDF beaucoup plus léger
+            // (sinon ~1 Mo de polices DejaVu, réponse trop grosse pour le dev).
+            ->setOption('isFontSubsettingEnabled', true)
+            ->setPaper('a4');
     }
 }
