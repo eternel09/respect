@@ -4,47 +4,125 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ScanRequest;
+use App\Http\Requests\ScanSyncRequest;
 use App\Models\Attendance;
 use App\Models\Event;
 use App\Models\Member;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class ScanController extends Controller
 {
     /**
-     * Enregistre la présence d'un membre à partir du scan de son QR personnel.
-     *
-     * Réponses (toujours avec un champ `status` pour piloter le retour visuel de l'app) :
-     *  - 201 recorded      : présence enregistrée
-     *  - 200 already       : déjà pointé pour cet événement aujourd'hui
-     *  - 404 unknown       : badge non reconnu dans cette organisation
-     *  - 422 invalid_event : événement introuvable dans cette organisation
+     * Scan en ligne d'un QR personnel → enregistre la présence.
      */
     public function store(ScanRequest $request): JsonResponse
     {
+        $result = $this->record(
+            $request->user()->organization_id,
+            $request->token,
+            $request->event_id,
+            $request->user()->id,
+            now(),
+        );
+
+        $http = $result['http'];
+        unset($result['http']);
+
+        return response()->json($result, $http);
+    }
+
+    /**
+     * Manifeste hors-ligne : liste des jetons des membres de l'organisation,
+     * téléchargée par l'app avant de perdre le réseau pour vérifier les scans
+     * localement et afficher les noms.
+     */
+    public function manifest(Request $request): JsonResponse
+    {
         $orgId = $request->user()->organization_id;
 
-        $member = Member::where('check_in_token', $request->token)
+        $event = null;
+        if ($request->event_id) {
+            $event = Event::where('id', $request->event_id)
+                ->where('organization_id', $orgId)
+                ->first();
+
+            if (! $event) {
+                return response()->json(['status' => 'invalid_event', 'message' => 'Événement introuvable.'], 422);
+            }
+        }
+
+        $members = Member::where('organization_id', $orgId)
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'last_name', 'phone', 'check_in_token']);
+
+        return response()->json([
+            'generated_at'    => now()->toIso8601String(),
+            'organization_id' => $orgId,
+            'event'           => $event ? ['id' => $event->id, 'name' => $event->name] : null,
+            'count'           => $members->count(),
+            'members'         => $members->map(fn (Member $m) => [
+                'id'        => $m->id,
+                'full_name' => $m->full_name,
+                'phone'     => $m->phone,
+                'token'     => $m->check_in_token,
+            ]),
+        ]);
+    }
+
+    /**
+     * Sync hors-ligne : reçoit un lot de scans collectés sans réseau et les
+     * enregistre, en conservant l'horodatage réel de chaque scan. Renvoie un
+     * résultat par scan pour permettre à l'app de réconcilier sa file.
+     */
+    public function sync(ScanSyncRequest $request): JsonResponse
+    {
+        $orgId  = $request->user()->organization_id;
+        $userId = $request->user()->id;
+
+        $results = [];
+        $summary = ['recorded' => 0, 'already' => 0, 'unknown' => 0, 'invalid_event' => 0];
+
+        foreach ($request->scans as $i => $scan) {
+            $r = $this->record($orgId, $scan['token'], $scan['event_id'], $userId, Carbon::parse($scan['scanned_at']));
+
+            $summary[$r['status']] = ($summary[$r['status']] ?? 0) + 1;
+            $results[] = [
+                'index'  => $i,
+                'token'  => $scan['token'],
+                'status' => $r['status'],
+            ];
+        }
+
+        return response()->json([
+            'summary' => $summary,
+            'results' => $results,
+        ]);
+    }
+
+    /**
+     * Cœur partagé : résout le membre + l'événement (scopés à l'organisation)
+     * et enregistre la présence. Retourne un tableau avec `status` et `http`.
+     */
+    private function record(int $orgId, string $token, int|string $eventId, int $userId, Carbon $scannedAt): array
+    {
+        $member = Member::where('check_in_token', $token)
             ->where('organization_id', $orgId)
             ->first();
 
         if (! $member) {
-            return response()->json([
-                'status'  => 'unknown',
-                'message' => 'Badge non reconnu.',
-            ], 404);
+            return ['status' => 'unknown', 'http' => 404, 'message' => 'Badge non reconnu.'];
         }
 
-        $event = Event::where('id', $request->event_id)
+        $event = Event::where('id', $eventId)
             ->where('organization_id', $orgId)
             ->first();
 
         if (! $event) {
-            return response()->json([
-                'status'  => 'invalid_event',
-                'message' => "Événement introuvable.",
-            ], 422);
+            return ['status' => 'invalid_event', 'http' => 422, 'message' => "Événement introuvable."];
         }
 
         $payload = [
@@ -52,43 +130,44 @@ class ScanController extends Controller
             'event'  => ['id' => $event->id, 'name' => $event->name],
         ];
 
-        $today = now()->toDateString();
+        $date = $scannedAt->toDateString();
 
         $already = Attendance::where('member_id', $member->id)
             ->where('event_id', $event->id)
-            ->whereDate('attended_date', $today)
+            ->whereDate('attended_date', $date)
             ->exists();
 
         if ($already) {
-            return response()->json([
+            return [
                 'status'  => 'already',
-                'message' => $member->first_name . ' a déjà été pointé(e) aujourd\'hui.',
-                ...$payload,
-            ], 200);
+                'http'    => 200,
+                'message' => $member->first_name . ' a déjà été pointé(e).',
+            ] + $payload;
         }
 
         try {
-            $attendance = Attendance::create([
+            $attendance = new Attendance([
                 'organization_id' => $orgId,
                 'member_id'       => $member->id,
                 'event_id'        => $event->id,
-                'attended_date'   => $today,
-                'scanned_by'      => $request->user()->id,
+                'attended_date'   => $date,
+                'scanned_by'      => $userId,
             ]);
+            $attendance->created_at = $scannedAt; // conserve l'heure réelle du scan (offline)
+            $attendance->save();
         } catch (QueryException) {
-            // Course critique : un autre scan a enregistré la présence entre-temps.
-            return response()->json([
+            return [
                 'status'  => 'already',
-                'message' => $member->first_name . ' a déjà été pointé(e) aujourd\'hui.',
-                ...$payload,
-            ], 200);
+                'http'    => 200,
+                'message' => $member->first_name . ' a déjà été pointé(e).',
+            ] + $payload;
         }
 
-        return response()->json([
+        return [
             'status'     => 'recorded',
+            'http'       => 201,
             'message'    => 'Présence enregistrée pour ' . $member->first_name . '.',
             'scanned_at' => $attendance->created_at->toDateTimeString(),
-            ...$payload,
-        ], 201);
+        ] + $payload;
     }
 }

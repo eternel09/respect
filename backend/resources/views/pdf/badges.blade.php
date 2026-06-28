@@ -8,51 +8,66 @@
         body { font-family: DejaVu Sans, sans-serif; margin: 0; color: #1f2937; }
 
         .card {
+            position: relative;
             display: inline-block;
-            width: 240px;
-            height: 150px;
+            width: 250px;
+            height: 160px;
             margin: 6px;
-            padding: 10px 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
+            border: 1px solid #e3e6ea;
+            border-radius: 14px;
+            overflow: hidden;
             vertical-align: top;
             page-break-inside: avoid;
+            background: #ffffff;
         }
-        .card table { width: 100%; border-collapse: collapse; }
-        .org {
-            font-size: 9px;
-            font-weight: bold;
-            color: #1e3a5f;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #e08a3c;
-            padding-bottom: 4px;
+        /* Liseré dégradé marque → accent */
+        .bar { height: 5px; background: linear-gradient(90deg, #1e3a5f 0%, #2f4f78 55%, #c9742b 100%); }
+        /* Filigrane */
+        .wm {
+            position: absolute;
+            top: 40px; left: 6px;
+            font-size: 46px; font-weight: bold;
+            color: #eef2f7;
+            letter-spacing: -2px;
+            white-space: nowrap;
         }
-        .qr { width: 96px; height: 96px; }
-        .name { font-size: 13px; font-weight: bold; color: #08060d; }
-        .meta { font-size: 9px; color: #9ca3af; }
-        .footer { font-size: 8px; color: #9ca3af; }
+        .inner { position: relative; padding: 9px 14px; }
+        .org { font-size: 8px; font-weight: bold; color: #1e3a5f; text-transform: uppercase; letter-spacing: 1px; }
+        .qr { width: 94px; height: 94px; }
+        .name { font-size: 14px; font-weight: bold; color: #08060d; }
+        .phone { font-size: 9px; color: #9ca3af; margin-top: 2px; }
+        .serial { font-family: DejaVu Sans Mono, monospace; font-size: 9px; color: #1e3a5f; margin-top: 8px; letter-spacing: 1px; line-height: 1.5; }
+        .serial b { color: #c9742b; }
+        .foot {
+            position: absolute; bottom: 7px; left: 14px;
+            font-size: 7px; color: #b8bec7; letter-spacing: 1px; text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
     @foreach ($members as $m)
         <div class="card">
-            <div class="org">{{ $organization->name }}</div>
-            <table>
-                <tr>
-                    <td style="width:100px; text-align:center;">
-                        <img class="qr" src="data:image/svg+xml;base64,{{ $m['qr'] }}" alt="QR">
-                    </td>
-                    <td style="padding-left:8px; vertical-align: middle;">
-                        <div class="name">{{ $m['full_name'] }}</div>
-                        <div class="meta">Membre #{{ $m['id'] }}</div>
-                        @if (!empty($m['phone']))
-                            <div class="meta">{{ $m['phone'] }}</div>
-                        @endif
-                        <div class="footer" style="margin-top:10px;">Badge de présence · scanner à l'entrée</div>
-                    </td>
-                </tr>
-            </table>
+            <div class="bar"></div>
+            <div class="wm">RESPECT</div>
+            <div class="inner">
+                <div class="org">{{ $organization->name }} · Badge membre</div>
+                <table style="width:100%; border-collapse:collapse; margin-top:6px;">
+                    <tr>
+                        <td style="width:100px; vertical-align:top;">
+                            <img class="qr" src="data:image/svg+xml;base64,{{ $m['qr'] }}" alt="QR">
+                        </td>
+                        <td style="padding-left:10px; vertical-align:top;">
+                            <div class="name">{{ $m['full_name'] }}</div>
+                            <div class="phone">{{ $m['phone'] }}</div>
+                            <div class="serial">
+                                N° <b>{{ str_pad($m['id'], 4, '0', STR_PAD_LEFT) }}</b><br>
+                                ID {{ $m['serial'] }}
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="foot">Scanner à l'entrée · {{ $organization->name }}</div>
         </div>
     @endforeach
 </body>

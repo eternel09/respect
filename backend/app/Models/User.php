@@ -18,16 +18,29 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    public const ROLES = ['super_admin', 'admin', 'secretaire', 'scanner'];
+
     protected $fillable = [
         'organization_id',
         'name',
         'email',
         'password',
+        'role',
     ];
 
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
     }
 
     /**

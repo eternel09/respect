@@ -2,22 +2,22 @@
 
 namespace Database\Seeders;
 
-use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class AdminSeeder extends Seeder
+class SuperAdminSeeder extends Seeder
 {
     public function run(): void
     {
+        // Super-admin plateforme (interne) : aucune organisation.
         User::firstOrCreate(
-            ['email' => 'admin@famillerespect.cd'],
+            ['email' => 'super@famillerespect.cd'],
             [
-                'name'            => 'Admin',
+                'name'            => 'Super Admin',
                 'password'        => Hash::make('password'),
-                'role'            => 'admin',
-                'organization_id' => Organization::query()->value('id'),
+                'role'            => 'super_admin',
+                'organization_id' => null,
             ]
         );
     }

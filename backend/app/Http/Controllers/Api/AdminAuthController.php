@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class AdminAuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
+            'user'  => $this->payload($user),
         ]);
     }
 
@@ -37,7 +38,19 @@ class AdminAuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
-        return response()->json(['id' => $user->id, 'name' => $user->name, 'email' => $user->email]);
+        return response()->json($this->payload($request->user()));
+    }
+
+    private function payload(User $user): array
+    {
+        return [
+            'id'           => $user->id,
+            'name'         => $user->name,
+            'email'        => $user->email,
+            'role'         => $user->role,
+            'organization' => $user->organization
+                ? ['id' => $user->organization->id, 'name' => $user->organization->name]
+                : null,
+        ];
     }
 }
