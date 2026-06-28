@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
  * Splash de marque affiché au démarrage de l'app.
  * Disparaît en fondu après `duration` ms (ou immédiatement si déjà chargé).
  */
-export default function Splash({ duration = 1400 }) {
+export default function Splash({ duration = 700 }) {
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function Splash({ duration = 1400 }) {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.25, duration: 0.5 }}
           >
-            Famille Respect
+            Signiq
           </motion.p>
 
           {/* Barre de progression */}

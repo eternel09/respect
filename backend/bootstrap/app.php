@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->statefulApi();
+        // Auth par token Bearer (Sanctum) → API stateless, pas de session/CSRF.
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserRole::class,
         ]);

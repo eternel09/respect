@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
-import api from '../../lib/axios'
+import AddMemberModal from '../../components/AddMemberModal'
+import MemberDetailModal from '../../components/MemberDetailModal'
+import api, { downloadFile, apiErrorMessage } from '../../lib/axios'
 
 function Avatar({ name }) {
   const initials = name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'
@@ -47,24 +49,79 @@ export default function MembersPage() {
   const [page, setPage]       = useState(1)
   const [loading, setLoading] = useState(true)
   const [stats, setStats]     = useState({ total: 0, avg: 84, new: 0 })
+  const [badgeBusy, setBadgeBusy] = useState(null) // id du membre, ou 'all'
+  const [badgeError, setBadgeError] = useState(null)
+  const [showAdd, setShowAdd]     = useState(false)
+  const [created, setCreated]     = useState(null) // { member, message } après ajout
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [detailId, setDetailId]   = useState(null) // membre dont on affiche la fiche
+
+  const handleCreated = (member, message) => {
+    setShowAdd(false)
+    setCreated({ member, message })
+    setRefreshKey(k => k + 1)
+  }
+
+  const slugify = name => (name || 'membre').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+  const downloadBadge = async m => {
+    setBadgeBusy(m.id); setBadgeError(null)
+    try {
+      await downloadFile(`/download/badge/${m.id}`, `badge-${slugify(m.full_name)}.pdf`)
+    } catch (err) {
+      setBadgeError(apiErrorMessage(err, "Impossible de générer le badge."))
+    } finally { setBadgeBusy(null) }
+  }
+
+  const downloadAllBadges = async () => {
+    setBadgeBusy('all'); setBadgeError(null)
+    try {
+      await downloadFile('/download/badges', 'badges-famille-respect.pdf')
+    } catch (err) {
+      setBadgeError(apiErrorMessage(err, "Impossible de générer les badges."))
+    } finally { setBadgeBusy(null) }
+  }
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([
-      api.get('/admin/members', { params: { search, page } }),
-      api.get('/admin/dashboard'),
-    ]).then(([membersRes, dashRes]) => {
-      setMembers(membersRes.data.data)
-      setMeta(membersRes.data.meta)
-      const s = dashRes.data.stats
-      setStats({ total: s.total_members, avg: 84, new: s.today_attendance_count })
-    }).catch(() => {})
+    api.get('/admin/members', { params: { search, page } })
+      .then(res => {
+        setMembers(res.data.data)
+        setMeta(res.data.meta)
+        setStats(s => ({ ...s, total: res.data.meta?.total ?? res.data.data.length }))
+      })
+      .catch(() => {})
       .finally(() => setLoading(false))
-  }, [search, page])
+  }, [search, page, refreshKey])
 
   return (
     <AdminLayout>
       <PageShell title="Member Directory" subtitle="Manage your community's active families and individuals.">
+
+        {badgeError && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">
+            {badgeError}
+          </div>
+        )}
+
+        {created && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-sm bg-emerald-50 text-emerald-800 border border-emerald-200 flex flex-col sm:flex-row sm:items-center gap-3">
+            <span className="flex-1">{created.message}</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => downloadBadge(created.member)}
+                disabled={badgeBusy === created.member.id}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-lg px-3 py-1.5 transition-colors disabled:opacity-60"
+              >
+                {badgeBusy === created.member.id
+                  ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>}
+                Télécharger le badge
+              </button>
+              <button onClick={() => setCreated(null)} className="text-emerald-700 hover:text-emerald-900 text-sm">✕</button>
+            </div>
+          </div>
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
@@ -82,14 +139,14 @@ export default function MembersPage() {
             icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" /></svg>}
           />
           <StatCard
-            label="New Members"
-            value={stats.new}
-            sub="This month"
+            label="Sur cette page"
+            value={members.length}
+            sub="Membres affichés"
             iconWrap="bg-accent-soft text-accent-dark"
             icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>}
           />
           {/* CTA card */}
-          <button className="rounded-2xl p-5 text-left text-white flex flex-col justify-between shadow-lg shadow-brand/20 transition-colors hover:bg-brand-dark bg-brand min-h-[120px]">
+          <button onClick={() => setShowAdd(true)} className="rounded-2xl p-5 text-left text-white flex flex-col justify-between shadow-lg shadow-brand/20 transition-colors hover:bg-brand-dark bg-brand min-h-[120px]">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center mb-3">
               <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
             </div>
@@ -118,9 +175,16 @@ export default function MembersPage() {
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z" /></svg>
               Sort
             </button>
-            <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-medium text-white rounded-xl px-3 py-2 transition-colors hover:bg-brand-dark bg-brand">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>
-              Export
+            <button
+              onClick={downloadAllBadges}
+              disabled={badgeBusy === 'all'}
+              title="Télécharger tous les badges en PDF"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-medium text-white rounded-xl px-3 py-2 transition-colors hover:bg-brand-dark bg-brand disabled:opacity-60"
+            >
+              {badgeBusy === 'all'
+                ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>}
+              Badges
             </button>
           </div>
         </div>
@@ -152,8 +216,10 @@ export default function MembersPage() {
                       <div className="flex items-center gap-3">
                         <Avatar name={m.full_name} />
                         <div>
-                          <p className="font-medium text-gray-900">{m.full_name}</p>
-                          <span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">Active</span>
+                          <button onClick={() => setDetailId(m.id)} className="font-medium text-gray-900 hover:text-brand transition-colors text-left">
+                            {m.full_name}
+                          </button>
+                          <div><span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">Active</span></div>
                         </div>
                       </div>
                     </td>
@@ -162,9 +228,21 @@ export default function MembersPage() {
                     <td className="px-5 py-4"><AttendanceBar pct={Math.min(100, (m.attendance_count || 0) * 10)} /></td>
                     <td className="px-5 py-4 text-gray-500">{m.created_at?.slice(0, 10)}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" /></svg>
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => downloadBadge(m)}
+                          disabled={badgeBusy === m.id}
+                          title="Télécharger le badge"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand hover:bg-sand transition-colors disabled:opacity-50"
+                        >
+                          {badgeBusy === m.id
+                            ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" />
+                            : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm12 0h2v2h-2v-2zm0 4h2v2h-2v-2zm-2-4h2v2h-2v-2zm4 0h2v2h-2v-2zm0 4h2v2h-2v-2z" /></svg>}
+                        </button>
+                        <button onClick={() => setDetailId(m.id)} title="Voir la fiche" className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand hover:bg-sand transition-colors">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-7a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" /></svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -200,6 +278,9 @@ export default function MembersPage() {
             </div>
           )}
         </div>
+
+        <AddMemberModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={handleCreated} />
+        <MemberDetailModal memberId={detailId} onClose={() => setDetailId(null)} onDownloadBadge={downloadBadge} badgeBusy={badgeBusy} />
       </PageShell>
     </AdminLayout>
   )

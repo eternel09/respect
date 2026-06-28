@@ -19,12 +19,22 @@ class QrCodeService
     }
 
     /**
-     * QR personnel d'un membre : encode son jeton opaque (aucune donnée perso).
-     * L'app scanner lit ce jeton et l'envoie à POST /api/scan.
+     * QR personnel d'un membre (SVG base64). Encode le jeton opaque.
+     *
+     * SVG simple, couleur de marque, modules carrés standard : c'est le format
+     * que dompdf rend de façon fiable dans le badge PDF (les images raster en
+     * data-URI — PNG/JPEG — peuvent s'afficher en blanc selon le lecteur, à
+     * cause de l'encodage SMask / du dossier temporaire). Le navigateur le rend
+     * tout aussi bien pour l'aperçu, donc écran et impression sont cohérents.
      */
     public function member(string $token): string
     {
-        // SVG : rendu pur-PHP (pas besoin de l'extension imagick), embarqué dans le PDF.
-        return base64_encode(QrCode::format('svg')->size(300)->margin(1)->generate($token));
+        return base64_encode(
+            QrCode::format('svg')
+                ->size(300)
+                ->margin(1)
+                ->color(30, 58, 95)
+                ->generate($token)
+        );
     }
 }
