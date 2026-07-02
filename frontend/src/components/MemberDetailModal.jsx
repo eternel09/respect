@@ -51,7 +51,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
           <motion.div
-            className="relative w-full max-w-2xl bg-white rounded-3xl ring-1 ring-black/5 shadow-xl overflow-hidden"
+            className="relative w-full max-w-3xl bg-white rounded-3xl ring-1 ring-black/5 shadow-xl overflow-hidden"
             initial={{ scale: 0.96, y: 12, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.96, y: 12, opacity: 0 }}
@@ -162,9 +162,9 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
 
 function Info({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-gray-50 pb-2">
-      <span className="text-sm text-gray-400">{label}</span>
-      <span className="text-sm font-medium text-gray-800 text-right truncate">{value}</span>
+    <div className="flex items-start justify-between gap-4 border-b border-gray-50 pb-2">
+      <span className="text-sm text-gray-400 whitespace-nowrap">{label}</span>
+      <span className="text-sm font-medium text-gray-800 text-right break-words min-w-0">{value}</span>
     </div>
   )
 }
