@@ -191,26 +191,27 @@ export default function MembersPage() {
               Filter
             </button>
             <button
-              onClick={generateBlankBadges}
-              disabled={badgeBusy === 'blank'}
-              title="Générer et imprimer des badges vierges (liés au premier scan)"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-medium text-accent-dark border border-accent-dark/40 rounded-xl px-3 py-2 hover:bg-accent-soft transition-colors disabled:opacity-60"
-            >
-              {badgeBusy === 'blank'
-                ? <span className="animate-spin h-4 w-4 border-2 border-accent-dark border-t-transparent rounded-full" />
-                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm13-1h2v2h2v2h-2v2h-2v-2h-2v-2h2v-2z" /></svg>}
-              Badges vierges
-            </button>
-            <button
               onClick={downloadAllBadges}
               disabled={badgeBusy === 'all'}
-              title="Télécharger tous les badges en PDF"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-medium text-white rounded-xl px-3 py-2 transition-colors hover:bg-brand-dark bg-brand disabled:opacity-60"
+              title="Télécharger les badges nominatifs des membres existants"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-sand transition-colors disabled:opacity-60"
             >
               {badgeBusy === 'all'
-                ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
                 : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>}
               Badges
+            </button>
+            {/* CTA principal : le flow idéal du système (badges pré-imprimés) */}
+            <button
+              onClick={generateBlankBadges}
+              disabled={badgeBusy === 'blank'}
+              title="Générer et imprimer des badges vierges — liés aux membres au premier scan"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-semibold text-white rounded-xl px-4 py-2 transition-colors bg-accent-dark hover:bg-accent shadow-lg shadow-accent-dark/25 disabled:opacity-60"
+            >
+              {badgeBusy === 'blank'
+                ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm13-1h2v2h2v2h-2v2h-2v-2h-2v-2h2v-2z" /></svg>}
+              Générer badges vierges
             </button>
           </div>
         </div>
