@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\BadgeController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\MemberCardController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
@@ -24,6 +25,8 @@ Route::get('/events/public', [EventController::class, 'public']);
 Route::get('/download/badge/{member}', [BadgeController::class, 'single']);
 Route::get('/download/badges', [BadgeController::class, 'batch']);
 Route::get('/download/badges-blank', [BadgeController::class, 'blankBatch']);
+Route::get('/download/card/{member}', [MemberCardController::class, 'single']);
+Route::get('/download/cards', [MemberCardController::class, 'batch']);
 
 // Admin auth
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
