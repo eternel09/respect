@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Terrain — scan du QR personnel (app mobile staff)
     Route::middleware('role:admin,scanner')->group(function () {
+        Route::get('/scan/events', [ScanController::class, 'events']);
         Route::post('/scan', [ScanController::class, 'store']);
         Route::get('/scan/manifest', [ScanController::class, 'manifest']);
         Route::post('/scan/sync', [ScanController::class, 'sync']);

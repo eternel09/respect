@@ -16,6 +16,17 @@ use Illuminate\Support\Carbon;
 class ScanController extends Controller
 {
     /**
+     * Événements de l'organisation du staff (pour l'app scanner).
+     * Le scope global BelongsToOrganization filtre déjà par organisation.
+     */
+    public function events(): JsonResponse
+    {
+        $events = Event::orderBy('date', 'desc')->get(['id', 'name', 'type', 'date']);
+
+        return response()->json(['data' => $events]);
+    }
+
+    /**
      * Scan en ligne d'un QR personnel → enregistre la présence.
      */
     public function store(ScanRequest $request): JsonResponse
