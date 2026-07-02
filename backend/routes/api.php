@@ -22,6 +22,7 @@ Route::get('/events/public', [EventController::class, 'public']);
 // Téléchargement de badges (navigation native ; auth par token en query)
 Route::get('/download/badge/{member}', [BadgeController::class, 'single']);
 Route::get('/download/badges', [BadgeController::class, 'batch']);
+Route::get('/download/badges-blank', [BadgeController::class, 'blankBatch']);
 
 // Admin auth
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
@@ -42,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,scanner')->group(function () {
         Route::get('/scan/events', [ScanController::class, 'events']);
         Route::post('/scan', [ScanController::class, 'store']);
+        Route::post('/scan/onboard', [ScanController::class, 'onboard']);
         Route::get('/scan/manifest', [ScanController::class, 'manifest']);
         Route::post('/scan/sync', [ScanController::class, 'sync']);
     });
@@ -60,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/members', [MemberController::class, 'store']);
         Route::get('/admin/members/{member}', [MemberController::class, 'show']);
         Route::get('/admin/members/{member}/qr', [MemberController::class, 'qr']);
+        Route::post('/admin/badges/blank', [BadgeController::class, 'createBlankBatch']);
 
         Route::get('/admin/attendances', [AttendanceController::class, 'index']);
         Route::get('/admin/attendances/today', [AttendanceController::class, 'today']);

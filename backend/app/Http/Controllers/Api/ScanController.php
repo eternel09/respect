@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ScanOnboardRequest;
 use App\Http\Requests\ScanRequest;
 use App\Http\Requests\ScanSyncRequest;
 use App\Models\Attendance;
+use App\Models\Badge;
 use App\Models\Event;
 use App\Models\Member;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ScanController extends Controller
 {
@@ -70,6 +73,13 @@ class ScanController extends Controller
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'last_name', 'phone', 'check_in_token']);
 
+        // Jetons des badges vierges : permet à l'app, hors-ligne, de distinguer
+        // « badge vierge (onboarding requis) » de « badge inconnu ».
+        $blankTokens = Badge::withoutGlobalScopes()
+            ->where('organization_id', $orgId)
+            ->whereNull('member_id')
+            ->pluck('token');
+
         return response()->json([
             'generated_at'    => now()->toIso8601String(),
             'organization_id' => $orgId,
@@ -81,7 +91,59 @@ class ScanController extends Controller
                 'phone'     => $m->phone,
                 'token'     => $m->check_in_token,
             ]),
+            'blank_tokens'    => $blankTokens,
         ]);
+    }
+
+    /**
+     * Onboarding terrain : premier scan d'un badge vierge → crée le membre,
+     * lie le jeton du badge, et enregistre sa présence dans la foulée.
+     */
+    public function onboard(ScanOnboardRequest $request): JsonResponse
+    {
+        $orgId  = $request->user()->organization_id;
+        $userId = $request->user()->id;
+
+        $badge = Badge::withoutGlobalScopes()
+            ->where('token', $request->token)
+            ->where('organization_id', $orgId)
+            ->first();
+
+        if (! $badge) {
+            return response()->json(['status' => 'unknown', 'message' => 'Badge non reconnu.'], 404);
+        }
+
+        // Course : le badge vient d'être lié par un autre scanner → pointage simple.
+        if ($badge->member_id) {
+            $result = $this->record($orgId, $request->token, $request->event_id, $userId, now());
+            $http = $result['http'];
+            unset($result['http']);
+            return response()->json($result, $http);
+        }
+
+        $member = DB::transaction(function () use ($request, $badge, $orgId) {
+            $member = Member::create([
+                'organization_id' => $orgId,
+                'first_name'      => $request->first_name,
+                'last_name'       => $request->last_name,
+                'phone'           => $request->phone,
+                'check_in_token'  => $badge->token, // le QR imprimé devient SON badge
+            ]);
+            $badge->update(['member_id' => $member->id]);
+
+            return $member;
+        });
+
+        // Présence enregistrée immédiatement (c'est un scan d'entrée)
+        $result = $this->record($orgId, $badge->token, $request->event_id, $userId, now());
+        $http = $result['http'];
+        unset($result['http']);
+
+        return response()->json([
+            ...$result,
+            'onboarded' => true,
+            'message'   => $member->first_name . ' enregistré(e) et pointé(e). Bienvenue !',
+        ], $http);
     }
 
     /**
@@ -125,6 +187,21 @@ class ScanController extends Controller
             ->first();
 
         if (! $member) {
+            // Badge vierge (pré-imprimé, jamais lié) → l'app ouvre l'onboarding.
+            $isBlank = Badge::withoutGlobalScopes()
+                ->where('token', $token)
+                ->where('organization_id', $orgId)
+                ->whereNull('member_id')
+                ->exists();
+
+            if ($isBlank) {
+                return [
+                    'status'  => 'unassigned',
+                    'http'    => 200,
+                    'message' => 'Badge vierge — enregistrez le membre pour le lier.',
+                ];
+            }
+
             return ['status' => 'unknown', 'http' => 404, 'message' => 'Badge non reconnu.'];
         }
 

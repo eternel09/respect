@@ -48,7 +48,7 @@
     @foreach ($members as $m)
         <div class="card">
             <div class="bar"></div>
-            <div class="wm">RESPECT</div>
+            <div class="wm">SIGNIQ</div>
             <div class="inner">
                 <div class="org">{{ $organization->name }} · Badge membre</div>
                 <table style="width:100%; border-collapse:collapse; margin-top:6px;">
@@ -57,8 +57,13 @@
                             <img class="qr" src="data:image/svg+xml;base64,{{ $m['qr'] }}" alt="QR">
                         </td>
                         <td style="padding-left:10px; vertical-align:top;">
-                            <div class="name">{{ $m['full_name'] }}</div>
-                            <div class="phone">{{ $m['phone'] }}</div>
+                            @if ($m['full_name'])
+                                <div class="name">{{ $m['full_name'] }}</div>
+                                <div class="phone">{{ $m['phone'] }}</div>
+                            @else
+                                <div class="phone" style="margin-top:6px;">Nom :</div>
+                                <div style="border-bottom:1px solid #b8bec7; height:16px; margin:2px 0 10px;"></div>
+                            @endif
                             <div class="serial">
                                 N° <b>{{ str_pad($m['id'], 4, '0', STR_PAD_LEFT) }}</b><br>
                                 ID {{ $m['serial'] }}
