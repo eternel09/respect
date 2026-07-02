@@ -191,6 +191,22 @@ export default function MembersPage() {
               Filter
             </button>
             <button
+              onClick={async () => {
+                setBadgeBusy('cards'); setBadgeError(null)
+                try { await downloadFile('/download/cards', 'cartes-membres.pdf') }
+                catch (err) { setBadgeError(apiErrorMessage(err, 'Impossible de générer les cartes.')) }
+                finally { setBadgeBusy(null) }
+              }}
+              disabled={badgeBusy === 'cards'}
+              title="Imprimer les cartes de membre design (format carte de visite)"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-sand transition-colors disabled:opacity-60"
+            >
+              {badgeBusy === 'cards'
+                ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h5v2H6v-2zm0 4h8v1.5H6V14zm10-4.5h2.5V12H16V9.5z" /></svg>}
+              Cartes
+            </button>
+            <button
               onClick={downloadAllBadges}
               disabled={badgeBusy === 'all'}
               title="Télécharger les badges nominatifs des membres existants"
