@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\OrganizationSettingsController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScanController;
+use App\Http\Controllers\Api\WhatsAppController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -65,6 +66,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/members/{member}', [MemberController::class, 'show']);
         Route::get('/admin/members/{member}/qr', [MemberController::class, 'qr']);
         Route::post('/admin/badges/blank', [BadgeController::class, 'createBlankBatch']);
+
+        // Carte de membre sur WhatsApp (service whatsapp-web.js)
+        Route::get('/admin/whatsapp/status', [WhatsAppController::class, 'status']);
+        Route::post('/admin/members/{member}/whatsapp-card', [WhatsAppController::class, 'sendCard']);
 
         Route::get('/admin/attendances', [AttendanceController::class, 'index']);
         Route::get('/admin/attendances/today', [AttendanceController::class, 'today']);

@@ -41,4 +41,10 @@ return [
         'from'  => env('TWILIO_FROM'),
     ],
 
+    // Micro-service Node (whatsapp-web.js) d'envoi des cartes de membre
+    'whatsapp' => [
+        'url' => env('WHATSAPP_SERVICE_URL', 'http://127.0.0.1:3001'),
+        'key' => env('WHATSAPP_SERVICE_KEY', 'signiq-dev-key'),
+    ],
+
 ];
