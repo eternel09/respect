@@ -13,7 +13,7 @@ const express = require('express')
 const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
-const { renderCard } = require('./card')
+const { renderCard, renderPrintPdf } = require('./card')
 
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.API_KEY || 'signiq-dev-key'
@@ -43,7 +43,7 @@ client.initialize().catch((e) => { state = 'error'; console.error('[wa] init:', 
 
 // ── API ─────────────────────────────────────────────────────
 const app = express()
-app.use(express.json({ limit: '2mb' }))
+app.use(express.json({ limit: '25mb' }))
 
 app.use((req, res, next) => {
   if (req.get('x-api-key') !== API_KEY) return res.status(401).json({ message: 'Clé API invalide.' })
@@ -59,6 +59,24 @@ app.post('/preview-card', async (req, res) => {
   } catch (e) {
     console.error('[card] rendu:', e.message)
     res.status(500).json({ message: 'Échec du rendu de la carte.' })
+  }
+})
+
+// Planche A4 de cartes (format carte de visite) — impression au même design
+app.post('/print-cards', async (req, res) => {
+  const { org, members } = req.body
+  if (!Array.isArray(members) || members.length === 0) {
+    return res.status(422).json({ message: 'Aucun membre à imprimer.' })
+  }
+  if (members.length > 100) {
+    return res.status(422).json({ message: '100 cartes maximum par planche.' })
+  }
+  try {
+    const pdf = await renderPrintPdf(puppeteer, { org, members })
+    res.type('application/pdf').send(pdf)
+  } catch (e) {
+    console.error('[card] planche:', e.message)
+    res.status(500).json({ message: 'Échec de la génération des cartes.' })
   }
 })
 
