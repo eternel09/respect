@@ -93,6 +93,13 @@ export default function ScanScreen({ event, onBack }) {
           <Text style={s.eventName} numberOfLines={1}>{event.name}</Text>
           <Text style={s.counters}>{count} scanné(s){pending > 0 ? ` · ${pending} hors-ligne` : ''}</Text>
         </View>
+        {/* Walk-in sans badge : enregistrer un nouveau membre à la main */}
+        <TouchableOpacity
+          onPress={() => { if (!busy.current) { busy.current = true; setOnboarding({ token: null }) } }}
+          style={s.addBtn}
+        >
+          <Text style={s.addBtnText}>＋</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Cadre de visée */}
@@ -113,14 +120,14 @@ export default function ScanScreen({ event, onBack }) {
         </View>
       )}
 
-      {/* Onboarding express (badge vierge) */}
-      {onboarding && <OnboardForm onSubmit={submitOnboarding} onCancel={closeOnboarding} />}
+      {/* Onboarding express (badge vierge ou walk-in sans badge) */}
+      {onboarding && <OnboardForm hasBadge={!!onboarding.token} onSubmit={submitOnboarding} onCancel={closeOnboarding} />}
     </View>
   )
 }
 
 /** Formulaire éclair : créer et lier le membre au badge fraîchement scanné. */
-function OnboardForm({ onSubmit, onCancel }) {
+function OnboardForm({ hasBadge, onSubmit, onCancel }) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
@@ -144,9 +151,13 @@ function OnboardForm({ onSubmit, onCancel }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={s.onboardCard}>
-        <Text style={s.obBadge}>NOUVEAU BADGE</Text>
+        <Text style={s.obBadge}>{hasBadge ? 'NOUVEAU BADGE' : 'NOUVEAU MEMBRE'}</Text>
         <Text style={s.obTitle}>Enregistrer le membre</Text>
-        <Text style={s.obSub}>Ce badge sera définitivement lié à cette personne.</Text>
+        <Text style={s.obSub}>
+          {hasBadge
+            ? 'Ce badge sera définitivement lié à cette personne.'
+            : 'Sans badge — un badge pourra lui être imprimé plus tard.'}
+        </Text>
 
         {error && <View style={s.obError}><Text style={s.obErrorText}>{error}</Text></View>}
 
@@ -194,6 +205,8 @@ const s = StyleSheet.create({
   },
   backBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   backBtnText: { color: colors.white, fontSize: 18 },
+  addBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.accentDark, alignItems: 'center', justifyContent: 'center' },
+  addBtnText: { color: colors.white, fontSize: 18, fontWeight: 'bold' },
   eventName: { color: colors.white, fontWeight: 'bold', fontSize: 15 },
   counters: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
 

@@ -76,19 +76,20 @@ export async function processScan(token, eventId) {
 }
 
 /**
- * Onboarding express au premier scan d'un badge vierge : crée le membre côté
- * serveur, lie le QR imprimé et enregistre la présence dans la foulée.
+ * Onboarding express : crée le membre côté serveur et enregistre sa présence.
+ * Avec `token` (badge vierge scanné) → le QR imprimé est lié au membre.
+ * Sans `token` (walk-in) → jeton auto-généré, badge imprimable plus tard.
  */
 export async function onboardScan(token, eventId, { firstName, lastName, phone }) {
   try {
     const res = await apiClient(8000).post('/scan/onboard', {
-      token,
+      token: token || null,
       event_id: eventId,
       first_name: firstName,
       last_name: lastName,
       phone: phone || null,
     })
-    await markScanned(scanKey(token, eventId))
+    if (token) await markScanned(scanKey(token, eventId))
     return {
       status: res.data.status, // recorded | already
       title: res.data.member?.full_name || `${firstName} ${lastName}`,
