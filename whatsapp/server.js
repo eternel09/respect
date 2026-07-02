@@ -13,7 +13,7 @@ const express = require('express')
 const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
-const { renderCard, renderPrintPdf } = require('./card')
+const { renderCard, renderPrintPdf, warmUp } = require('./card')
 
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.API_KEY || 'signiq-dev-key'
@@ -24,7 +24,14 @@ let qrDataUri = null
 
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-  puppeteer: { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] },
+  puppeteer: {
+    headless: true,
+    args: [
+      '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu',
+      '--disable-extensions', '--no-first-run', '--no-default-browser-check',
+      '--disable-dev-shm-usage',
+    ],
+  },
 })
 
 client.on('qr', async (qr) => {
@@ -107,4 +114,10 @@ app.post('/send-card', async (req, res) => {
   }
 })
 
-app.listen(PORT, () => console.log(`[wa] service Signiq WhatsApp sur http://127.0.0.1:${PORT}`))
+app.listen(PORT, () => {
+  console.log(`[wa] service Signiq WhatsApp sur http://127.0.0.1:${PORT}`)
+  console.log('[wa] connexion à WhatsApp Web en cours (15-40 s la première fois)…')
+  // Préchauffage du moteur de rendu en parallèle : l'impression des cartes
+  // n'attend pas la connexion WhatsApp.
+  warmUp(puppeteer).catch((e) => console.error('[card] préchauffage:', e.message))
+})

@@ -142,13 +142,26 @@ function cardLandscapeHtml({ org, name, memberNo, serial, qrDataUri }) {
 }
 
 // ── Rendu ───────────────────────────────────────────────────
+const LAUNCH_ARGS = [
+  '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu',
+  '--disable-extensions', '--no-first-run', '--no-default-browser-check',
+  '--disable-dev-shm-usage',
+]
+
 let rendererBrowser = null
 
 async function browser(puppeteer) {
   if (!rendererBrowser || !rendererBrowser.connected) {
-    rendererBrowser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] })
+    rendererBrowser = await puppeteer.launch({ headless: true, args: LAUNCH_ARGS })
   }
   return rendererBrowser
+}
+
+/** Préchauffe le navigateur de rendu au démarrage (impression dispo aussitôt). */
+async function warmUp(puppeteer) {
+  const t = Date.now()
+  await browser(puppeteer)
+  console.log(`[card] moteur de rendu prêt en ${((Date.now() - t) / 1000).toFixed(1)}s`)
 }
 
 /** Carte portrait en PNG retina (1800×2800) — pour WhatsApp. */
@@ -173,16 +186,19 @@ async function renderCard(puppeteer, data) {
 async function renderPrintPdf(puppeteer, { org, members }) {
   const b = await browser(puppeteer)
 
-  // 1) Capture de chaque carte (JPEG q88 : PDF léger, rendu identique)
-  const page = await b.newPage()
+  // 1) Capture séquentielle des cartes — fiable même quand le Chromium de
+  //    WhatsApp consomme le CPU (sa sync initiale). dsf 1,5 ≈ 450 DPI au
+  //    format 85,6 mm : net à l'impression et ~35 % plus rapide que le 2×.
   const shots = []
+  const page = await b.newPage()
   try {
-    await page.setViewport({ width: 1000, height: 620, deviceScaleFactor: 2 })
+    await page.setViewport({ width: 1000, height: 620, deviceScaleFactor: 1.5 })
     page.setDefaultTimeout(120000)
-    for (const m of members) {
-      await page.setContent(cardLandscapeHtml({ ...m, org }), { waitUntil: 'load', timeout: 60000 })
-      const jpg = Buffer.from(await page.screenshot({ type: 'jpeg', quality: 88 }))
+    for (let i = 0; i < members.length; i++) {
+      await page.setContent(cardLandscapeHtml({ ...members[i], org }), { waitUntil: 'load', timeout: 60000 })
+      const jpg = Buffer.from(await page.screenshot({ type: 'jpeg', quality: 85 }))
       shots.push(`data:image/jpeg;base64,${jpg.toString('base64')}`)
+      if ((i + 1) % 5 === 0 || i === members.length - 1) console.log(`[card] ${i + 1}/${members.length}`)
     }
   } finally {
     await page.close().catch(() => {})
@@ -213,4 +229,4 @@ async function renderPrintPdf(puppeteer, { org, members }) {
   }
 }
 
-module.exports = { renderCard, renderPrintPdf }
+module.exports = { renderCard, renderPrintPdf, warmUp }
