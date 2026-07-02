@@ -34,6 +34,10 @@ export async function processScan(token, eventId) {
   // 1) Tentative en ligne (timeout court : sur le terrain, on ne bloque pas)
   try {
     const res = await apiClient(4000).post('/scan', { token, event_id: eventId })
+    // Badge vierge : l'écran de scan ouvre le formulaire d'onboarding express.
+    if (res.data.status === 'unassigned') {
+      return { status: 'unassigned', token, title: 'Badge vierge', message: res.data.message }
+    }
     await markScanned(key)
     return {
       status: res.data.status, // recorded | already
@@ -55,6 +59,10 @@ export async function processScan(token, eventId) {
 
   // 2) Hors-ligne : vérification via le manifeste local + mise en file
   if (!known) {
+    // Badge vierge connu du manifeste → l'onboarding nécessite le réseau.
+    if (manifest?.blank_tokens?.includes(token)) {
+      return { status: 'blank-offline', title: 'Badge vierge', message: 'Connexion requise pour enregistrer un nouveau membre.' }
+    }
     return { status: 'unknown', title: 'Badge non reconnu', message: 'Hors-ligne : badge absent du manifeste local.' }
   }
 
@@ -64,6 +72,35 @@ export async function processScan(token, eventId) {
     status: 'offline-recorded',
     title: known.full_name,
     message: 'Enregistré hors-ligne — sera synchronisé.',
+  }
+}
+
+/**
+ * Onboarding express au premier scan d'un badge vierge : crée le membre côté
+ * serveur, lie le QR imprimé et enregistre la présence dans la foulée.
+ */
+export async function onboardScan(token, eventId, { firstName, lastName, phone }) {
+  try {
+    const res = await apiClient(8000).post('/scan/onboard', {
+      token,
+      event_id: eventId,
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone || null,
+    })
+    await markScanned(scanKey(token, eventId))
+    return {
+      status: res.data.status, // recorded | already
+      title: res.data.member?.full_name || `${firstName} ${lastName}`,
+      message: res.data.message,
+    }
+  } catch (err) {
+    if (isNetworkError(err)) {
+      return { status: 'blank-offline', title: 'Réseau perdu', message: 'Connexion requise pour enregistrer un nouveau membre.' }
+    }
+    const data = err.response?.data
+    const firstError = data?.errors ? Object.values(data.errors)[0]?.[0] : null
+    return { status: 'invalid', title: 'Enregistrement refusé', message: firstError || data?.message || 'Erreur serveur.', keepForm: err.response?.status === 422 }
   }
 }
 
