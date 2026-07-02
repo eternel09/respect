@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet,
-  Text, TouchableOpacity, View,
+  ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform,
+  RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native'
 import { apiClient, apiErrorMessage } from '../lib/api'
 import { refreshManifest, syncQueue } from '../lib/scanner'
@@ -17,6 +17,7 @@ export default function EventsScreen({ session, onEventSelected, onLogout }) {
   const [pending, setPending] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [preparing, setPreparing] = useState(null) // id de l'événement en préparation
+  const [showCreate, setShowCreate] = useState(false)
 
   const load = useCallback(async () => {
     setError(null)
@@ -83,8 +84,15 @@ export default function EventsScreen({ session, onEventSelected, onLogout }) {
         </TouchableOpacity>
       )}
 
-      <Text style={s.title}>Choisir un événement</Text>
-      <Text style={s.subtitle}>Le manifeste hors-ligne sera téléchargé automatiquement.</Text>
+      <View style={s.titleRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.title}>Choisir un événement</Text>
+          <Text style={s.subtitle}>Le manifeste hors-ligne sera téléchargé automatiquement.</Text>
+        </View>
+        <TouchableOpacity style={s.createBtn} onPress={() => setShowCreate(true)}>
+          <Text style={s.createBtnText}>＋ Nouveau</Text>
+        </TouchableOpacity>
+      </View>
 
       {error && <View style={s.errorBox}><Text style={s.errorText}>{error}</Text></View>}
 
@@ -107,7 +115,83 @@ export default function EventsScreen({ session, onEventSelected, onLogout }) {
           contentContainerStyle={{ paddingBottom: 24 }}
         />
       )}
+
+      {/* Création d'événement sur site : créé → manifeste → scan direct */}
+      {showCreate && (
+        <CreateEventForm
+          onCancel={() => setShowCreate(false)}
+          onCreated={(event) => { setShowCreate(false); select(event) }}
+        />
+      )}
     </View>
+  )
+}
+
+/** Formulaire de création d'événement depuis le terrain. */
+function CreateEventForm({ onCancel, onCreated }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [name, setName] = useState('')
+  const [type, setType] = useState('reunion')
+  const [date, setDate] = useState(today)
+  const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  const submit = async () => {
+    if (!name.trim()) { setError("Le nom de l'événement est obligatoire."); return }
+    setSaving(true); setError(null)
+    try {
+      const res = await apiClient().post('/scan/events', { name: name.trim(), type, date })
+      onCreated(res.data)
+    } catch (err) {
+      const data = err.response?.data
+      const firstError = data?.errors ? Object.values(data.errors)[0]?.[0] : null
+      setError(firstError || apiErrorMessage(err, "Création impossible."))
+      setSaving(false)
+    }
+  }
+
+  return (
+    <KeyboardAvoidingView style={s.modalWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={s.modalCard}>
+        <Text style={s.modalTitle}>Nouvel événement</Text>
+        <Text style={s.modalSub}>Créé pour votre organisation, prêt à scanner immédiatement.</Text>
+
+        {error && <View style={s.modalError}><Text style={s.modalErrorText}>{error}</Text></View>}
+
+        <TextInput
+          style={s.modalInput} value={name} onChangeText={setName}
+          placeholder="Nom de l'événement *" placeholderTextColor={colors.muted} autoFocus
+        />
+
+        <View style={s.chipRow}>
+          {Object.entries(TYPE_LABELS).map(([value, label]) => (
+            <TouchableOpacity
+              key={value}
+              style={[s.chip, type === value && s.chipActive]}
+              onPress={() => setType(value)}
+            >
+              <Text style={[s.chipText, type === value && s.chipTextActive]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TextInput
+          style={s.modalInput} value={date} onChangeText={setDate}
+          placeholder="Date (AAAA-MM-JJ)" placeholderTextColor={colors.muted} autoCapitalize="none"
+        />
+
+        <View style={s.modalRow}>
+          <TouchableOpacity style={s.modalCancel} onPress={onCancel} disabled={saving}>
+            <Text style={s.modalCancelText}>Annuler</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.modalSubmit, saving && { opacity: 0.6 }]} onPress={submit} disabled={saving}>
+            {saving
+              ? <ActivityIndicator color={colors.white} size="small" />
+              : <Text style={s.modalSubmitText}>Créer & scanner</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -119,8 +203,11 @@ const s = StyleSheet.create({
   logout: { color: colors.muted, fontSize: 13 },
   syncBanner: { backgroundColor: colors.warningBg, borderRadius: 14, padding: 12, marginBottom: 14, alignItems: 'center' },
   syncText: { color: colors.warning, fontSize: 13, fontWeight: '600' },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16, gap: 10 },
   title: { fontSize: 22, fontWeight: 'bold', color: colors.text },
-  subtitle: { fontSize: 12, color: colors.muted, marginBottom: 16, marginTop: 2 },
+  subtitle: { fontSize: 12, color: colors.muted, marginTop: 2 },
+  createBtn: { backgroundColor: colors.brand, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  createBtnText: { color: colors.white, fontWeight: 'bold', fontSize: 13 },
   errorBox: { backgroundColor: colors.dangerBg, borderRadius: 12, padding: 12, marginBottom: 10 },
   errorText: { color: colors.danger, fontSize: 13 },
   empty: { textAlign: 'center', color: colors.muted, marginTop: 40 },
@@ -132,4 +219,28 @@ const s = StyleSheet.create({
   cardName: { fontSize: 16, fontWeight: 'bold', color: colors.text },
   cardDate: { fontSize: 12, color: colors.muted, marginTop: 2 },
   cardSpinner: { position: 'absolute', right: 16, top: 22 },
+
+  modalWrap: {
+    ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,20,35,0.88)',
+    alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 10,
+  },
+  modalCard: { width: '100%', maxWidth: 380, backgroundColor: colors.white, borderRadius: 22, padding: 20 },
+  modalTitle: { fontSize: 19, fontWeight: 'bold', color: colors.text },
+  modalSub: { fontSize: 12, color: colors.muted, marginTop: 3, marginBottom: 14 },
+  modalError: { backgroundColor: colors.dangerBg, borderRadius: 10, padding: 10, marginBottom: 10 },
+  modalErrorText: { color: colors.danger, fontSize: 12 },
+  modalInput: {
+    borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, color: colors.text, marginBottom: 10,
+  },
+  chipRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  chip: { flex: 1, borderRadius: 999, paddingVertical: 9, alignItems: 'center', backgroundColor: '#f1f2f4' },
+  chipActive: { backgroundColor: colors.brand },
+  chipText: { fontSize: 13, color: colors.text, fontWeight: '600' },
+  chipTextActive: { color: colors.white },
+  modalRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  modalCancel: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', backgroundColor: '#f1f2f4' },
+  modalCancelText: { color: colors.text, fontWeight: '600', fontSize: 14 },
+  modalSubmit: { flex: 2, borderRadius: 12, paddingVertical: 13, alignItems: 'center', backgroundColor: colors.brand },
+  modalSubmitText: { color: colors.white, fontWeight: 'bold', fontSize: 14 },
 })
