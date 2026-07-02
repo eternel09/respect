@@ -35,8 +35,9 @@ class BadgeService
     }
 
     /**
-     * Planche de badges VIERGES (non liés) d'un lot d'impression : le QR est
-     * actif mais anonyme — le membre sera créé et lié au premier scan.
+     * Planche de badges VIERGES (non liés) d'un lot d'impression : QR pur,
+     * sans nom ni identifiant — grille compacte 4 par ligne pour économiser
+     * le papier. Le membre sera créé et lié au premier scan.
      */
     public function forBlankBatch(int $organizationId, string $batch): mixed
     {
@@ -46,15 +47,14 @@ class BadgeService
             ->where('batch', $batch)
             ->orderBy('id')
             ->get()
-            ->map(fn (Badge $b) => [
-                'id'        => $b->id,
-                'full_name' => null, // vierge → ligne d'écriture manuscrite
-                'phone'     => null,
-                'serial'    => strtoupper(substr($b->token, 0, 8)),
-                'qr'        => $this->qr->member($b->token),
-            ]);
+            ->map(fn (Badge $b) => ['qr' => $this->qr->member($b->token)]);
 
-        return $this->renderCards($organization, $cards);
+        return Pdf::loadView('pdf.badges-blank', [
+            'organization' => $organization,
+            'badges'       => $cards,
+        ])
+            ->setOption('isFontSubsettingEnabled', true)
+            ->setPaper('a4');
     }
 
     private function render(Organization $organization, Collection $members): mixed
