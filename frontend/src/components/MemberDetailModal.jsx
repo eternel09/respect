@@ -51,7 +51,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
           <motion.div
-            className="relative w-full max-w-lg bg-white rounded-3xl ring-1 ring-black/5 shadow-xl overflow-hidden"
+            className="relative w-full max-w-2xl bg-white rounded-3xl ring-1 ring-black/5 shadow-xl overflow-hidden"
             initial={{ scale: 0.96, y: 12, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.96, y: 12, opacity: 0 }}
@@ -59,7 +59,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
           >
             <div className="h-1.5 bg-gradient-to-r from-brand via-brand-light to-accent" />
 
-            <div className="p-6 max-h-[80vh] overflow-y-auto">
+            <div className="p-6 sm:p-8 max-h-[90vh] overflow-y-auto overflow-x-hidden">
               <div className="flex items-start justify-between mb-5">
                 <h2 className="text-lg font-bold text-gray-900">Fiche membre</h2>
                 <button onClick={onClose} className="w-8 h-8 -mr-1 rounded-lg flex items-center justify-center text-gray-400 hover:bg-sand">
@@ -87,7 +87,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
                   {/* QR + infos */}
                   <div className="flex flex-col sm:flex-row gap-5 mb-6">
                     <div className="flex-shrink-0 mx-auto sm:mx-0">
-                      <div className="w-36 h-36 rounded-2xl ring-1 ring-black/5 p-2 bg-white">
+                      <div className="w-44 h-44 rounded-2xl ring-1 ring-black/5 p-2 bg-white">
                         {qr && <img src={`data:image/svg+xml;base64,${qr}`} alt="QR" className="w-full h-full" />}
                       </div>
                       <button
@@ -116,7 +116,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
                       )}
                     </div>
 
-                    <div className="flex-1 space-y-3">
+                    <div className="flex-1 min-w-0 space-y-3">
                       <Info label="Téléphone" value={m.phone} />
                       <Info label="Inscrit le" value={m.created_at?.slice(0, 10)} />
                       <Info label="Présences" value={`${m.attendance_count ?? attendances.length} enregistrée(s)`} />
@@ -129,7 +129,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
                     {attendances.length === 0 ? (
                       <p className="text-sm text-gray-400 py-3">Aucune présence enregistrée.</p>
                     ) : (
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      <div className="space-y-1.5 max-h-72 overflow-y-auto">
                         {attendances.map(a => (
                           <div key={a.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-sand/70">
                             <div className="min-w-0">
