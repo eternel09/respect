@@ -82,6 +82,25 @@ export default function MembersPage() {
     } finally { setBadgeBusy(null) }
   }
 
+  // Badges vierges : QR pré-imprimés non liés — le membre est créé et lié
+  // au premier scan sur le terrain (onboarding express).
+  const generateBlankBadges = async () => {
+    const raw = window.prompt('Combien de badges vierges générer ? (max 200)', '20')
+    if (raw === null) return
+    const count = parseInt(raw, 10)
+    if (!count || count < 1 || count > 200) {
+      setBadgeError('Quantité invalide (1 à 200).')
+      return
+    }
+    setBadgeBusy('blank'); setBadgeError(null)
+    try {
+      const res = await api.post('/admin/badges/blank', { count })
+      await downloadFile(res.data.download_path, `badges-vierges-${res.data.batch}.pdf`)
+    } catch (err) {
+      setBadgeError(apiErrorMessage(err, 'Impossible de générer les badges vierges.'))
+    } finally { setBadgeBusy(null) }
+  }
+
   useEffect(() => {
     setLoading(true)
     api.get('/admin/members', { params: { search, page } })
@@ -171,9 +190,16 @@ export default function MembersPage() {
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39c.51-.66.04-1.61-.79-1.61H5.04c-.83 0-1.3.95-.79 1.61z" /></svg>
               Filter
             </button>
-            <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-sand">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z" /></svg>
-              Sort
+            <button
+              onClick={generateBlankBadges}
+              disabled={badgeBusy === 'blank'}
+              title="Générer et imprimer des badges vierges (liés au premier scan)"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-medium text-accent-dark border border-accent-dark/40 rounded-xl px-3 py-2 hover:bg-accent-soft transition-colors disabled:opacity-60"
+            >
+              {badgeBusy === 'blank'
+                ? <span className="animate-spin h-4 w-4 border-2 border-accent-dark border-t-transparent rounded-full" />
+                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm13-1h2v2h2v2h-2v2h-2v-2h-2v-2h2v-2z" /></svg>}
+              Badges vierges
             </button>
             <button
               onClick={downloadAllBadges}
