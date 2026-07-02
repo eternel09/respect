@@ -14,7 +14,9 @@ class ScanOnboardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'token'      => ['required', 'uuid'],
+            // Null = walk-in sans badge : le membre est créé avec un jeton
+            // auto-généré (badge imprimable plus tard au back-office).
+            'token'      => ['nullable', 'uuid'],
             'event_id'   => ['required', 'integer'],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name'  => ['required', 'string', 'max:100'],

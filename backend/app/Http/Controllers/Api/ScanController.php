@@ -104,6 +104,27 @@ class ScanController extends Controller
         $orgId  = $request->user()->organization_id;
         $userId = $request->user()->id;
 
+        // Walk-in sans badge : création directe du membre (jeton auto-généré)
+        // + pointage immédiat. Un badge pourra lui être imprimé plus tard.
+        if (! $request->token) {
+            $member = Member::create([
+                'organization_id' => $orgId,
+                'first_name'      => $request->first_name,
+                'last_name'       => $request->last_name,
+                'phone'           => $request->phone,
+            ]);
+
+            $result = $this->record($orgId, $member->check_in_token, $request->event_id, $userId, now());
+            $http = $result['http'];
+            unset($result['http']);
+
+            return response()->json([
+                ...$result,
+                'onboarded' => true,
+                'message'   => $member->first_name . ' enregistré(e) et pointé(e). Bienvenue !',
+            ], $http);
+        }
+
         $badge = Badge::withoutGlobalScopes()
             ->where('token', $request->token)
             ->where('organization_id', $orgId)
