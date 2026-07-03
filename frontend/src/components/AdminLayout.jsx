@@ -53,12 +53,8 @@ export default function AdminLayout({ children, search = false }) {
         <TopBar search={search} onMenu={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-auto">{children}</main>
         <footer className="px-4 sm:px-8 py-4 text-xs text-gray-400 flex flex-col sm:flex-row items-center gap-2 sm:gap-0 sm:justify-between border-t border-black/5">
-          <span>© 2026 Signiq · Family Management Systems</span>
-          <span className="flex gap-4">
-            <a href="#" className="hover:text-gray-600">Privacy Policy</a>
-            <a href="#" className="hover:text-gray-600">Terms of Service</a>
-            <a href="#" className="hover:text-gray-600">Contact Support</a>
-          </span>
+          <span>© 2026 Signiq · Gestion de présence par QR</span>
+          <span>Fait avec ❤ pour les organisations</span>
         </footer>
       </div>
     </div>
