@@ -22,21 +22,29 @@ class OrganizationController extends Controller
     {
         $orgs = Organization::withCount('members')
             ->orderBy('name')
-            ->get()
-            ->map(function (Organization $o) {
-                $admin = $o->users()->where('role', 'admin')->orderBy('id')->first();
-                return [
-                    'id'            => $o->id,
-                    'name'          => $o->name,
-                    'slug'          => $o->slug,
-                    'plan'          => $o->plan,
-                    'members_count' => $o->members_count,
-                    'admin_email'   => $admin?->email,
-                    'created_at'    => $o->created_at->toDateString(),
-                ];
-            });
+            ->paginate(25);
 
-        return response()->json(['data' => $orgs]);
+        $orgs->getCollection()->transform(function (Organization $o) {
+            $admin = $o->users()->where('role', 'admin')->orderBy('id')->first();
+            return [
+                'id'            => $o->id,
+                'name'          => $o->name,
+                'slug'          => $o->slug,
+                'plan'          => $o->plan,
+                'members_count' => $o->members_count,
+                'admin_email'   => $admin?->email,
+                'created_at'    => $o->created_at->toDateString(),
+            ];
+        });
+
+        return response()->json([
+            'data' => $orgs->items(),
+            'meta' => [
+                'total'        => $orgs->total(),
+                'last_page'    => $orgs->lastPage(),
+                'current_page' => $orgs->currentPage(),
+            ],
+        ]);
     }
 
     /**
