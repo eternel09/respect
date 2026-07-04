@@ -4,11 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../lib/axios'
 import CreateOrganizationModal from '../../components/CreateOrganizationModal'
+import Pagination from '../../components/Pagination'
 
 export default function OrganizationsPage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [orgs, setOrgs]         = useState([])
+  const [meta, setMeta]         = useState(null)
+  const [page, setPage]         = useState(1)
   const [loading, setLoading]   = useState(true)
   const [showCreate, setShow]   = useState(false)
   const [created, setCreated]   = useState(null) // résultat de création (avec temp_password)
@@ -16,11 +19,11 @@ export default function OrganizationsPage() {
 
   useEffect(() => {
     setLoading(true)
-    api.get('/admin/organizations')
-      .then(res => setOrgs(res.data.data))
+    api.get('/admin/organizations', { params: { page } })
+      .then(res => { setOrgs(res.data.data); setMeta(res.data.meta) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [refreshKey])
+  }, [refreshKey, page])
 
   const handleLogout = async () => { await logout(); navigate('/admin/login') }
   const handleCreated = result => { setShow(false); setCreated(result); setRefresh(k => k + 1) }
@@ -120,6 +123,7 @@ export default function OrganizationsPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination meta={meta} page={page} onChange={setPage} count={orgs.length} label="organisation(s)" />
           </div>
         </motion.div>
       </main>
