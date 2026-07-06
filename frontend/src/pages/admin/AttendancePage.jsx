@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
+import Pagination from '../../components/Pagination'
 import api from '../../lib/axios'
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
@@ -174,33 +175,7 @@ export default function AttendancePage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          {meta && meta.last_page > 1 && (
-            <div className="px-5 py-4 border-t border-black/5 flex flex-col sm:flex-row items-center gap-3 sm:justify-between text-sm text-gray-500">
-              <p>{rows.length} sur {meta.total} pointages</p>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-sand"
-                >‹</button>
-                {Array.from({ length: Math.min(meta.last_page, 3) }, (_, i) => i + 1).map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setPage(n)}
-                    className={`w-8 h-8 rounded-lg border text-xs transition-colors ${
-                      page === n ? 'bg-brand text-white border-brand' : 'border-gray-200 hover:bg-sand'
-                    }`}
-                  >{n}</button>
-                ))}
-                <button
-                  onClick={() => setPage(p => Math.min(meta.last_page, p + 1))}
-                  disabled={page === meta.last_page}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-sand"
-                >›</button>
-              </div>
-            </div>
-          )}
+          <Pagination meta={meta} page={page} onChange={setPage} count={rows.length} label="pointage(s)" />
         </div>
       </PageShell>
     </AdminLayout>

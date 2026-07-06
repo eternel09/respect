@@ -1,0 +1,15 @@
+{
+  "name": "signiq-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Service WhatsApp Signiq : envoi des cartes de membre (QR) via whatsapp-web.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "qrcode": "^1.5.3",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

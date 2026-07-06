@@ -54,7 +54,7 @@ export default function LoginPage() {
           <h2 className="text-white text-3xl font-bold leading-tight mb-4 tracking-tight">Gérez votre communauté en toute simplicité</h2>
           <p className="text-white/70 text-sm">Suivi des présences, gestion des membres et rapports — tout en un seul endroit.</p>
         </motion.div>
-        <p className="text-white/40 text-xs relative">© 2026 Signiq · Family Management Systems</p>
+        <p className="text-white/40 text-xs relative">© 2026 Signiq · Gestion de présence par QR</p>
       </div>
 
       {/* Formulaire (droite) */}
