@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Back-office — gestion (administrateur & secrétaire)
     Route::middleware('role:admin,secretaire')->group(function () {
         Route::get('/admin/dashboard', [DashboardController::class, 'index']);
+        Route::get('/admin/notifications', [DashboardController::class, 'notifications']);
 
         Route::get('/admin/members', [MemberController::class, 'index']);
         Route::post('/admin/members', [MemberController::class, 'store']);

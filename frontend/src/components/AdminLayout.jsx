@@ -1,11 +1,89 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import Sidebar from './Sidebar'
+import api from '../lib/axios'
 import { useAuth } from '../context/AuthContext'
 
-function TopBar({ search, onMenu }) {
-  const { user } = useAuth()
+const ROLE_LABELS = {
+  super_admin: 'Super-admin',
+  admin: 'Administrateur',
+  secretaire: 'Secrétaire',
+  scanner: 'Scanner',
+}
+
+const SEEN_KEY = 'signiq.notifSeen'
+
+/** « il y a 5 min », « il y a 2 h », « hier »… */
+function timeAgo(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
+  if (s < 60) return "à l'instant"
+  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`
+  const d = Math.floor(s / 86400)
+  return d === 1 ? 'hier' : `il y a ${d} j`
+}
+
+function Panel({ children, onClose }) {
   return (
-    <header className="h-16 bg-white border-b border-black/5 flex items-center gap-3 px-4 sm:px-8 sticky top-0 z-20">
+    <>
+      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+        transition={{ duration: 0.15 }}
+        className="absolute right-0 top-12 z-40 w-80 bg-white rounded-2xl ring-1 ring-black/5 shadow-xl overflow-hidden"
+      >
+        {children}
+      </motion.div>
+    </>
+  )
+}
+
+function TopBar({ onMenu }) {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(null) // 'notif' | 'profile' | null
+  const [notifs, setNotifs] = useState([])
+  const [unread, setUnread] = useState(0)
+
+  const computeUnread = (items) => {
+    const seen = localStorage.getItem(SEEN_KEY)
+    return seen ? items.filter(n => n.at > seen).length : items.length
+  }
+
+  const loadNotifs = () =>
+    api.get('/admin/notifications')
+      .then(res => {
+        const items = res.data.data || []
+        setNotifs(items)
+        setUnread(computeUnread(items))
+      })
+      .catch(() => {})
+
+  // Badge à jour au chargement puis toutes les 60 s
+  useEffect(() => {
+    if (user?.role === 'super_admin') return
+    loadNotifs()
+    const t = setInterval(loadNotifs, 60000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const openNotifs = () => {
+    setOpen(open === 'notif' ? null : 'notif')
+    if (open !== 'notif') {
+      loadNotifs()
+      localStorage.setItem(SEEN_KEY, new Date().toISOString())
+      setUnread(0)
+    }
+  }
+
+  const handleLogout = async () => { await logout(); navigate('/admin/login') }
+
+  return (
+    <header className="h-16 bg-white border-b border-black/5 flex items-center px-4 sm:px-8 sticky top-0 z-20">
       {/* Hamburger (mobile) */}
       <button
         onClick={onMenu}
@@ -15,42 +93,114 @@ function TopBar({ search, onMenu }) {
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" /></svg>
       </button>
 
-      <div className="flex-1 max-w-md">
-        {search && (
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
-            <input
-              type="text"
-              placeholder="Rechercher un membre..."
-              className="w-full pl-9 pr-4 py-2 text-sm bg-sand border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
-            />
-          </div>
-        )}
-      </div>
+      {/* Icônes ancrées au coin droit */}
+      <div className="ml-auto flex items-center gap-1 relative">
+        {/* Notifications */}
+        <div className="relative">
+          <button
+            onClick={openNotifs}
+            title="Notifications"
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-sand transition-colors"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" /></svg>
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
 
-      <div className="flex items-center gap-1">
-        <button className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-sand transition-colors">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" /></svg>
-        </button>
-        <button className="hidden sm:flex w-9 h-9 rounded-lg items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-sand transition-colors">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z" /></svg>
-        </button>
-        <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm font-semibold ml-1">
-          {(user?.email?.[0] || 'A').toUpperCase()}
+          <AnimatePresence>
+            {open === 'notif' && (
+              <Panel onClose={() => setOpen(null)}>
+                <div className="px-4 py-3 border-b border-black/5 font-semibold text-gray-900 text-sm">Notifications</div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifs.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-sm text-gray-400">Aucune activité récente.</p>
+                  ) : notifs.map(n => (
+                    <div key={n.id} className="px-4 py-3 flex items-start gap-3 border-b border-gray-50 last:border-0 hover:bg-sand/60">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        n.type === 'checkin' ? 'bg-emerald-50 text-emerald-600' : 'bg-accent-soft text-accent-dark'
+                      }`}>
+                        {n.type === 'checkin'
+                          ? <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                          : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{n.title}</p>
+                        <p className="text-xs text-gray-500 truncate">{n.detail}</p>
+                      </div>
+                      <span className="text-[11px] text-gray-400 whitespace-nowrap">{timeAgo(n.at)}</span>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Profil */}
+        <div className="relative">
+          <button
+            onClick={() => setOpen(open === 'profile' ? null : 'profile')}
+            title="Mon profil"
+            className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm font-semibold ml-1 hover:bg-brand-dark transition-colors"
+          >
+            {(user?.name?.[0] || user?.email?.[0] || 'A').toUpperCase()}
+          </button>
+
+          <AnimatePresence>
+            {open === 'profile' && (
+              <Panel onClose={() => setOpen(null)}>
+                <div className="p-5 bg-gradient-to-r from-brand to-brand-light text-white">
+                  <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center text-lg font-bold mb-3">
+                    {(user?.name?.[0] || 'A').toUpperCase()}
+                  </div>
+                  <p className="font-bold truncate">{user?.name}</p>
+                  <p className="text-xs text-white/70 truncate">{user?.email}</p>
+                </div>
+                <div className="p-4 space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Rôle</span>
+                    <span className="font-medium text-gray-800">{ROLE_LABELS[user?.role] || user?.role}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Organisation</span>
+                    <span className="font-medium text-gray-800 truncate max-w-[150px]">{user?.organization?.name || '—'}</span>
+                  </div>
+                </div>
+                <div className="p-3 border-t border-black/5 flex gap-2">
+                  <Link
+                    to="/admin/settings"
+                    onClick={() => setOpen(null)}
+                    className="flex-1 text-center text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl py-2 transition-colors"
+                  >
+                    Réglages
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex-1 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-xl py-2 transition-colors"
+                  >
+                    Déconnexion
+                  </button>
+                </div>
+              </Panel>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </header>
   )
 }
 
-export default function AdminLayout({ children, search = false }) {
+export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-sand">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar search={search} onMenu={() => setMobileOpen(true)} />
+        <TopBar onMenu={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-auto">{children}</main>
         <footer className="px-4 sm:px-8 py-4 text-xs text-gray-400 flex flex-col sm:flex-row items-center gap-2 sm:gap-0 sm:justify-between border-t border-black/5">
           <span>© 2026 Signiq · Gestion de présence par QR</span>
