@@ -12,6 +12,36 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    /**
+     * Flux de notifications : derniers pointages et nouveaux membres de
+     * l'organisation, fusionnés et triés du plus récent au plus ancien.
+     */
+    public function notifications(): JsonResponse
+    {
+        $checkins = Attendance::with(['member', 'event'])
+            ->latest()->limit(10)->get()
+            ->map(fn (Attendance $a) => [
+                'id'     => 'a' . $a->id,
+                'type'   => 'checkin',
+                'title'  => $a->member?->full_name ?? 'Membre',
+                'detail' => 'Présence — ' . ($a->event?->name ?? 'Événement'),
+                'at'     => $a->created_at->toIso8601String(),
+            ]);
+
+        $members = Member::latest()->limit(10)->get()
+            ->map(fn (Member $m) => [
+                'id'     => 'm' . $m->id,
+                'type'   => 'member',
+                'title'  => $m->full_name,
+                'detail' => 'Nouveau membre enregistré',
+                'at'     => $m->created_at->toIso8601String(),
+            ]);
+
+        $items = $checkins->concat($members)->sortByDesc('at')->take(15)->values();
+
+        return response()->json(['data' => $items]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $today = now()->toDateString();
