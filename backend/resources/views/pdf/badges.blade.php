@@ -48,7 +48,7 @@
     @foreach ($members as $m)
         <div class="card">
             <div class="bar"></div>
-            <div class="wm">RESPECT</div>
+            <div class="wm">SIGNIQ</div>
             <div class="inner">
                 <div class="org">{{ $organization->name }} · Badge membre</div>
                 <table style="width:100%; border-collapse:collapse; margin-top:6px;">

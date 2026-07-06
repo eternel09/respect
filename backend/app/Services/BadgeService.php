@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Badge;
 use App\Models\Member;
 use App\Models\Organization;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -33,6 +34,29 @@ class BadgeService
         return $this->render($organization, $members);
     }
 
+    /**
+     * Planche de badges VIERGES (non liés) d'un lot d'impression : QR pur,
+     * sans nom ni identifiant — grille compacte 4 par ligne pour économiser
+     * le papier. Le membre sera créé et lié au premier scan.
+     */
+    public function forBlankBatch(int $organizationId, string $batch): mixed
+    {
+        $organization = Organization::findOrFail($organizationId);
+
+        $cards = Badge::where('organization_id', $organizationId)
+            ->where('batch', $batch)
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Badge $b) => ['qr' => $this->qr->member($b->token)]);
+
+        return Pdf::loadView('pdf.badges-blank', [
+            'organization' => $organization,
+            'badges'       => $cards,
+        ])
+            ->setOption('isFontSubsettingEnabled', true)
+            ->setPaper('a4');
+    }
+
     private function render(Organization $organization, Collection $members): mixed
     {
         $cards = $members->map(fn (Member $m) => [
@@ -43,6 +67,11 @@ class BadgeService
             'qr'        => $this->qr->member($m->check_in_token),
         ]);
 
+        return $this->renderCards($organization, $cards);
+    }
+
+    private function renderCards(Organization $organization, Collection $cards): mixed
+    {
         return Pdf::loadView('pdf.badges', [
             'organization' => $organization,
             'members'      => $cards,

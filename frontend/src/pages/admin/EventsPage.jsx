@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
+import Pagination from '../../components/Pagination'
 import Alert from '../../components/ui/Alert'
 import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
@@ -17,16 +18,18 @@ export default function EventsPage() {
   const [form, setForm]       = useState({ name: '', type: 'reunion', date: '', description: '' })
   const [errors, setErrors]   = useState({})
   const [showForm, setShowForm] = useState(false)
+  const [meta, setMeta]       = useState(null)
+  const [page, setPage]       = useState(1)
 
-  const fetchEvents = () => {
+  const fetchEvents = (p = page) => {
     setLoading(true)
-    api.get('/admin/events')
-      .then((res) => setEvents(res.data.data))
+    api.get('/admin/events', { params: { page: p } })
+      .then((res) => { setEvents(res.data.data); setMeta(res.data.meta) })
       .catch(() => {})
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetchEvents() }, [])
+  useEffect(() => { fetchEvents(page) }, [page])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -139,6 +142,7 @@ export default function EventsPage() {
             </table>
             </div>
           )}
+          <Pagination meta={meta} page={page} onChange={setPage} count={events.length} label="événement(s)" />
         </Card>
        </div>
       </PageShell>

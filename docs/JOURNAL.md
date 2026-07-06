@@ -2,6 +2,29 @@
 
 Suivi des problèmes rencontrés, de leur cause et de leur résolution. Le plus récent en haut.
 
+## 2026-07-02
+
+### 🎉 Jalon : app scanner mobile opérationnelle de bout en bout
+Badge QR imprimé → scan Expo (online + hors-ligne) → sync → back-office : chaîne complète validée sur appareil réel. Deux obstacles rencontrés au passage :
+
+### Expo Go incompatible (« le projet ne tourne pas »)
+- **Cause** : projet scaffoldé en **SDK 56**, mais l'Expo Go du Play Store de l'appareil supporte **SDK 54** max.
+- **Fix** : rétrogradation en SDK 54 (`expo@54.0.35`, RN 0.81.5) + réinstallation propre (conflits npm des restes SDK 56) ; `expo-doctor` 18/18. (`625834e`)
+
+### « Connexion impossible » depuis Expo Go
+- **Causes** : serveurs tombés (fin de session) + **pare-feu Windows** bloquant les connexions entrantes du téléphone sur 8081/8000.
+- **Fix** : relance des serveurs (`artisan serve --host=0.0.0.0`, Metro) + règles pare-feu ajoutées **en PowerShell admin** (ports TCP 8081 + 8000). Test décisif : ouvrir `http://<ip-pc>:8000/api/events/public` dans le navigateur du téléphone (JSON = réseau OK).
+- **Rappel dev mobile** : le backend doit écouter sur `0.0.0.0` (pas 127.0.0.1) pour être joignable du téléphone ; l'URL serveur de l'app est auto-dérivée de l'hôte Metro.
+
+## 2026-06-26
+
+### Le badge PDF ne se téléchargeait jamais (204 / « échec de chargement » / 0 octet) — saga
+- **Symptômes** : selon les tentatives, fichier 0 octet, « Échec de chargement du document PDF », ou statut **204** dans le navigateur — alors que `curl` recevait toujours un **PDF valide de 1,37 Mo** (structure OK, endpoints 200, pas de service worker, bon code servi).
+- **CAUSE RACINE** : **Internet Download Manager (IDM)** installé sur le navigateur. Son extension (« IDM Advanced Integration ») **intercepte les requêtes de fichiers téléchargeables** et renvoie un **204** aux lectures JS (fetch/XHR/blob), produisant des fichiers vides. `curl` n'est pas intercepté → d'où l'écart navigateur/curl, déterministe et trompeur. Révélé par la console : `net::ERR_FAILED 204 (Intercepted by the IDM Advanced Integration)`.
+- **Fix** : téléchargement via un **vrai lien `<a download>`** (navigation native, même origine, token en query) — IDM l'intercepte et télécharge normalement le fichier, contrairement à fetch/blob qu'il vide. (`44cc479`)
+- **Gains collatéraux** : badge réduit de **1,37 Mo → 29 Ko** via `isFontSubsettingEnabled` (dompdf embarquait les polices DejaVu entières) (`5d61a80`) ; QR du badge en **SVG vectoriel** simple (`5dc48e2`) ; route `/download/badge/{member}` authentifiée par token en query ; catch-all de route pour éviter la page blanche sur URL inconnue (`a9b354c`).
+- **Leçon** : devant un écart navigateur-vs-curl déterministe et inexplicable côté serveur, **suspecter une extension/proxy local** (gestionnaire de téléchargement, antivirus, IDM…) tôt — la console l'aurait montré immédiatement.
+
 ## 2026-06-23
 
 ### QR du badge PDF affiché en blanc (« 0 octet »)
