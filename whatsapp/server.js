@@ -52,6 +52,9 @@ client.initialize().catch((e) => { state = 'error'; console.error('[wa] init:', 
 const app = express()
 app.use(express.json({ limit: '25mb' }))
 
+// Sonde de santé (sans clé) — pour le healthcheck Docker / l'auto-redémarrage.
+app.get('/health', (req, res) => res.json({ ok: true, state }))
+
 app.use((req, res, next) => {
   if (req.get('x-api-key') !== API_KEY) return res.status(401).json({ message: 'Clé API invalide.' })
   next()
