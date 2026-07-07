@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.production.example
+node_modules
+vendor
+storage/*.key
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+database/database.sqlite
+tests
+.phpunit.result.cache
+README.md
