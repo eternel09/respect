@@ -1,7 +1,12 @@
 import axios from 'axios'
 
+// Origine de l'API. En prod (sous-domaines) : VITE_API_URL = https://api.domaine.
+// En dev : vide → chemin relatif '/api' servi par le proxy Vite.
+const API_ROOT = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+export const API_BASE = `${API_ROOT}/api`
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 })
 
@@ -38,7 +43,9 @@ api.interceptors.response.use(
 export function downloadFile(path, filename) {
   const token = localStorage.getItem('token')
   const sep = path.includes('?') ? '&' : '?'
-  const href = `/api${path}${sep}token=${encodeURIComponent(token || '')}`
+  // Même origine que l'API (absolue en prod). Le header Content-Disposition:
+  // attachment force le téléchargement même en cross-origin.
+  const href = `${API_BASE}${path}${sep}token=${encodeURIComponent(token || '')}`
 
   // Vrai lien de téléchargement (navigation native). Un éventuel gestionnaire
   // de téléchargement (IDM…) l'intercepte et télécharge le fichier ; contrairement
