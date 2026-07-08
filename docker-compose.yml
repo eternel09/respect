@@ -6,9 +6,9 @@
 # Secrets attendus dans l'onglet Environment de Dokploy (NE PAS committer) :
 #   APP_KEY, DB_USERNAME, DB_PASSWORD, WHATSAPP_SERVICE_KEY
 #
-# Domaines (à mapper dans l'onglet Domains de Dokploy) :
-#   signiq.saas.cd      -> service "frontend"  port 80
-#   api.signiq.saas.cd  -> service "backend"   port 8080
+# Domaines (mono-domaine, routage par chemin dans l'onglet Domains de Dokploy) :
+#   signiq.saas.cd  path /      -> service "frontend"  port 80
+#   signiq.saas.cd  path /api   -> service "backend"   port 8080 (strip path OFF)
 
 services:
   backend:
@@ -20,7 +20,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: ${APP_KEY}
-      APP_URL: https://api.signiq.saas.cd
+      APP_URL: https://signiq.saas.cd
       LOG_CHANNEL: stderr
       LOG_LEVEL: error
       DB_CONNECTION: pgsql
@@ -41,7 +41,9 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: https://api.signiq.saas.cd
+        # Vide → l'app appelle l'API en RELATIF (/api), même domaine que le
+        # front (signiq.saas.cd). Traefik route /api vers le backend.
+        VITE_API_URL: ""
     restart: unless-stopped
     networks: [dokploy-network]
 
