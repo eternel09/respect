@@ -6,9 +6,10 @@
 # Secrets attendus dans l'onglet Environment de Dokploy (NE PAS committer) :
 #   APP_KEY, DB_USERNAME, DB_PASSWORD, WHATSAPP_SERVICE_KEY
 #
-# Domaines (mono-domaine, routage par chemin dans l'onglet Domains de Dokploy) :
-#   signiq.saas.cd  path /      -> service "frontend"  port 80
-#   signiq.saas.cd  path /api   -> service "backend"   port 8080 (strip path OFF)
+# Domaine (UN SEUL, dans l'onglet Domains de Dokploy) :
+#   signiq.saas.cd  ->  service "frontend"  port 80
+# Le Nginx du frontend sert la SPA et reverse-proxy /api -> backend:8080
+# (même origine, pas de CORS, pas de sous-domaine api). Voir frontend/nginx.conf.
 
 services:
   backend:
@@ -42,10 +43,11 @@ services:
       context: ./frontend
       args:
         # Vide → l'app appelle l'API en RELATIF (/api), même domaine que le
-        # front (signiq.saas.cd). Traefik route /api vers le backend.
+        # front. Le Nginx du front proxy /api vers le backend (voir nginx.conf).
         VITE_API_URL: ""
     restart: unless-stopped
-    networks: [dokploy-network]
+    # internal : pour joindre le service "backend" en reverse-proxy Nginx.
+    networks: [dokploy-network, internal]
 
   whatsapp:
     build:
