@@ -47,4 +47,9 @@ return [
         'key' => env('WHATSAPP_SERVICE_KEY', 'signiq-dev-key'),
     ],
 
+    // Jeton lecture seule pour servir l'APK depuis la release GitHub privée
+    'github' => [
+        'releases_token' => env('GITHUB_RELEASES_TOKEN'),
+    ],
+
 ];

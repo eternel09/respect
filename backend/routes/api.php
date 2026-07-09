@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Controllers\Api\AppDistributionController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\BadgeController;
 use App\Http\Controllers\Api\DashboardController;
@@ -27,6 +28,9 @@ Route::get('/download/badges', [BadgeController::class, 'batch']);
 Route::get('/download/badges-blank', [BadgeController::class, 'blankBatch']);
 Route::get('/download/card/{member}', [MemberCardController::class, 'single']);
 Route::get('/download/cards', [MemberCardController::class, 'batch']);
+
+// APK de l'app scanner (public : lien partagé au staff)
+Route::get('/download/app', [AppDistributionController::class, 'latest']);
 
 // Admin auth
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
