@@ -36,6 +36,8 @@ services:
       CORS_ALLOWED_ORIGINS: https://signiq.saas.cd
       WHATSAPP_SERVICE_URL: http://whatsapp:3001
       WHATSAPP_SERVICE_KEY: ${WHATSAPP_SERVICE_KEY}
+      # Jeton GitHub lecture seule (Contents: read) pour distribuer l'APK
+      GITHUB_RELEASES_TOKEN: ${GITHUB_RELEASES_TOKEN:-}
     networks: [dokploy-network, internal]
 
   frontend:
