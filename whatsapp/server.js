@@ -9,6 +9,8 @@
  * Première liaison : ouvrir les Réglages du back-office et scanner le QR
  * avec le WhatsApp de l'organisation (WhatsApp → Appareils connectés).
  */
+const fs = require('fs')
+const path = require('path')
 const express = require('express')
 const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
@@ -17,6 +19,20 @@ const { renderCard, renderPrintPdf, warmUp } = require('./card')
 
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.API_KEY || 'signiq-dev-key'
+
+// Au redémarrage du conteneur, le volume persistant peut garder des verrous
+// Chromium résiduels ("SingletonLock/Cookie/Socket") d'une instance tuée →
+// "profile appears to be in use" et échec de lancement. On les purge au boot.
+function clearChromiumLocks(dir) {
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name)
+      if (entry.isDirectory()) clearChromiumLocks(p)
+      else if (/^Singleton(Lock|Cookie|Socket)$/.test(entry.name)) fs.rmSync(p, { force: true })
+    }
+  } catch { /* dossier absent au premier démarrage : rien à nettoyer */ }
+}
+clearChromiumLocks('./.wwebjs_auth')
 
 // ── Client WhatsApp ─────────────────────────────────────────
 let state = 'starting'
