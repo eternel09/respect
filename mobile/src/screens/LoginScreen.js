@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet,
+  ActivityIndicator, Image, KeyboardAvoidingView, Platform, StyleSheet,
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native'
 import { apiClient, apiErrorMessage, configureApi, defaultServerUrl } from '../lib/api'
@@ -41,11 +41,8 @@ export default function LoginScreen({ onLoggedIn }) {
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={s.card}>
         <View style={s.logoRow}>
-          <View style={s.logoBox}><Text style={s.logoGlyph}>▍▍</Text></View>
-          <View>
-            <Text style={s.brand}>Signiq</Text>
-            <Text style={s.sub}>Scanner de présence</Text>
-          </View>
+          <Image source={require('../../assets/logo-full.png')} style={s.logoImg} />
+          <Text style={s.sub}>Scanner de présence</Text>
         </View>
 
         {error && <View style={s.errorBox}><Text style={s.errorText}>{error}</Text></View>}
@@ -91,10 +88,8 @@ export default function LoginScreen({ onLoggedIn }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.sand, justifyContent: 'center', padding: 20 },
   card: { backgroundColor: colors.white, borderRadius: 24, padding: 24, elevation: 3 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
-  logoBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' },
-  logoGlyph: { color: colors.white, fontWeight: 'bold', fontSize: 16 },
-  brand: { fontSize: 20, fontWeight: 'bold', color: colors.brand },
+  logoRow: { alignItems: 'flex-start', gap: 6, marginBottom: 24 },
+  logoImg: { width: 150, height: 45, resizeMode: 'contain' },
   sub: { fontSize: 12, color: colors.muted },
   label: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6, marginTop: 12 },
   input: {

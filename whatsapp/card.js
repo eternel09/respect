@@ -5,6 +5,11 @@
  *  - Planche A4 (PDF)      : cartes paysage au format CR80 (85,6×54 mm), 8/page.
  */
 
+const fs = require('fs')
+
+// Logo blanc embarqué en data-URI (rendu fiable dans Puppeteer, aucun réseau)
+const LOGO_WHITE = `data:image/png;base64,${fs.readFileSync(__dirname + '/assets/logo-white.png').toString('base64')}`
+
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -31,10 +36,7 @@ const SHARED_CSS = `
     display: flex; flex-direction: column;
   }
   .org { font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.92); }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-box { border-radius: 10px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35);
-               display: flex; align-items: center; justify-content: center; font-weight: 800; }
-  .brand-name { font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,0.75); }
+  .brand-logo { opacity: 0.92; }
   .label { letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.55); }
   .name { font-weight: 800; text-shadow: 0 2px 14px rgba(0,0,0,0.25); }
   .no { display: inline-block; border-radius: 999px; background: rgba(224,138,60,0.28);
@@ -58,8 +60,7 @@ function cardPortraitHtml({ org, name, memberNo, serial, qrDataUri }) {
   .glass { width: 780px; height: 1280px; border-radius: 48px; padding: 60px 56px; }
   .head { display: flex; align-items: center; justify-content: space-between; }
   .org { font-size: 26px; max-width: 480px; }
-  .brand-box { width: 42px; height: 42px; font-size: 18px; }
-  .brand-name { font-size: 19px; }
+  .brand-logo { height: 44px; }
   .label { font-size: 19px; margin-top: 64px; }
   .name { font-size: 68px; line-height: 1.1; margin-top: 14px; }
   .no { margin-top: 28px; padding: 14px 30px; font-size: 26px; }
@@ -76,7 +77,7 @@ function cardPortraitHtml({ org, name, memberNo, serial, qrDataUri }) {
   <div class="glass">
     <div class="head">
       <div class="org">${escapeHtml(org)}</div>
-      <div class="brand"><div class="brand-box">▍▍</div><div class="brand-name">SIGNIQ</div></div>
+      <img class="brand-logo" src="${LOGO_WHITE}" alt="Signiq">
     </div>
     <div class="label">Carte de membre</div>
     <div class="name">${escapeHtml(name)}</div>
@@ -104,8 +105,7 @@ function cardLandscapeHtml({ org, name, memberNo, serial, qrDataUri }) {
   .glass { width: 880px; height: 500px; border-radius: 34px; padding: 44px 52px; }
   .head { display: flex; align-items: center; justify-content: space-between; }
   .org { font-size: 22px; }
-  .brand-box { width: 34px; height: 34px; font-size: 15px; }
-  .brand-name { font-size: 16px; }
+  .brand-logo { height: 30px; }
   .bodyrow { flex: 1; display: flex; align-items: center; gap: 48px; margin-top: 20px; }
   .identity { flex: 1; }
   .label { font-size: 15px; }
@@ -123,7 +123,7 @@ function cardLandscapeHtml({ org, name, memberNo, serial, qrDataUri }) {
   <div class="glass">
     <div class="head">
       <div class="org">${escapeHtml(org)}</div>
-      <div class="brand"><div class="brand-box">▍▍</div><div class="brand-name">SIGNIQ</div></div>
+      <img class="brand-logo" src="${LOGO_WHITE}" alt="Signiq">
     </div>
     <div class="bodyrow">
       <div class="identity">
