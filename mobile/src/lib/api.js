@@ -2,14 +2,20 @@ import axios from 'axios'
 import Constants from 'expo-constants'
 
 /**
- * URL du backend. En développement Expo, on la dérive automatiquement de
- * l'hôte Metro (le PC qui sert l'app) : même machine, port 8000 → zéro config
- * sur le réseau local. Reste modifiable depuis l'écran de connexion.
+ * URL du backend.
+ *  - En DEV (lancé via Metro) : dérivée de l'hôte Metro (même PC, port 8000)
+ *    → zéro config sur le réseau local.
+ *  - En BUILD AUTONOME (APK, pas de Metro) : l'API de PRODUCTION.
+ * Reste modifiable depuis l'écran de connexion dans les deux cas.
  */
+export const PROD_SERVER_URL = 'https://signiq.saas.cd'
+
 export function defaultServerUrl() {
-  const hostUri = Constants.expoConfig?.hostUri // ex. "192.168.1.20:8081"
-  const host = hostUri ? hostUri.split(':')[0] : 'localhost'
-  return `http://${host}:8000`
+  const hostUri = Constants.expoConfig?.hostUri // ex. "192.168.1.20:8081" en dev
+  if (hostUri) {
+    return `http://${hostUri.split(':')[0]}:8000`
+  }
+  return PROD_SERVER_URL
 }
 
 let baseUrl = defaultServerUrl()
