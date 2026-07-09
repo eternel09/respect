@@ -2,16 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useAuth } from '../../context/AuthContext'
+import logoWhite from '../../assets/logo-white.png'
+import logoFull from '../../assets/logo-full.png'
 
 function Logo({ className = '' }) {
-  return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
-      </div>
-      <span className="text-white font-bold">Signiq</span>
-    </div>
-  )
+  return <img src={logoWhite} alt="Signiq" className={`h-9 w-auto ${className}`} />
 }
 
 export default function LoginPage() {
@@ -66,11 +61,8 @@ export default function LoginPage() {
           className="w-full max-w-sm"
         >
           {/* Logo mobile */}
-          <div className="lg:hidden flex items-center gap-2.5 mb-10">
-            <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
-            </div>
-            <span className="font-bold text-gray-900">Signiq</span>
+          <div className="lg:hidden mb-10">
+            <img src={logoFull} alt="Signiq" className="h-10 w-auto" />
           </div>
 
           <h1 className="text-gray-900 text-2xl font-bold mb-1 tracking-tight">Connexion</h1>
