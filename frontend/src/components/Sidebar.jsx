@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import brandIcon from '../assets/icon.png'
+import brandIconWhite from '../assets/icon-white.png'
 
 const links = [
   { to: '/admin/dashboard',  label: 'Tableau de bord', icon: DashIcon },
@@ -31,22 +31,23 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 md:sticky md:top-0 md:inset-y-auto md:shrink-0 w-64 h-screen flex flex-col bg-white border-r border-black/5
+        className={`fixed inset-y-0 left-0 z-40 md:sticky md:top-0 md:inset-y-auto md:shrink-0 w-64 h-screen flex flex-col text-white
+                    bg-gradient-to-b from-brand via-brand-light to-accent
                     transform transition-transform duration-300 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
         <div className="px-5 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src={brandIcon} alt="Signiq" className="w-9 h-9 rounded-xl" />
-            <div>
-              <p className="font-bold text-sm leading-tight text-brand truncate max-w-[150px]">{user?.organization?.name || 'Signiq'}</p>
-              <p className="text-gray-400 text-xs">Administration</p>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img src={brandIconWhite} alt="Signiq" className="w-9 h-9" />
+            <div className="min-w-0">
+              <p className="font-bold text-sm leading-tight text-white truncate max-w-[150px]">{user?.organization?.name || 'Signiq'}</p>
+              <p className="text-white/60 text-xs">Administration</p>
             </div>
           </div>
           {/* Fermer (mobile) */}
-          <button onClick={onClose} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50">
+          <button onClick={onClose} className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:bg-white/10">
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
           </button>
         </div>
@@ -60,7 +61,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
               onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive ? 'bg-brand text-white shadow-sm shadow-brand/30' : 'text-gray-500 hover:bg-sand hover:text-gray-900'
+                  isActive ? 'bg-white/20 text-white font-semibold' : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
@@ -72,10 +73,10 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
         {/* Quick actions */}
         <div className="px-3 pb-4">
-          <p className="text-gray-400 text-xs px-3 mb-2 uppercase tracking-wider">Actions rapides</p>
+          <p className="text-white/50 text-xs px-3 mb-2 uppercase tracking-wider">Actions rapides</p>
           <button
             onClick={() => { onClose(); navigate('/admin/attendance') }}
-            className="w-full text-white text-sm font-medium py-2.5 rounded-xl transition-colors hover:bg-brand-dark flex items-center justify-center gap-2 bg-brand shadow-lg shadow-brand/20"
+            className="w-full text-brand text-sm font-semibold py-2.5 rounded-xl transition-colors bg-white hover:bg-white/90 flex items-center justify-center gap-2 shadow-lg shadow-black/20"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
             Enregistrer une présence
@@ -83,13 +84,13 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-black/5 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent-soft flex items-center justify-center text-xs font-semibold text-accent-dark">
+        <div className="px-4 py-3 border-t border-white/10 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-xs font-semibold text-white">
             {(user?.email?.[0] || 'A').toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-gray-700 text-xs truncate">{user?.email || 'Administrator'}</p>
-            <button onClick={handleLogout} className="text-gray-400 hover:text-gray-700 text-xs transition-colors">
+            <p className="text-white/80 text-xs truncate">{user?.email || 'Administrator'}</p>
+            <button onClick={handleLogout} className="text-white/50 hover:text-white text-xs transition-colors">
               Déconnexion
             </button>
           </div>
