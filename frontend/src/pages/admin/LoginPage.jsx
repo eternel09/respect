@@ -6,7 +6,8 @@ import logoWhite from '../../assets/logo-white.png'
 import logoFull from '../../assets/logo-full.png'
 
 function Logo({ className = '' }) {
-  return <img src={logoWhite} alt="Signiq" className={`h-9 w-auto ${className}`} />
+  // self-start : empêche l'étirement par align-items:stretch du panneau flex.
+  return <img src={logoWhite} alt="Signiq" className={`h-10 w-auto max-w-[150px] self-start ${className}`} />
 }
 
 export default function LoginPage() {
