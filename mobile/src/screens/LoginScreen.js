@@ -8,8 +8,8 @@ import { saveSession } from '../lib/storage'
 import { colors } from '../theme'
 
 export default function LoginScreen({ onLoggedIn }) {
-  const [server, setServer] = useState(defaultServerUrl())
-  const [showServer, setShowServer] = useState(false)
+  // Serveur figé (prod en build autonome, auto-détecté en dev) — non modifiable.
+  const server = defaultServerUrl()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
@@ -59,20 +59,6 @@ export default function LoginScreen({ onLoggedIn }) {
           style={s.input} value={password} onChangeText={setPassword}
           placeholder="••••••••" placeholderTextColor={colors.muted} secureTextEntry
         />
-
-        {showServer ? (
-          <>
-            <Text style={s.label}>Adresse du serveur</Text>
-            <TextInput
-              style={s.input} value={server} onChangeText={setServer}
-              autoCapitalize="none" placeholder="http://192.168.x.x:8000" placeholderTextColor={colors.muted}
-            />
-          </>
-        ) : (
-          <TouchableOpacity onPress={() => setShowServer(true)}>
-            <Text style={s.serverHint}>Serveur : {server} · modifier</Text>
-          </TouchableOpacity>
-        )}
 
         <TouchableOpacity style={[s.button, loading && s.buttonDisabled]} onPress={submit} disabled={loading}>
           {loading
