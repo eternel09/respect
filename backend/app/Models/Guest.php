@@ -24,6 +24,12 @@ class Guest extends Model
         'declined'      => 'boolean',
     ];
 
+    // Défauts hydratés dès la création (miroir des defaults SQL).
+    protected $attributes = [
+        'invite_status' => 'pending',
+        'declined'      => false,
+    ];
+
     protected static function booted(): void
     {
         static::creating(function (Guest $guest) {
