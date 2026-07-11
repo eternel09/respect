@@ -10,7 +10,29 @@ class Organization extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'logo_path', 'theme_color', 'plan'];
+    protected $fillable = ['name', 'slug', 'logo_path', 'theme_color', 'plan', 'modules'];
+
+    protected $casts = [
+        'modules' => 'array',
+    ];
+
+    /** Modules (applications) activés, avec repli sur les défauts du catalogue. */
+    public function enabledModules(): array
+    {
+        $modules = $this->modules;
+
+        if (empty($modules)) {
+            return config('modules.defaults', []);
+        }
+
+        // On ne garde que les clés encore présentes au catalogue.
+        return array_values(array_intersect($modules, array_keys(config('modules.catalog', []))));
+    }
+
+    public function hasModule(string $key): bool
+    {
+        return in_array($key, $this->enabledModules(), true);
+    }
 
     /**
      * Organisation par défaut (tenant n°1) — utilisée par les flux publics

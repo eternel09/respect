@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\OccasionScanController;
 use App\Http\Controllers\Api\OccasionTableController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\OrganizationModuleController;
 use App\Http\Controllers\Api\OrganizationSettingsController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
@@ -71,6 +72,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::get('/admin/organization', [OrganizationSettingsController::class, 'show']);
         Route::post('/admin/organization', [OrganizationSettingsController::class, 'update']);
+
+        // Suite d'applications (modules) de l'organisation
+        Route::get('/admin/modules', [OrganizationModuleController::class, 'index']);
+        Route::put('/admin/modules', [OrganizationModuleController::class, 'update']);
     });
 
     // Back-office — gestion (administrateur & secrétaire)
