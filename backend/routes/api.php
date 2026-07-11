@@ -8,6 +8,10 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\MemberCardController;
 use App\Http\Controllers\Api\MemberController;
+use App\Http\Controllers\Api\GuestController;
+use App\Http\Controllers\Api\OccasionController;
+use App\Http\Controllers\Api\OccasionScanController;
+use App\Http\Controllers\Api\OccasionTableController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\OrganizationSettingsController;
@@ -56,6 +60,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/scan/onboard', [ScanController::class, 'onboard']);
         Route::get('/scan/manifest', [ScanController::class, 'manifest']);
         Route::post('/scan/sync', [ScanController::class, 'sync']);
+
+        // Accueil événementiel (agents) — scan des QR d'invités
+        Route::get('/occasion-scan/occasions', [OccasionScanController::class, 'occasions']);
+        Route::get('/occasion-scan/manifest', [OccasionScanController::class, 'manifest']);
+        Route::post('/occasion-scan', [OccasionScanController::class, 'scan']);
     });
 
     // Paramètres de l'organisation (administrateur de l'org)
@@ -89,5 +98,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/admin/reports', [ReportController::class, 'generate']);
         Route::get('/admin/qrcodes', [QrCodeController::class, 'index']);
+
+        // ── Module « Événements ponctuels » (occasions) ──────────────────
+        Route::get('/occasions', [OccasionController::class, 'index']);
+        Route::post('/occasions', [OccasionController::class, 'store']);
+        Route::get('/occasions/{occasion}', [OccasionController::class, 'show']);
+        Route::put('/occasions/{occasion}', [OccasionController::class, 'update']);
+        Route::delete('/occasions/{occasion}', [OccasionController::class, 'destroy']);
+        // Plan de salle
+        Route::post('/occasions/{occasion}/tables', [OccasionTableController::class, 'store']);
+        Route::put('/occasion-tables/{occasionTable}', [OccasionTableController::class, 'update']);
+        Route::delete('/occasion-tables/{occasionTable}', [OccasionTableController::class, 'destroy']);
+        // Invités
+        Route::post('/occasions/{occasion}/guests', [GuestController::class, 'store']);
+        Route::post('/occasions/{occasion}/guests/bulk', [GuestController::class, 'bulkStore']);
+        Route::put('/guests/{guest}', [GuestController::class, 'update']);
+        Route::delete('/guests/{guest}', [GuestController::class, 'destroy']);
     });
 });
