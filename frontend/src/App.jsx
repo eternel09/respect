@@ -14,6 +14,8 @@ import LoginPage from './pages/admin/LoginPage'
 import MembersPage from './pages/admin/MembersPage'
 import QrCodesPage from './pages/admin/QrCodesPage'
 import ReportsPage from './pages/admin/ReportsPage'
+import OccasionsPage from './pages/events/OccasionsPage'
+import OccasionDetailPage from './pages/events/OccasionDetailPage'
 
 // Atterrissage selon le rôle : super-admin → organisations, sinon dashboard.
 function AdminHome() {
@@ -46,6 +48,10 @@ export default function App() {
           <Route path="/admin/reports"    element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="/admin/qrcodes"    element={<ProtectedRoute><QrCodesPage /></ProtectedRoute>} />
           <Route path="/admin/settings"   element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+          {/* Module Événements ponctuels (URL distincte /events) */}
+          <Route path="/events"     element={<ProtectedRoute><OccasionsPage /></ProtectedRoute>} />
+          <Route path="/events/:id" element={<ProtectedRoute><OccasionDetailPage /></ProtectedRoute>} />
 
           {/* Fallbacks */}
           <Route path="/admin" element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />
