@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\OccasionTableController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\OrganizationModuleController;
+use App\Http\Controllers\Api\PublicRegistrationController;
 use App\Http\Controllers\Api\OrganizationSettingsController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
@@ -39,6 +40,9 @@ Route::get('/download/app', [AppDistributionController::class, 'latest']);
 
 // Admin auth
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
+
+// Auto-inscription publique d'un organisateur (crée son espace + admin)
+Route::post('/register', [PublicRegistrationController::class, 'store'])->middleware('throttle:6,1');
 
 // Protected routes (authenticated)
 Route::middleware('auth:sanctum')->group(function () {

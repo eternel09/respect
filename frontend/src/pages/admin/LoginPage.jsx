@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useAuth } from '../../context/AuthContext'
 import logoWhite from '../../assets/logo-white.png'
@@ -111,6 +111,10 @@ export default function LoginPage() {
               Se connecter
             </motion.button>
           </form>
+
+          <p className="text-sm text-gray-500 mt-6 text-center">
+            Vous organisez un événement ? <Link to="/register" className="text-brand font-semibold hover:underline">Créer un espace</Link>
+          </p>
         </motion.div>
       </div>
     </div>

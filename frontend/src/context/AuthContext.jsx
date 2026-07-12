@@ -24,6 +24,13 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
+  const register = async (payload) => {
+    const res = await api.post('/register', payload)
+    localStorage.setItem('token', res.data.token)
+    setUser(res.data.user)
+    return res.data
+  }
+
   const logout = async () => {
     await api.post('/admin/logout').catch(() => {})
     localStorage.removeItem('token')
@@ -37,7 +44,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

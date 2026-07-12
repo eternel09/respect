@@ -11,6 +11,7 @@ import OrganizationsPage from './pages/admin/OrganizationsPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
+import RegisterPage from './pages/admin/RegisterPage'
 import MembersPage from './pages/admin/MembersPage'
 import QrCodesPage from './pages/admin/QrCodesPage'
 import ReportsPage from './pages/admin/ReportsPage'
@@ -39,6 +40,7 @@ export default function App() {
 
           {/* Admin auth */}
           <Route path="/admin/login" element={<LoginPage />} />
+          <Route path="/register"    element={<RegisterPage />} />
 
           {/* Plateforme (super-admin) */}
           <Route path="/admin/organizations" element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
