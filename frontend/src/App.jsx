@@ -16,11 +16,14 @@ import QrCodesPage from './pages/admin/QrCodesPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import OccasionsPage from './pages/events/OccasionsPage'
 import OccasionDetailPage from './pages/events/OccasionDetailPage'
+import ModulesPage from './pages/admin/ModulesPage'
+import { homeForModules } from './lib/modules'
 
-// Atterrissage selon le rôle : super-admin → organisations, sinon dashboard.
+// Atterrissage : super-admin → organisations, sinon accueil du 1ᵉʳ module actif.
 function AdminHome() {
   const { user } = useAuth()
-  return <Navigate to={user?.role === 'super_admin' ? '/admin/organizations' : '/admin/dashboard'} replace />
+  if (user?.role === 'super_admin') return <Navigate to="/admin/organizations" replace />
+  return <Navigate to={homeForModules(user?.organization?.modules || [])} replace />
 }
 
 export default function App() {
@@ -40,18 +43,21 @@ export default function App() {
           {/* Plateforme (super-admin) */}
           <Route path="/admin/organizations" element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
 
-          {/* Admin protected */}
-          <Route path="/admin/dashboard"  element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/admin/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
-          <Route path="/admin/members"    element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />
-          <Route path="/admin/events"     element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-          <Route path="/admin/reports"    element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-          <Route path="/admin/qrcodes"    element={<ProtectedRoute><QrCodesPage /></ProtectedRoute>} />
+          {/* Suite d'applications — toujours accessible (gérer ses modules) */}
+          <Route path="/admin/modules"    element={<ProtectedRoute><ModulesPage /></ProtectedRoute>} />
+
+          {/* Module « Gestion de présence » */}
+          <Route path="/admin/dashboard"  element={<ProtectedRoute module="presence"><DashboardPage /></ProtectedRoute>} />
+          <Route path="/admin/attendance" element={<ProtectedRoute module="presence"><AttendancePage /></ProtectedRoute>} />
+          <Route path="/admin/members"    element={<ProtectedRoute module="presence"><MembersPage /></ProtectedRoute>} />
+          <Route path="/admin/events"     element={<ProtectedRoute module="presence"><EventsPage /></ProtectedRoute>} />
+          <Route path="/admin/reports"    element={<ProtectedRoute module="presence"><ReportsPage /></ProtectedRoute>} />
+          <Route path="/admin/qrcodes"    element={<ProtectedRoute module="presence"><QrCodesPage /></ProtectedRoute>} />
           <Route path="/admin/settings"   element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
-          {/* Module Événements ponctuels (URL distincte /events) */}
-          <Route path="/events"     element={<ProtectedRoute><OccasionsPage /></ProtectedRoute>} />
-          <Route path="/events/:id" element={<ProtectedRoute><OccasionDetailPage /></ProtectedRoute>} />
+          {/* Module « Invitations & événements » (URL distincte /events) */}
+          <Route path="/events"     element={<ProtectedRoute module="occasions"><OccasionsPage /></ProtectedRoute>} />
+          <Route path="/events/:id" element={<ProtectedRoute module="occasions"><OccasionDetailPage /></ProtectedRoute>} />
 
           {/* Fallbacks */}
           <Route path="/admin" element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />
