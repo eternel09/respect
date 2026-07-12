@@ -32,37 +32,63 @@ function clearChromiumLocks(dir) {
     }
   } catch { /* dossier absent au premier démarrage : rien à nettoyer */ }
 }
-clearChromiumLocks('./.wwebjs_auth')
-
 // ── Client WhatsApp ─────────────────────────────────────────
 let state = 'starting'
 let qrDataUri = null
+let client = null
 
-const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu',
-      '--disable-extensions', '--no-first-run', '--no-default-browser-check',
-      '--disable-dev-shm-usage',
-    ],
-  },
-})
+// Construit un client neuf avec ses gestionnaires. On RECRÉE un client à chaque
+// (re)démarrage : whatsapp-web.js ne supporte pas un second initialize() sur la
+// même instance — l'ancienne page Puppeteer survit ("binding already exists")
+// et deux sessions se partagent le même profil, ce que WhatsApp sanctionne par
+// un LOGOUT immédiat (d'où les déconnexions en boucle).
+function buildClient() {
+  const c = new Client({
+    authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+    puppeteer: {
+      headless: true,
+      args: [
+        '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu',
+        '--disable-extensions', '--no-first-run', '--no-default-browser-check',
+        '--disable-dev-shm-usage',
+      ],
+    },
+  })
 
-client.on('qr', async (qr) => {
-  state = 'qr'
-  qrDataUri = await QRCode.toDataURL(qr, { margin: 1, width: 300 })
-  console.log('[wa] QR de liaison prêt — à scanner depuis le back-office')
-})
-client.on('ready', () => { state = 'ready'; qrDataUri = null; console.log('[wa] connecté ✓') })
-client.on('auth_failure', (m) => { state = 'auth_failure'; console.error('[wa] échec auth:', m) })
-client.on('disconnected', (reason) => {
-  state = 'disconnected'
-  console.warn('[wa] déconnecté:', reason, '— réinitialisation…')
-  client.initialize().catch((e) => console.error('[wa] reinit:', e.message))
-})
-client.initialize().catch((e) => { state = 'error'; console.error('[wa] init:', e.message) })
+  c.on('qr', async (qr) => {
+    state = 'qr'
+    qrDataUri = await QRCode.toDataURL(qr, { margin: 1, width: 300 })
+    console.log('[wa] QR de liaison prêt — à scanner depuis le back-office')
+  })
+  c.on('authenticated', () => console.log('[wa] authentifié ✓'))
+  c.on('ready', () => { state = 'ready'; qrDataUri = null; console.log('[wa] connecté ✓') })
+  c.on('auth_failure', (m) => { state = 'auth_failure'; console.error('[wa] échec auth:', m) })
+  c.on('disconnected', async (reason) => {
+    state = 'disconnected'
+    qrDataUri = null
+    console.warn('[wa] déconnecté:', reason, '— réinitialisation…')
+    // Détruire proprement AVANT de recréer, sinon l'ancienne page Puppeteer
+    // reste active et le prochain initialize() échoue ("binding already exists").
+    try { await c.destroy() } catch { /* déjà fermée */ }
+    // LOGOUT = session invalidée côté WhatsApp : on purge le profil local pour
+    // repartir sur une liaison propre (nouveau QR).
+    if (reason === 'LOGOUT') {
+      try { fs.rmSync('./.wwebjs_auth', { recursive: true, force: true }) } catch { /* rien */ }
+    }
+    setTimeout(startClient, 3000)
+  })
+
+  return c
+}
+
+function startClient() {
+  // Purge les verrous Chromium résiduels d'une instance tuée avant de relancer.
+  clearChromiumLocks('./.wwebjs_auth')
+  client = buildClient()
+  client.initialize().catch((e) => { state = 'error'; console.error('[wa] init:', e.message) })
+}
+
+startClient()
 
 // ── API ─────────────────────────────────────────────────────
 const app = express()
