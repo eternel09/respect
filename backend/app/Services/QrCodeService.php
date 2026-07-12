@@ -37,4 +37,13 @@ class QrCodeService
                 ->generate($token)
         );
     }
+
+    /**
+     * QR d'un invité d'occasion (SVG base64). Encode le jeton opaque scanné
+     * par l'agent d'accueil. Même format fiable que le QR membre.
+     */
+    public function guest(string $token): string
+    {
+        return $this->member($token);
+    }
 }

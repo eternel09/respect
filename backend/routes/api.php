@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\MemberCardController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\GuestController;
 use App\Http\Controllers\Api\OccasionController;
+use App\Http\Controllers\Api\OccasionInvitationController;
 use App\Http\Controllers\Api\OccasionScanController;
 use App\Http\Controllers\Api\OccasionTableController;
 use App\Http\Controllers\Api\OnboardingController;
@@ -123,5 +124,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/occasions/{occasion}/guests/bulk', [GuestController::class, 'bulkStore']);
         Route::put('/guests/{guest}', [GuestController::class, 'update']);
         Route::delete('/guests/{guest}', [GuestController::class, 'destroy']);
+        // Invitations WhatsApp (QR + carte)
+        Route::post('/occasions/{occasion}/send-invitations', [OccasionInvitationController::class, 'sendAll']);
+        Route::post('/guests/{guest}/invite', [OccasionInvitationController::class, 'sendOne']);
     });
 });

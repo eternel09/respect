@@ -141,6 +141,59 @@ function cardLandscapeHtml({ org, name, memberNo, serial, qrDataUri }) {
 </body></html>`
 }
 
+/** Invitation portrait 900×1400 — WhatsApp. Carte d'accueil pour une occasion. */
+function invitationPortraitHtml({ org, eventType, eventName, guestName, dateText, location, tableLabel, qrDataUri }) {
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
+  ${SHARED_CSS}
+  html, body { width: 900px; height: 1400px; }
+  body { background: linear-gradient(135deg, #1a1030 0%, #3a1f47 40%, #7c3a2e 80%, #e08a3c 130%); }
+  .orb1 { width: 440px; height: 440px; top: -150px; right: -120px;
+          background: radial-gradient(circle at 35% 35%, rgba(224,138,60,0.6), rgba(224,138,60,0.05)); }
+  .orb2 { width: 380px; height: 380px; bottom: -140px; left: -110px;
+          background: radial-gradient(circle at 40% 40%, rgba(201,116,43,0.5), rgba(201,116,43,0.04)); }
+  .orb3 { width: 160px; height: 160px; top: 380px; left: 70px;
+          background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.22), rgba(255,255,255,0.02)); }
+  .glass { width: 780px; height: 1280px; border-radius: 48px; padding: 56px 52px; align-items: center; text-align: center; }
+  .head { width: 100%; display: flex; align-items: center; justify-content: space-between; }
+  .org { font-size: 24px; max-width: 460px; text-align: left; }
+  .brand-logo { height: 40px; }
+  .type { letter-spacing: 6px; text-transform: uppercase; color: rgba(255,255,255,0.6); font-size: 18px; margin-top: 40px; }
+  .invited { font-size: 22px; color: rgba(255,255,255,0.8); margin-top: 30px; }
+  .guest { font-size: 60px; font-weight: 800; line-height: 1.1; margin-top: 10px; text-shadow: 0 2px 14px rgba(0,0,0,0.3); }
+  .rule { width: 120px; height: 2px; background: rgba(255,255,255,0.35); margin: 30px 0; }
+  .event { font-size: 40px; font-weight: 700; line-height: 1.15; }
+  .meta { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 23px; color: rgba(255,255,255,0.85); }
+  .table { margin-top: 26px; display: inline-block; padding: 16px 34px; border-radius: 999px;
+           background: rgba(224,138,60,0.3); border: 1.5px solid rgba(224,138,60,0.7);
+           font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+  .qrzone { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .qrwrap { width: 400px; height: 400px; border-radius: 34px;
+            box-shadow: 0 24px 50px rgba(0,0,0,0.35), inset 0 0 0 10px #ffffff; }
+  .qrwrap img { width: 350px; height: 350px; }
+  .hint { font-size: 20px; color: rgba(255,255,255,0.65); }
+</style></head><body>
+  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+  <div class="glass">
+    <div class="head">
+      <div class="org">${escapeHtml(org)}</div>
+      <img class="brand-logo" src="${LOGO_WHITE}" alt="Signiq">
+    </div>
+    <div class="type">${escapeHtml(eventType || 'Invitation')}</div>
+    <div class="invited">Vous êtes convié(e) à</div>
+    <div class="guest">${escapeHtml(guestName)}</div>
+    <div class="rule"></div>
+    <div class="event">${escapeHtml(eventName)}</div>
+    <div class="meta">
+      <div>📅 ${escapeHtml(dateText)}</div>
+      ${location ? `<div>📍 ${escapeHtml(location)}</div>` : ''}
+    </div>
+    <div><span class="table">${escapeHtml(tableLabel || 'Placement libre')}</span></div>
+    <div class="qrzone"><div class="qrwrap"><img src="${qrDataUri}" alt="QR"></div></div>
+    <div class="hint">Présentez ce QR à l'accueil le jour J</div>
+  </div>
+</body></html>`
+}
+
 // ── Rendu ───────────────────────────────────────────────────
 const LAUNCH_ARGS = [
   '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu',
@@ -172,6 +225,18 @@ async function renderCard(puppeteer, data) {
     await page.setContent(cardPortraitHtml(data), { waitUntil: 'networkidle0' })
     // Buffer.from : puppeteer récent renvoie un Uint8Array (Express le
     // sérialiserait en JSON au lieu de l'envoyer en binaire)
+    return Buffer.from(await page.screenshot({ type: 'png' }))
+  } finally {
+    await page.close().catch(() => {})
+  }
+}
+
+/** Invitation portrait en PNG retina — pour WhatsApp. */
+async function renderInvitation(puppeteer, data) {
+  const page = await (await browser(puppeteer)).newPage()
+  try {
+    await page.setViewport({ width: 900, height: 1400, deviceScaleFactor: 2 })
+    await page.setContent(invitationPortraitHtml(data), { waitUntil: 'networkidle0' })
     return Buffer.from(await page.screenshot({ type: 'png' }))
   } finally {
     await page.close().catch(() => {})
@@ -229,4 +294,4 @@ async function renderPrintPdf(puppeteer, { org, members }) {
   }
 }
 
-module.exports = { renderCard, renderPrintPdf, warmUp }
+module.exports = { renderCard, renderInvitation, renderPrintPdf, warmUp }

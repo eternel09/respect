@@ -15,7 +15,7 @@ const express = require('express')
 const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
-const { renderCard, renderPrintPdf, warmUp } = require('./card')
+const { renderCard, renderInvitation, renderPrintPdf, warmUp } = require('./card')
 
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.API_KEY || 'signiq-dev-key'
@@ -88,6 +88,16 @@ app.post('/preview-card', async (req, res) => {
   }
 })
 
+app.post('/preview-invitation', async (req, res) => {
+  try {
+    const png = await renderInvitation(puppeteer, req.body)
+    res.type('png').send(png)
+  } catch (e) {
+    console.error('[invitation] rendu:', e.message)
+    res.status(500).json({ message: "Échec du rendu de l'invitation." })
+  }
+})
+
 // Planche A4 de cartes (format carte de visite) — impression au même design
 app.post('/print-cards', async (req, res) => {
   const { org, members } = req.body
@@ -129,6 +139,35 @@ app.post('/send-card', async (req, res) => {
     res.json({ sent: true, message: `Carte envoyée à ${req.body.name} sur WhatsApp.` })
   } catch (e) {
     console.error('[wa] envoi:', e.message)
+    res.status(500).json({ message: "Échec de l'envoi WhatsApp." })
+  }
+})
+
+app.post('/send-invitation', async (req, res) => {
+  if (state !== 'ready') {
+    return res.status(409).json({ message: 'WhatsApp non connecté. Liez le compte depuis les Réglages.' })
+  }
+
+  const digits = String(req.body.phone || '').replace(/\D/g, '')
+  if (digits.length < 9) return res.status(422).json({ message: 'Numéro de téléphone invalide.' })
+
+  try {
+    const numberId = await client.getNumberId(digits)
+    if (!numberId) return res.status(404).json({ message: "Ce numéro n'est pas sur WhatsApp." })
+
+    const png = await renderInvitation(puppeteer, req.body)
+    const media = new MessageMedia('image/png', png.toString('base64'), 'invitation.png')
+    const table = req.body.tableLabel ? `\n🍽️ Votre place : ${req.body.tableLabel}` : ''
+    const caption =
+      `💌 ${req.body.guestName}, vous êtes convié(e) à ${req.body.eventName}.\n` +
+      `📅 ${req.body.dateText}${req.body.location ? ` · ${req.body.location}` : ''}${table}\n` +
+      `Présentez ce QR à l'accueil le jour J. Au plaisir de vous y voir !`
+
+    await client.sendMessage(numberId._serialized, media, { caption })
+    console.log(`[wa] invitation envoyée → ${digits}`)
+    res.json({ sent: true, message: `Invitation envoyée à ${req.body.guestName}.` })
+  } catch (e) {
+    console.error('[wa] invitation:', e.message)
     res.status(500).json({ message: "Échec de l'envoi WhatsApp." })
   }
 })
