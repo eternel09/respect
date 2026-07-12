@@ -49,7 +49,11 @@ class AdminAuthController extends Controller
             'email'        => $user->email,
             'role'         => $user->role,
             'organization' => $user->organization
-                ? ['id' => $user->organization->id, 'name' => $user->organization->name]
+                ? [
+                    'id'      => $user->organization->id,
+                    'name'    => $user->organization->name,
+                    'modules' => $user->organization->enabledModules(),
+                ]
                 : null,
         ];
     }

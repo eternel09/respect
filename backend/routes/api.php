@@ -10,10 +10,13 @@ use App\Http\Controllers\Api\MemberCardController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\GuestController;
 use App\Http\Controllers\Api\OccasionController;
+use App\Http\Controllers\Api\OccasionInvitationController;
 use App\Http\Controllers\Api\OccasionScanController;
 use App\Http\Controllers\Api\OccasionTableController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\OrganizationModuleController;
+use App\Http\Controllers\Api\PublicRegistrationController;
 use App\Http\Controllers\Api\OrganizationSettingsController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
@@ -38,6 +41,9 @@ Route::get('/download/app', [AppDistributionController::class, 'latest']);
 
 // Admin auth
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
+
+// Auto-inscription publique d'un organisateur (crée son espace + admin)
+Route::post('/register', [PublicRegistrationController::class, 'store'])->middleware('throttle:6,1');
 
 // Protected routes (authenticated)
 Route::middleware('auth:sanctum')->group(function () {
@@ -71,6 +77,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::get('/admin/organization', [OrganizationSettingsController::class, 'show']);
         Route::post('/admin/organization', [OrganizationSettingsController::class, 'update']);
+
+        // Suite d'applications (modules) de l'organisation
+        Route::get('/admin/modules', [OrganizationModuleController::class, 'index']);
+        Route::put('/admin/modules', [OrganizationModuleController::class, 'update']);
     });
 
     // Back-office — gestion (administrateur & secrétaire)
@@ -114,5 +124,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/occasions/{occasion}/guests/bulk', [GuestController::class, 'bulkStore']);
         Route::put('/guests/{guest}', [GuestController::class, 'update']);
         Route::delete('/guests/{guest}', [GuestController::class, 'destroy']);
+        // Invitations WhatsApp (QR + carte)
+        Route::post('/occasions/{occasion}/send-invitations', [OccasionInvitationController::class, 'sendAll']);
+        Route::post('/guests/{guest}/invite', [OccasionInvitationController::class, 'sendOne']);
     });
 });

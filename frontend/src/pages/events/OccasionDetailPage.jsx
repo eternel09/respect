@@ -23,6 +23,9 @@ export default function OccasionDetailPage() {
   const [tab, setTab] = useState('plan')
   const [modal, setModal] = useState(null) // 'table' | 'guest'
   const [err, setErr] = useState(null)
+  const [sending, setSending] = useState(false)
+  const [resendId, setResendId] = useState(null)
+  const [flash, setFlash] = useState(null) // { ok: bool, text }
 
   const load = useCallback(() => {
     api.get(`/occasions/${id}`)
@@ -37,7 +40,29 @@ export default function OccasionDetailPage() {
     load()
   }
   const delGuest = async (guestId) => { if (confirm('Supprimer cet invité ?')) { await api.delete(`/guests/${guestId}`); load() } }
-  const sendInvites = () => alert("Envoi des invitations WhatsApp — module en cours de branchement (prochaine étape).")
+
+  const sendInvites = async () => {
+    if (!confirm('Envoyer les invitations WhatsApp aux invités pas encore contactés ?')) return
+    setSending(true); setFlash(null)
+    try {
+      const res = await api.post(`/occasions/${id}/send-invitations`)
+      setFlash({ ok: true, text: res.data.message || 'Invitations envoyées.' })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, "Échec de l'envoi des invitations.") })
+    } finally { setSending(false) }
+  }
+
+  const resend = async (guestId) => {
+    setResendId(guestId); setFlash(null)
+    try {
+      const res = await api.post(`/guests/${guestId}/invite`)
+      setFlash({ ok: true, text: res.data.message || 'Invitation envoyée.' })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, "Échec de l'envoi.") })
+    } finally { setResendId(null) }
+  }
 
   if (loading) return <AdminLayout><div className="p-10 text-center"><span className="inline-block animate-spin h-7 w-7 border-2 border-brand border-t-transparent rounded-full" /></div></AdminLayout>
   if (err || !data) return <AdminLayout><div className="p-10 text-center text-gray-400">{err}</div></AdminLayout>
@@ -62,11 +87,19 @@ export default function OccasionDetailPage() {
               {o.location && <span>📍 {o.location}</span>}
             </div>
           </div>
-          <button onClick={sendInvites} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors flex-shrink-0">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11.8 11.8 0 0 0 12 0C5.5 0 .16 5.33.16 11.9c0 2.1.55 4.14 1.59 5.94L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.68 1.45c6.55 0 11.89-5.33 11.89-11.9 0-3.18-1.24-6.16-3.43-8.4z" /></svg>
-            Envoyer les invitations
+          <button onClick={sendInvites} disabled={sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors flex-shrink-0 disabled:opacity-60">
+            {sending
+              ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+              : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11.8 11.8 0 0 0 12 0C5.5 0 .16 5.33.16 11.9c0 2.1.55 4.14 1.59 5.94L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.68 1.45c6.55 0 11.89-5.33 11.89-11.9 0-3.18-1.24-6.16-3.43-8.4z" /></svg>}
+            {sending ? 'Envoi en cours…' : 'Envoyer les invitations'}
           </button>
         </div>
+
+        {flash && (
+          <div className={`mb-5 px-4 py-3 rounded-xl text-sm border ${flash.ok ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+            {flash.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -151,9 +184,18 @@ export default function OccasionDetailPage() {
                               : <Pill cls="bg-cream text-gray-500 border border-gray-200">Sans réponse</Pill>}
                             {g.checked_in && <span className="ml-2"><Pill cls="bg-emerald-50 text-emerald-700">✓ Présent</Pill></span>}
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            <button onClick={() => delGuest(g.id)} className="text-gray-300 hover:text-red-500" title="Supprimer">
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            {g.phone && (
+                              <button onClick={() => resend(g.id)} disabled={resendId === g.id}
+                                className="text-[#25D366] hover:text-[#1ebe5b] mr-3 align-middle disabled:opacity-50"
+                                title={g.invite_status === 'sent' ? "Renvoyer l'invitation" : "Envoyer l'invitation"}>
+                                {resendId === g.id
+                                  ? <span className="inline-block animate-spin h-4 w-4 border-2 border-[#25D366] border-t-transparent rounded-full align-middle" />
+                                  : <svg className="w-4 h-4 inline align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" /></svg>}
+                              </button>
+                            )}
+                            <button onClick={() => delGuest(g.id)} className="text-gray-300 hover:text-red-500 align-middle" title="Supprimer">
+                              <svg className="w-4 h-4 inline align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
                             </button>
                           </td>
                         </tr>
