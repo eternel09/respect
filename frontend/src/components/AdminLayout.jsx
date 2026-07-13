@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Sidebar from './Sidebar'
 import api from '../lib/axios'
 import { useAuth } from '../context/AuthContext'
+import { MODULES, MODULE_ORDER } from '../lib/modules'
 
 const ROLE_LABELS = {
   super_admin: 'Super-admin',
@@ -44,9 +45,12 @@ function Panel({ children, onClose }) {
 function TopBar({ onMenu }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [open, setOpen] = useState(null) // 'notif' | 'profile' | null
+  const [open, setOpen] = useState(null) // 'apps' | 'notif' | 'profile' | null
   const [notifs, setNotifs] = useState([])
   const [unread, setUnread] = useState(0)
+
+  // Applications activées de l'organisation (lanceur de modules).
+  const modules = MODULE_ORDER.filter(k => (user?.organization?.modules || []).includes(k))
 
   const computeUnread = (items) => {
     const seen = localStorage.getItem(SEEN_KEY)
@@ -95,6 +99,56 @@ function TopBar({ onMenu }) {
 
       {/* Icônes ancrées au coin droit */}
       <div className="ml-auto flex items-center gap-1 relative">
+        {/* Applications (lanceur de modules) */}
+        <div className="relative">
+          <button
+            onClick={() => setOpen(open === 'apps' ? null : 'apps')}
+            title="Applications"
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-sand transition-colors"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z" /></svg>
+          </button>
+
+          <AnimatePresence>
+            {open === 'apps' && (
+              <Panel onClose={() => setOpen(null)}>
+                <div className="px-4 py-3 border-b border-black/5 font-semibold text-gray-900 text-sm">Applications</div>
+                <div className="p-2">
+                  {modules.length === 0 ? (
+                    <p className="px-2 py-6 text-center text-sm text-gray-400">Aucune application activée.</p>
+                  ) : modules.map(key => {
+                    const m = MODULES[key]
+                    if (!m) return null
+                    const Icon = m.icon
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => { setOpen(null); navigate(m.home) }}
+                        className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-sand transition-colors text-left"
+                      >
+                        <span className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white" style={{ background: m.color }}><Icon /></span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-gray-900 truncate">{m.label}</span>
+                          <span className="block text-xs text-gray-400 truncate">{m.description}</span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="p-3 border-t border-black/5">
+                  <Link
+                    to="/admin/modules"
+                    onClick={() => setOpen(null)}
+                    className="block text-center text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl py-2 transition-colors"
+                  >
+                    Gérer les applications
+                  </Link>
+                </div>
+              </Panel>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Notifications */}
         <div className="relative">
           <button
