@@ -10,7 +10,7 @@ import { colors } from '../theme'
 
 const TYPE_LABELS = { reunion: 'Réunion', priere: 'Prière', autre: 'Autre' }
 
-export default function EventsScreen({ session, onEventSelected, onLogout }) {
+export default function EventsScreen({ session, onEventSelected, onLogout, onBack }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -75,6 +75,12 @@ export default function EventsScreen({ session, onEventSelected, onLogout }) {
         </View>
         <TouchableOpacity onPress={logout}><Text style={s.logout}>Déconnexion</Text></TouchableOpacity>
       </View>
+
+      {onBack && (
+        <TouchableOpacity onPress={onBack} style={s.backLink}>
+          <Text style={s.backLinkText}>← Changer d'application</Text>
+        </TouchableOpacity>
+      )}
 
       {pending > 0 && (
         <TouchableOpacity style={s.syncBanner} onPress={doSync} disabled={syncing}>
@@ -201,6 +207,8 @@ const s = StyleSheet.create({
   org: { fontSize: 17, fontWeight: 'bold', color: colors.brand },
   who: { fontSize: 12, color: colors.muted },
   logout: { color: colors.muted, fontSize: 13 },
+  backLink: { marginBottom: 10, marginTop: -8 },
+  backLinkText: { color: colors.muted, fontSize: 13 },
   syncBanner: { backgroundColor: colors.warningBg, borderRadius: 14, padding: 12, marginBottom: 14, alignItems: 'center' },
   syncText: { color: colors.warning, fontSize: 13, fontWeight: '600' },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16, gap: 10 },
