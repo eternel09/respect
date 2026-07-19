@@ -51,7 +51,7 @@ class WhatsAppController extends Controller
         ];
 
         try {
-            $res = $this->service()->timeout(60)->post('/send-card', $payload);
+            $res = $this->service()->timeout(120)->post('/send-card', $payload);
 
             return response()->json($res->json(), $res->status());
         } catch (ConnectionException) {

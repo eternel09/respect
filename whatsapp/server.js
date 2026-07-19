@@ -47,6 +47,10 @@ function buildClient() {
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
       headless: true,
+      // Sur un serveur chargé, piloter la page WhatsApp Web (sendMessage →
+      // Runtime.callFunctionOn) peut dépasser le protocolTimeout par défaut
+      // (180 s) et faire échouer l'envoi. On élargit la marge.
+      protocolTimeout: 300000,
       args: [
         '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu',
         '--disable-extensions', '--no-first-run', '--no-default-browser-check',

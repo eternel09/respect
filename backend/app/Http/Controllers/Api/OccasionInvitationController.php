@@ -110,7 +110,7 @@ class OccasionInvitationController extends Controller
         ];
 
         try {
-            $res = $this->service()->timeout(60)->post('/send-invitation', $payload);
+            $res = $this->service()->timeout(120)->post('/send-invitation', $payload);
         } catch (ConnectionException) {
             return 'offline';
         }

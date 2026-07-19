@@ -205,7 +205,9 @@ let rendererBrowser = null
 
 async function browser(puppeteer) {
   if (!rendererBrowser || !rendererBrowser.connected) {
-    rendererBrowser = await puppeteer.launch({ headless: true, args: LAUNCH_ARGS })
+    // protocolTimeout élargi : sur un serveur chargé, le rendu (setContent /
+    // screenshot) peut dépasser les 180 s par défaut et échouer.
+    rendererBrowser = await puppeteer.launch({ headless: true, protocolTimeout: 300000, args: LAUNCH_ARGS })
   }
   return rendererBrowser
 }
