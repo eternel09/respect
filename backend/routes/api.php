@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\MemberCardController;
 use App\Http\Controllers\Api\MemberController;
+use App\Http\Controllers\Api\NetworkController;
 use App\Http\Controllers\Api\GuestController;
 use App\Http\Controllers\Api\OccasionController;
 use App\Http\Controllers\Api\OccasionInvitationController;
@@ -86,6 +87,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Back-office — gestion (administrateur & secrétaire)
     Route::middleware('role:admin,secretaire')->group(function () {
         Route::get('/admin/dashboard', [DashboardController::class, 'index']);
+        // Vue consolidée du réseau (organisation mère uniquement)
+        Route::get('/admin/network', [NetworkController::class, 'summary']);
         Route::get('/admin/notifications', [DashboardController::class, 'notifications']);
 
         Route::get('/admin/members', [MemberController::class, 'index']);

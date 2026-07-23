@@ -18,6 +18,7 @@ import ReportsPage from './pages/admin/ReportsPage'
 import OccasionsPage from './pages/events/OccasionsPage'
 import OccasionDetailPage from './pages/events/OccasionDetailPage'
 import ModulesPage from './pages/admin/ModulesPage'
+import NetworkPage from './pages/admin/NetworkPage'
 import { homeForModules } from './lib/modules'
 
 // Atterrissage : super-admin → organisations, sinon accueil du 1ᵉʳ module actif.
@@ -50,6 +51,8 @@ export default function App() {
 
           {/* Module « Gestion de présence » */}
           <Route path="/admin/dashboard"  element={<ProtectedRoute module="presence"><DashboardPage /></ProtectedRoute>} />
+          {/* Vue consolidée du réseau — l'API refuse (403) si l'org n'est pas mère */}
+          <Route path="/admin/reseau"     element={<ProtectedRoute module="presence"><NetworkPage /></ProtectedRoute>} />
           <Route path="/admin/attendance" element={<ProtectedRoute module="presence"><AttendancePage /></ProtectedRoute>} />
           <Route path="/admin/members"    element={<ProtectedRoute module="presence"><MembersPage /></ProtectedRoute>} />
           <Route path="/admin/events"     element={<ProtectedRoute module="presence"><EventsPage /></ProtectedRoute>} />
