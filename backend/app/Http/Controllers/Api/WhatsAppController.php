@@ -44,6 +44,7 @@ class WhatsAppController extends Controller
         $payload = [
             'phone'     => $member->phone,
             'org'       => $member->organization->name,
+            'orgLogo'   => $member->organization->logoDataUri(),
             'name'      => $member->full_name,
             'memberNo'  => str_pad($member->id, 4, '0', STR_PAD_LEFT),
             'serial'    => strtoupper(substr($member->check_in_token, 0, 8)),
