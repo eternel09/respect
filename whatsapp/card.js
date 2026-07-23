@@ -16,6 +16,15 @@ function escapeHtml(s) {
   }[c]))
 }
 
+// Marque en haut de carte : le logo de l'organisation (posé sur une pastille
+// blanche pour rester lisible quelles que soient ses couleurs sur le fond navy)
+// ou, à défaut, le logo Signiq blanc.
+function brandMark(orgLogo) {
+  return orgLogo
+    ? `<span class="brand-logo brand-logo--org"><img src="${orgLogo}" alt=""></span>`
+    : `<img class="brand-logo" src="${LOGO_WHITE}" alt="Signiq">`
+}
+
 const SHARED_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -37,6 +46,9 @@ const SHARED_CSS = `
   }
   .org { font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.92); }
   .brand-logo { opacity: 0.92; }
+  .brand-logo--org { opacity: 1; background: #ffffff; border-radius: 10px; padding: 6px 10px;
+                     display: inline-flex; align-items: center; box-shadow: 0 6px 16px rgba(0,0,0,0.22); }
+  .brand-logo--org img { height: 100%; width: auto; max-width: 170px; display: block; }
   .label { letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.55); }
   .name { font-weight: 800; text-shadow: 0 2px 14px rgba(0,0,0,0.25); }
   .no { display: inline-block; border-radius: 999px; background: rgba(224,138,60,0.28);
@@ -47,7 +59,7 @@ const SHARED_CSS = `
 `
 
 /** Portrait 900×1400 — WhatsApp / écrans de téléphone. */
-function cardPortraitHtml({ org, name, memberNo, serial, qrDataUri }) {
+function cardPortraitHtml({ org, orgLogo, name, memberNo, serial, qrDataUri }) {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
   ${SHARED_CSS}
   html, body { width: 900px; height: 1400px; }
@@ -77,7 +89,7 @@ function cardPortraitHtml({ org, name, memberNo, serial, qrDataUri }) {
   <div class="glass">
     <div class="head">
       <div class="org">${escapeHtml(org)}</div>
-      <img class="brand-logo" src="${LOGO_WHITE}" alt="Signiq">
+      ${brandMark(orgLogo)}
     </div>
     <div class="label">Carte de membre</div>
     <div class="name">${escapeHtml(name)}</div>
@@ -92,7 +104,7 @@ function cardPortraitHtml({ org, name, memberNo, serial, qrDataUri }) {
 }
 
 /** Paysage 1000×620 — proportions carte de visite (85,6×54 mm ≈ 1,585). */
-function cardLandscapeHtml({ org, name, memberNo, serial, qrDataUri }) {
+function cardLandscapeHtml({ org, orgLogo, name, memberNo, serial, qrDataUri }) {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
   ${SHARED_CSS}
   html, body { width: 1000px; height: 620px; }
@@ -123,7 +135,7 @@ function cardLandscapeHtml({ org, name, memberNo, serial, qrDataUri }) {
   <div class="glass">
     <div class="head">
       <div class="org">${escapeHtml(org)}</div>
-      <img class="brand-logo" src="${LOGO_WHITE}" alt="Signiq">
+      ${brandMark(orgLogo)}
     </div>
     <div class="bodyrow">
       <div class="identity">
@@ -142,7 +154,7 @@ function cardLandscapeHtml({ org, name, memberNo, serial, qrDataUri }) {
 }
 
 /** Invitation portrait 900×1400 — WhatsApp. Carte d'accueil pour une occasion. */
-function invitationPortraitHtml({ org, eventType, eventName, guestName, dateText, location, tableLabel, qrDataUri }) {
+function invitationPortraitHtml({ org, orgLogo, eventType, eventName, guestName, dateText, location, tableLabel, qrDataUri }) {
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
   ${SHARED_CSS}
   html, body { width: 900px; height: 1400px; }
@@ -176,7 +188,7 @@ function invitationPortraitHtml({ org, eventType, eventName, guestName, dateText
   <div class="glass">
     <div class="head">
       <div class="org">${escapeHtml(org)}</div>
-      <img class="brand-logo" src="${LOGO_WHITE}" alt="Signiq">
+      ${brandMark(orgLogo)}
     </div>
     <div class="type">${escapeHtml(eventType || 'Invitation')}</div>
     <div class="invited">Vous êtes convié(e) à</div>
@@ -250,7 +262,7 @@ async function renderInvitation(puppeteer, data) {
  * chaque carte est capturée (fidélité totale au design) puis posée sur la
  * grille en 85,6×54 mm avec repères de découpe — 8 cartes par page.
  */
-async function renderPrintPdf(puppeteer, { org, members }) {
+async function renderPrintPdf(puppeteer, { org, orgLogo, members }) {
   const b = await browser(puppeteer)
 
   // 1) Capture séquentielle des cartes — fiable même quand le Chromium de
@@ -262,7 +274,7 @@ async function renderPrintPdf(puppeteer, { org, members }) {
     await page.setViewport({ width: 1000, height: 620, deviceScaleFactor: 1.5 })
     page.setDefaultTimeout(120000)
     for (let i = 0; i < members.length; i++) {
-      await page.setContent(cardLandscapeHtml({ ...members[i], org }), { waitUntil: 'load', timeout: 60000 })
+      await page.setContent(cardLandscapeHtml({ ...members[i], org, orgLogo }), { waitUntil: 'load', timeout: 60000 })
       const jpg = Buffer.from(await page.screenshot({ type: 'jpeg', quality: 85 }))
       shots.push(`data:image/jpeg;base64,${jpg.toString('base64')}`)
       if ((i + 1) % 5 === 0 || i === members.length - 1) console.log(`[card] ${i + 1}/${members.length}`)

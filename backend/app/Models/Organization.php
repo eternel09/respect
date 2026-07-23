@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Organization extends Model
 {
@@ -32,6 +33,27 @@ class Organization extends Model
     public function hasModule(string $key): bool
     {
         return in_array($key, $this->enabledModules(), true);
+    }
+
+    /**
+     * Logo de l'organisation en data-URI (base64), pour l'embarquer directement
+     * dans les cartes rendues par le service Node (rendu Puppeteer fiable, sans
+     * requête réseau). Null si aucun logo → repli sur le logo Signiq côté rendu.
+     */
+    public function logoDataUri(): ?string
+    {
+        if (! $this->logo_path) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+        if (! $disk->exists($this->logo_path)) {
+            return null;
+        }
+
+        $mime = $disk->mimeType($this->logo_path) ?: 'image/png';
+
+        return 'data:' . $mime . ';base64,' . base64_encode($disk->get($this->logo_path));
     }
 
     /**

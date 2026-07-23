@@ -100,6 +100,7 @@ class OccasionInvitationController extends Controller
         $payload = [
             'phone'      => $guest->phone,
             'org'        => $occasion->organization->name,
+            'orgLogo'    => $occasion->organization->logoDataUri(),
             'eventType'  => self::TYPE_LABELS[$occasion->type] ?? 'Invitation',
             'eventName'  => $occasion->name,
             'guestName'  => $guest->name,
