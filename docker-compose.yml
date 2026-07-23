@@ -38,6 +38,11 @@ services:
       WHATSAPP_SERVICE_KEY: ${WHATSAPP_SERVICE_KEY}
       # Jeton GitHub lecture seule (Contents: read) pour distribuer l'APK
       GITHUB_RELEASES_TOKEN: ${GITHUB_RELEASES_TOKEN:-}
+    volumes:
+      # Fichiers uploadés (logos d'organisation…) — DOIVENT survivre à la
+      # recréation du conteneur à chaque déploiement. Sans ce volume, le logo
+      # enregistré via Réglages disparaît et la carte retombe sur le logo Signiq.
+      - backend_public:/var/www/html/storage/app/public
     networks: [dokploy-network, internal]
 
   frontend:
@@ -75,3 +80,4 @@ networks:
 
 volumes:
   whatsapp_auth:
+  backend_public:
