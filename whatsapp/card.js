@@ -58,86 +58,50 @@ const SHARED_CSS = `
   .hint { color: rgba(255,255,255,0.65); }
 `
 
-/** Portrait 900×1400 — WhatsApp / écrans de téléphone. */
-function cardPortraitHtml({ org, orgLogo, name, memberNo, serial, qrDataUri }) {
+/**
+ * Carte de membre — paysage 1000×620 (format carte CR80 ≈ 85,6×54 mm).
+ * Design plat : liseré arc-en-ciel, fond navy, logo de l'organisation sur
+ * pastille blanche, QR encadré, ID + téléphone. Utilisée à l'impression ET
+ * pour l'envoi WhatsApp.
+ */
+function cardLandscapeHtml({ org, orgLogo, name, memberNo, serial, qrDataUri, phone }) {
+  const logo = orgLogo
+    ? `<span class="logo-chip"><img src="${orgLogo}" alt=""></span>`
+    : `<img class="logo-plain" src="${LOGO_WHITE}" alt="Signiq">`
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
-  ${SHARED_CSS}
-  html, body { width: 900px; height: 1400px; }
-  .orb1 { width: 420px; height: 420px; top: -140px; left: -120px;
-          background: radial-gradient(circle at 35% 35%, rgba(224,138,60,0.55), rgba(224,138,60,0.05)); }
-  .orb2 { width: 360px; height: 360px; bottom: -130px; right: -100px;
-          background: radial-gradient(circle at 40% 40%, rgba(96,150,220,0.5), rgba(96,150,220,0.04)); }
-  .orb3 { width: 160px; height: 160px; top: 420px; right: 60px;
-          background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.25), rgba(255,255,255,0.02)); }
-  .glass { width: 780px; height: 1280px; border-radius: 48px; padding: 60px 56px; }
-  .head { display: flex; align-items: center; justify-content: space-between; }
-  .org { font-size: 26px; max-width: 480px; }
-  .brand-logo { height: 44px; }
-  .label { font-size: 19px; margin-top: 64px; }
-  .name { font-size: 68px; line-height: 1.1; margin-top: 14px; }
-  .no { margin-top: 28px; padding: 14px 30px; font-size: 26px; }
-  .qrzone { flex: 1; display: flex; align-items: center; justify-content: center; }
-  .qrwrap { width: 480px; height: 480px; border-radius: 40px;
-            box-shadow: 0 24px 50px rgba(0,0,0,0.35), inset 0 0 0 12px #ffffff; }
-  .qrwrap img { width: 420px; height: 420px; }
-  .foot { border-top: 1px solid rgba(255,255,255,0.22); padding-top: 26px;
-          display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; }
-  .serial { font-size: 21px; }
-  .hint { font-size: 20px; }
-</style></head><body>
-  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
-  <div class="glass">
-    <div class="head">
-      <div class="org">${escapeHtml(org)}</div>
-      ${brandMark(orgLogo)}
-    </div>
-    <div class="label">Carte de membre</div>
-    <div class="name">${escapeHtml(name)}</div>
-    <div><span class="no">MEMBRE N° ${escapeHtml(memberNo)}</span></div>
-    <div class="qrzone"><div class="qrwrap"><img src="${qrDataUri}" alt="QR"></div></div>
-    <div class="foot">
-      <div class="serial">ID ${escapeHtml(serial)}</div>
-      <div class="hint">Présentez ce code QR à l'entrée de chaque événement</div>
-    </div>
-  </div>
-</body></html>`
-}
-
-/** Paysage 1000×620 — proportions carte de visite (85,6×54 mm ≈ 1,585). */
-function cardLandscapeHtml({ org, orgLogo, name, memberNo, serial, qrDataUri }) {
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
-  ${SHARED_CSS}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1000px; height: 620px; }
-  .orb1 { width: 340px; height: 340px; top: -110px; left: -80px;
-          background: radial-gradient(circle at 35% 35%, rgba(224,138,60,0.55), rgba(224,138,60,0.05)); }
-  .orb2 { width: 260px; height: 260px; bottom: -90px; right: -60px;
-          background: radial-gradient(circle at 40% 40%, rgba(96,150,220,0.5), rgba(96,150,220,0.04)); }
-  .orb3 { width: 130px; height: 130px; top: 70px; right: 200px;
-          background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.28), rgba(255,255,255,0.02)); }
-  .glass { width: 880px; height: 500px; border-radius: 34px; padding: 44px 52px; }
-  .head { display: flex; align-items: center; justify-content: space-between; }
-  .org { font-size: 22px; }
-  .brand-logo { height: 30px; }
-  .bodyrow { flex: 1; display: flex; align-items: center; gap: 48px; margin-top: 20px; }
-  .identity { flex: 1; }
-  .label { font-size: 15px; }
-  .name { font-size: 52px; line-height: 1.12; margin-top: 10px; }
-  .no { margin-top: 22px; padding: 10px 22px; font-size: 20px; }
-  .qrwrap { width: 250px; height: 250px; border-radius: 26px;
-            box-shadow: 0 18px 40px rgba(0,0,0,0.35), inset 0 0 0 8px #ffffff; }
-  .qrwrap img { width: 218px; height: 218px; }
-  .foot { display: flex; align-items: center; justify-content: space-between;
-          border-top: 1px solid rgba(255,255,255,0.22); padding-top: 18px; }
-  .serial { font-size: 16px; }
-  .hint { font-size: 15px; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #ffffff;
+         background: linear-gradient(155deg, #0c1a2c 0%, #12273f 55%, #16324f 100%);
+         position: relative; overflow: hidden; }
+  .bar { display: flex; height: 12px; }
+  .bar > i { flex: 1; }
+  .stage { height: calc(100% - 12px); padding: 40px 48px 34px; display: flex; flex-direction: column; }
+  .head { display: flex; align-items: center; gap: 22px; }
+  .logo-chip { width: 84px; height: 84px; background: #ffffff; border-radius: 18px; flex-shrink: 0;
+               display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0,0,0,0.30); }
+  .logo-chip img { max-width: 64px; max-height: 64px; width: auto; height: auto; display: block; }
+  .logo-plain { height: 60px; width: auto; opacity: 0.95; }
+  .org { font-size: 30px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; }
+  .body { flex: 1; display: flex; align-items: center; gap: 34px; }
+  .identity { flex: 1; min-width: 0; }
+  .label { font-size: 16px; letter-spacing: 5px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+  .name { font-size: 54px; font-weight: 800; line-height: 1.08; margin-top: 10px; text-shadow: 0 2px 14px rgba(0,0,0,0.3); }
+  .no { display: inline-block; margin-top: 22px; padding: 12px 30px; border-radius: 999px;
+        font-size: 23px; font-weight: 700; letter-spacing: 2px; color: #2a1a08;
+        background: linear-gradient(90deg, #d8944a, #c9742b); border: 1px solid rgba(255,220,180,0.45);
+        box-shadow: 0 8px 20px rgba(201,116,43,0.35); }
+  .qrwrap { width: 300px; height: 300px; background: #ffffff; border-radius: 28px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 18px 42px rgba(0,0,0,0.38); }
+  .qrwrap img { width: 262px; height: 262px; }
+  .foot { display: flex; flex-direction: column; gap: 5px; }
+  .serial { font-family: 'Consolas', 'Courier New', monospace; font-size: 24px; letter-spacing: 4px; font-weight: 700; color: rgba(255,255,255,0.82); }
+  .phone { font-size: 19px; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
 </style></head><body>
-  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
-  <div class="glass">
-    <div class="head">
-      <div class="org">${escapeHtml(org)}</div>
-      ${brandMark(orgLogo)}
-    </div>
-    <div class="bodyrow">
+  <div class="bar"><i style="background:#e0322f"></i><i style="background:#2f9bd4"></i><i style="background:#79b93c"></i><i style="background:#f4c020"></i><i style="background:#9b34a8"></i></div>
+  <div class="stage">
+    <div class="head">${logo}<div class="org">${escapeHtml(org)}</div></div>
+    <div class="body">
       <div class="identity">
         <div class="label">Carte de membre</div>
         <div class="name">${escapeHtml(name)}</div>
@@ -147,7 +111,7 @@ function cardLandscapeHtml({ org, orgLogo, name, memberNo, serial, qrDataUri }) 
     </div>
     <div class="foot">
       <div class="serial">ID ${escapeHtml(serial)}</div>
-      <div class="hint">Présentez ce code QR à l'entrée de chaque événement</div>
+      ${phone ? `<div class="phone">${escapeHtml(phone)}</div>` : ''}
     </div>
   </div>
 </body></html>`
@@ -231,12 +195,12 @@ async function warmUp(puppeteer) {
   console.log(`[card] moteur de rendu prêt en ${((Date.now() - t) / 1000).toFixed(1)}s`)
 }
 
-/** Carte portrait en PNG retina (1800×2800) — pour WhatsApp. */
+/** Carte de membre en PNG retina (2000×1240) — pour WhatsApp. */
 async function renderCard(puppeteer, data) {
   const page = await (await browser(puppeteer)).newPage()
   try {
-    await page.setViewport({ width: 900, height: 1400, deviceScaleFactor: 2 })
-    await page.setContent(cardPortraitHtml(data), { waitUntil: 'networkidle0' })
+    await page.setViewport({ width: 1000, height: 620, deviceScaleFactor: 2 })
+    await page.setContent(cardLandscapeHtml(data), { waitUntil: 'networkidle0' })
     // Buffer.from : puppeteer récent renvoie un Uint8Array (Express le
     // sérialiserait en JSON au lieu de l'envoyer en binaire)
     return Buffer.from(await page.screenshot({ type: 'png' }))
