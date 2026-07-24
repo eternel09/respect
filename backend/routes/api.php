@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\OrganizationModuleController;
 use App\Http\Controllers\Api\PublicRegistrationController;
 use App\Http\Controllers\Api\OrganizationSettingsController;
+use App\Http\Controllers\Api\SubOrganizationController;
 use App\Http\Controllers\Api\QrCodeController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScanController;
@@ -82,6 +83,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Suite d'applications (modules) de l'organisation
         Route::get('/admin/modules', [OrganizationModuleController::class, 'index']);
         Route::put('/admin/modules', [OrganizationModuleController::class, 'update']);
+
+        // Provisionnement des sous-organisations (admin de l'org mère)
+        Route::get('/admin/sub-organizations', [SubOrganizationController::class, 'index']);
+        Route::post('/admin/sub-organizations', [SubOrganizationController::class, 'store']);
     });
 
     // Back-office — gestion (administrateur & secrétaire)

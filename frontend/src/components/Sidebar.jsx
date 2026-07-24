@@ -13,8 +13,9 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   // « Applications » vit dans la topbar (à côté des notifications).
   const links = [
     ...navForModules(modules),
-    // Vue consolidée : uniquement pour une organisation qui chapeaute un réseau
-    ...(user?.organization?.is_network_parent
+    // Réseau : organisation de 1er niveau (peut créer des sous-organisations et
+    // en consulter le consolidé). Affiché même avant la 1re sous-organisation.
+    ...(user?.organization?.can_manage_network
       ? [{ to: '/admin/reseau', label: 'Réseau', icon: NetworkIcon }]
       : []),
     { to: '/admin/settings', label: 'Réglages', icon: SettingsIcon },
