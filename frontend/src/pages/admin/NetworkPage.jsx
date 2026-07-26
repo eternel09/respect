@@ -5,6 +5,7 @@ import {
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
 import { useAuth } from '../../context/AuthContext'
+import { exportNetworkExcel, exportNetworkPptx } from '../../lib/networkExport'
 import api, { apiErrorMessage } from '../../lib/axios'
 
 /** Rafraîchissement automatique — perçu comme « temps réel », sans WebSocket. */
@@ -52,6 +53,12 @@ const addBtnClass =
 function AddIcon() {
   return <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
 }
+function DownloadIcon() {
+  return <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z" /></svg>
+}
+function Spinner() {
+  return <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+}
 
 export default function NetworkPage() {
   const { user, refreshUser } = useAuth()
@@ -61,6 +68,7 @@ export default function NetworkPage() {
   const [error, setError] = useState(null)
   const [tick, setTick] = useState(0)
   const [showCreate, setShowCreate] = useState(false)
+  const [exporting, setExporting] = useState(null) // 'xlsx' | 'pptx' | null
 
   const loadSubOrgs = useCallback(async () => {
     try {
@@ -94,6 +102,20 @@ export default function NetworkPage() {
 
   const onCreated = () => { setShowCreate(false); loadSubOrgs(); refreshUser?.() }
 
+  const runExport = async (kind) => {
+    if (!data) return
+    setExporting(kind); setError(null)
+    try {
+      const name = user?.organization?.name || 'Réseau'
+      if (kind === 'xlsx') await exportNetworkExcel(data, name)
+      else await exportNetworkPptx(data, name)
+    } catch (e) {
+      setError(`Export impossible : ${e?.message || 'erreur inattendue'}.`)
+    } finally {
+      setExporting(null)
+    }
+  }
+
   // Métriques par organisation (analytics) indexées par id, pour enrichir la
   // liste de gestion (qui, elle, ne liste que les enfants).
   const metricsById = Object.fromEntries((data?.by_org || []).map((o) => [o.id, o]))
@@ -125,6 +147,20 @@ export default function NetworkPage() {
                 </button>
               ))}
             </div>
+          )}
+          {hasChildren && data && (
+            <>
+              <button onClick={() => runExport('xlsx')} disabled={!!exporting}
+                className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-black/5 hover:bg-sand rounded-xl px-3.5 py-2.5 transition-colors disabled:opacity-60"
+                title="Exporter les données en Excel">
+                {exporting === 'xlsx' ? <Spinner /> : <DownloadIcon />} Excel
+              </button>
+              <button onClick={() => runExport('pptx')} disabled={!!exporting}
+                className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-black/5 hover:bg-sand rounded-xl px-3.5 py-2.5 transition-colors disabled:opacity-60"
+                title="Générer une présentation PowerPoint">
+                {exporting === 'pptx' ? <Spinner /> : <DownloadIcon />} PowerPoint
+              </button>
+            </>
           )}
           <button onClick={() => setShowCreate(true)} className={addBtnClass}>
             <AddIcon /> Sous-organisation
