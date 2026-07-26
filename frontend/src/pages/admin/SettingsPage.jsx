@@ -4,7 +4,10 @@ import PageShell from '../../components/PageShell'
 import api, { apiErrorMessage } from '../../lib/axios'
 import { useAuth } from '../../context/AuthContext'
 
-/** Liaison WhatsApp (service whatsapp-web.js) : statut + QR à scanner. */
+/** Liaison WhatsApp (service whatsapp-web.js) : statut + QR à scanner.
+ *  GELÉ temporairement — non rendu (voir le bas du fichier). Conservé pour
+ *  réactivation. eslint-disable pour ne pas signaler le composant inutilisé. */
+// eslint-disable-next-line no-unused-vars
 function WhatsAppSection() {
   const [status, setStatus] = useState({ state: 'loading', qr: null, message: null })
   const timer = useRef(null)
@@ -182,7 +185,10 @@ export default function SettingsPage() {
           </form>
         )}
 
-        {!loading && <div className="max-w-xl"><WhatsAppSection /></div>}
+        {/* Section WhatsApp GELÉE temporairement — l'envoi des cartes membres par
+            WhatsApp est suspendu (on se concentre sur les membres). Réactivation :
+            rétablir le composant WhatsAppSection ci-dessus et ce rendu. */}
+        {/* {!loading && <div className="max-w-xl"><WhatsAppSection /></div>} */}
       </PageShell>
     </AdminLayout>
   )
