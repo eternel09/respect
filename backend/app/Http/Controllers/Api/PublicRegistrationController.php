@@ -69,6 +69,10 @@ class PublicRegistrationController extends Controller
                     'id'      => $org->id,
                     'name'    => $org->name,
                     'modules' => $org->enabledModules(),
+                    // Mêmes drapeaux réseau que /login et /me, pour que la sidebar
+                    // affiche « Réseau » dès l'inscription (sans attendre un reload).
+                    'is_network_parent'  => $org->isNetworkParent(),
+                    'can_manage_network' => $org->parent_id === null && $org->hasModule('presence'),
                 ],
             ],
         ], 201);
