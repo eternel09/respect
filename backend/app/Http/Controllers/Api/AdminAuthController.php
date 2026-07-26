@@ -53,6 +53,12 @@ class AdminAuthController extends Controller
                     'id'      => $user->organization->id,
                     'name'    => $user->organization->name,
                     'modules' => $user->organization->enabledModules(),
+                    // Chapeaute déjà des sous-organisations → la vue réseau a des données
+                    'is_network_parent' => $user->organization->isNetworkParent(),
+                    // Peut provisionner des sous-organisations : organisation de premier
+                    // niveau (pas elle-même une sous-org) disposant du module présence.
+                    'can_manage_network' => $user->organization->parent_id === null
+                        && $user->organization->hasModule('presence'),
                 ]
                 : null,
         ];

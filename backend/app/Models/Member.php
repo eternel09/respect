@@ -12,7 +12,10 @@ class Member extends Model
     /** @use HasFactory<\Database\Factories\MemberFactory> */
     use BelongsToOrganization, HasFactory;
 
-    protected $fillable = ['organization_id', 'first_name', 'last_name', 'phone', 'sms_sent_at', 'check_in_token'];
+    protected $fillable = [
+        'organization_id', 'first_name', 'last_name', 'phone', 'sms_sent_at',
+        'check_in_token', 'registered_at_event_id',
+    ];
 
     protected $casts = ['sms_sent_at' => 'datetime'];
 

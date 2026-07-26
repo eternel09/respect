@@ -31,6 +31,14 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
+  // Auto-inscription d'une sous-organisation via un lien d'invitation réseau.
+  const joinNetwork = async (token, payload) => {
+    const res = await api.post(`/register/network/${token}`, payload)
+    localStorage.setItem('token', res.data.token)
+    setUser(res.data.user)
+    return res.data
+  }
+
   const logout = async () => {
     await api.post('/admin/logout').catch(() => {})
     localStorage.removeItem('token')
@@ -44,7 +52,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, joinNetwork, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

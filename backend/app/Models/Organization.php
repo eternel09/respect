@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,7 +12,7 @@ class Organization extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'logo_path', 'theme_color', 'plan', 'modules'];
+    protected $fillable = ['parent_id', 'name', 'slug', 'logo_path', 'theme_color', 'plan', 'modules', 'network_invite_token'];
 
     protected $casts = [
         'modules' => 'array',
@@ -63,6 +64,34 @@ class Organization extends Model
     public static function defaultId(): int
     {
         return static::query()->oldest('id')->value('id');
+    }
+
+    /* ── Hiérarchie ──────────────────────────────────────────────────── */
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
+
+    /** Cette organisation chapeaute-t-elle des sous-organisations ? */
+    public function isNetworkParent(): bool
+    {
+        return $this->children()->exists();
+    }
+
+    /**
+     * Ids de l'organisation ET de ses sous-organisations. C'est la base de la
+     * visibilité : une organisation autonome ne « voit » qu'elle-même.
+     * Hiérarchie volontairement limitée à deux niveaux (mère → filles).
+     */
+    public function subtreeIds(): array
+    {
+        return [$this->id, ...$this->children()->pluck('id')->all()];
     }
 
     public function members(): HasMany

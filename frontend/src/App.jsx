@@ -12,12 +12,14 @@ import SettingsPage from './pages/admin/SettingsPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
 import RegisterPage from './pages/admin/RegisterPage'
+import RegisterNetworkPage from './pages/admin/RegisterNetworkPage'
 import MembersPage from './pages/admin/MembersPage'
 import QrCodesPage from './pages/admin/QrCodesPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import OccasionsPage from './pages/events/OccasionsPage'
 import OccasionDetailPage from './pages/events/OccasionDetailPage'
 import ModulesPage from './pages/admin/ModulesPage'
+import NetworkPage from './pages/admin/NetworkPage'
 import { homeForModules } from './lib/modules'
 
 // Atterrissage : super-admin → organisations, sinon accueil du 1ᵉʳ module actif.
@@ -41,6 +43,8 @@ export default function App() {
           {/* Admin auth */}
           <Route path="/admin/login" element={<LoginPage />} />
           <Route path="/register"    element={<RegisterPage />} />
+          {/* Auto-inscription d'une sous-organisation via lien d'invitation réseau */}
+          <Route path="/rejoindre/:token" element={<RegisterNetworkPage />} />
 
           {/* Plateforme (super-admin) */}
           <Route path="/admin/organizations" element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
@@ -50,6 +54,8 @@ export default function App() {
 
           {/* Module « Gestion de présence » */}
           <Route path="/admin/dashboard"  element={<ProtectedRoute module="presence"><DashboardPage /></ProtectedRoute>} />
+          {/* Vue consolidée du réseau — l'API refuse (403) si l'org n'est pas mère */}
+          <Route path="/admin/reseau"     element={<ProtectedRoute module="presence"><NetworkPage /></ProtectedRoute>} />
           <Route path="/admin/attendance" element={<ProtectedRoute module="presence"><AttendancePage /></ProtectedRoute>} />
           <Route path="/admin/members"    element={<ProtectedRoute module="presence"><MembersPage /></ProtectedRoute>} />
           <Route path="/admin/events"     element={<ProtectedRoute module="presence"><EventsPage /></ProtectedRoute>} />

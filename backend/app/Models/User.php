@@ -33,6 +33,31 @@ class User extends Authenticatable
         return $this->belongsTo(Organization::class);
     }
 
+    /**
+     * Organisations que cet utilisateur peut LIRE.
+     *
+     * - organisation autonome         → elle seule (comportement historique)
+     * - organisation « mère »         → elle + ses sous-organisations
+     * - super-admin (sans org)        → [] (aucune restriction appliquée)
+     *
+     * L'écriture, elle, reste toujours sur `organization_id` : un membre du
+     * réseau ne crée jamais de donnée « dans » une fille par inadvertance.
+     * Mémoïsé : le scope global est évalué à chaque requête.
+     */
+    public function visibleOrganizationIds(): array
+    {
+        if (! $this->organization_id) {
+            return [];
+        }
+
+        return $this->visibleOrgIds ??= $this->organization
+            ? $this->organization->subtreeIds()
+            : [$this->organization_id];
+    }
+
+    /** Cache par instance (non persisté). */
+    protected ?array $visibleOrgIds = null;
+
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);

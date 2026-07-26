@@ -108,10 +108,12 @@ class ScanController extends Controller
         // + pointage immédiat. Un badge pourra lui être imprimé plus tard.
         if (! $request->token) {
             $member = Member::create([
-                'organization_id' => $orgId,
-                'first_name'      => $request->first_name,
-                'last_name'       => $request->last_name,
-                'phone'           => $request->phone,
+                'organization_id'        => $orgId,
+                'first_name'             => $request->first_name,
+                'last_name'              => $request->last_name,
+                'phone'                  => $request->phone,
+                // Événement d'enregistrement : alimente « nouveaux membres par événement »
+                'registered_at_event_id' => $request->event_id,
             ]);
 
             $result = $this->record($orgId, $member->check_in_token, $request->event_id, $userId, now());
@@ -144,11 +146,12 @@ class ScanController extends Controller
 
         $member = DB::transaction(function () use ($request, $badge, $orgId) {
             $member = Member::create([
-                'organization_id' => $orgId,
-                'first_name'      => $request->first_name,
-                'last_name'       => $request->last_name,
-                'phone'           => $request->phone,
-                'check_in_token'  => $badge->token, // le QR imprimé devient SON badge
+                'organization_id'        => $orgId,
+                'first_name'             => $request->first_name,
+                'last_name'              => $request->last_name,
+                'phone'                  => $request->phone,
+                'check_in_token'         => $badge->token, // le QR imprimé devient SON badge
+                'registered_at_event_id' => $request->event_id,
             ]);
             $badge->update(['member_id' => $member->id]);
 
