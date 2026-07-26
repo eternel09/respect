@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({
     organization_name: '', name: '', email: '', password: '', password_confirmation: '',
   })
-  const [modules, setModules] = useState(['occasions'])
+  const [modules, setModules] = useState(['presence'])
   const [error, setError]     = useState(null)
   const [loading, setLoading] = useState(false)
   const { register }          = useAuth()
