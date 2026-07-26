@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\MemberCardController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\NetworkController;
+use App\Http\Controllers\Api\NetworkJoinController;
 use App\Http\Controllers\Api\GuestController;
 use App\Http\Controllers\Api\OccasionController;
 use App\Http\Controllers\Api\OccasionInvitationController;
@@ -46,6 +47,10 @@ Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
 // Auto-inscription publique d'un organisateur (crée son espace + admin)
 Route::post('/register', [PublicRegistrationController::class, 'store'])->middleware('throttle:6,1');
+
+// Rejoindre un réseau via lien d'invitation : auto-inscription d'une sous-organisation
+Route::get('/register/network/{token}', [NetworkJoinController::class, 'show'])->middleware('throttle:30,1');
+Route::post('/register/network/{token}', [NetworkJoinController::class, 'store'])->middleware('throttle:6,1');
 
 // Protected routes (authenticated)
 Route::middleware('auth:sanctum')->group(function () {
@@ -87,6 +92,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Provisionnement des sous-organisations (admin de l'org mère)
         Route::get('/admin/sub-organizations', [SubOrganizationController::class, 'index']);
         Route::post('/admin/sub-organizations', [SubOrganizationController::class, 'store']);
+        // Lien d'invitation réseau (générer / révoquer)
+        Route::post('/admin/sub-organizations/invite', [SubOrganizationController::class, 'generateInvite']);
+        Route::delete('/admin/sub-organizations/invite', [SubOrganizationController::class, 'revokeInvite']);
     });
 
     // Back-office — gestion (administrateur & secrétaire)

@@ -46,9 +46,33 @@ class SubOrganizationController extends Controller
             });
 
         return response()->json([
-            'can_manage' => $org->parent_id === null,
-            'data'       => $children,
+            'can_manage'   => $org->parent_id === null,
+            'invite_token' => $org->parent_id === null ? $org->network_invite_token : null,
+            'data'         => $children,
         ]);
+    }
+
+    /** Génère (ou régénère) le jeton du lien d'invitation réseau. */
+    public function generateInvite(Request $request): JsonResponse
+    {
+        $org = $request->user()->organization;
+        abort_if($org === null, 404);
+        abort_unless($org->parent_id === null, 422, "Seule une organisation mère peut inviter des sous-organisations.");
+
+        $org->update(['network_invite_token' => Str::random(40)]);
+
+        return response()->json(['invite_token' => $org->network_invite_token]);
+    }
+
+    /** Révoque le lien d'invitation en cours. */
+    public function revokeInvite(Request $request): JsonResponse
+    {
+        $org = $request->user()->organization;
+        abort_if($org === null, 404);
+
+        $org->update(['network_invite_token' => null]);
+
+        return response()->json(['invite_token' => null]);
     }
 
     /** Crée une sous-organisation + son premier admin. */

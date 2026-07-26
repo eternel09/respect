@@ -12,7 +12,7 @@ class Organization extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['parent_id', 'name', 'slug', 'logo_path', 'theme_color', 'plan', 'modules'];
+    protected $fillable = ['parent_id', 'name', 'slug', 'logo_path', 'theme_color', 'plan', 'modules', 'network_invite_token'];
 
     protected $casts = [
         'modules' => 'array',

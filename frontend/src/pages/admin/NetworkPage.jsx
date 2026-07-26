@@ -69,16 +69,27 @@ export default function NetworkPage() {
   const [tick, setTick] = useState(0)
   const [showCreate, setShowCreate] = useState(false)
   const [exporting, setExporting] = useState(null) // 'xlsx' | 'pptx' | null
+  const [inviteToken, setInviteToken] = useState(null)
 
   const loadSubOrgs = useCallback(async () => {
     try {
       const res = await api.get('/admin/sub-organizations')
       setSubOrgs(res.data.data || [])
+      setInviteToken(res.data.invite_token || null)
     } catch (err) {
       setError(apiErrorMessage(err, 'Chargement impossible.'))
       setSubOrgs([])
     }
   }, [])
+
+  const generateInvite = async () => {
+    try { const res = await api.post('/admin/sub-organizations/invite'); setInviteToken(res.data.invite_token) }
+    catch (err) { setError(apiErrorMessage(err, 'Génération impossible.')) }
+  }
+  const revokeInvite = async () => {
+    try { await api.delete('/admin/sub-organizations/invite'); setInviteToken(null) }
+    catch (err) { setError(apiErrorMessage(err, 'Révocation impossible.')) }
+  }
 
   const loadAnalytics = useCallback(async (u) => {
     try {
@@ -168,6 +179,8 @@ export default function NetworkPage() {
         </div>
 
         {error && <div className="mb-5 px-4 py-3 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">{error}</div>}
+
+        {subOrgs !== null && <InviteBox token={inviteToken} onGenerate={generateInvite} onRevoke={revokeInvite} />}
 
         {subOrgs === null ? (
           <div className="py-16 text-center"><span className="inline-block animate-spin h-7 w-7 border-2 border-brand border-t-transparent rounded-full" /></div>
@@ -293,6 +306,54 @@ export default function NetworkPage() {
         {showCreate && <CreateSubOrgModal onClose={() => setShowCreate(false)} onCreated={onCreated} />}
       </PageShell>
     </AdminLayout>
+  )
+}
+
+/** Lien d'invitation réseau : générer / copier / régénérer / révoquer. */
+function InviteBox({ token, onGenerate, onRevoke }) {
+  const [copied, setCopied] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const url = token ? `${window.location.origin}/rejoindre/${token}` : ''
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800) } catch { /* clipboard indispo */ }
+  }
+  const run = async (fn) => { setBusy(true); try { await fn() } finally { setBusy(false) } }
+
+  return (
+    <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm mb-5">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12a3.1 3.1 0 013.1-3.1h4V7h-4a5 5 0 100 10h4v-1.9h-4A3.1 3.1 0 013.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 010 6.2h-4V17h4a5 5 0 100-10z" /></svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-bold text-gray-900">Lien d'invitation</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Partagez-le : chaque responsable crée lui-même sa sous-organisation, automatiquement rattachée à votre réseau.</p>
+
+          {token ? (
+            <div className="mt-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input readOnly value={url} onFocus={(e) => e.target.select()}
+                  className="flex-1 min-w-0 text-xs bg-sand rounded-xl px-3 py-2.5 text-gray-700 font-mono truncate" />
+                <button onClick={copy} className="text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 whitespace-nowrap transition-colors">
+                  {copied ? 'Copié ✓' : 'Copier le lien'}
+                </button>
+              </div>
+              <div className="flex gap-4 mt-2 text-xs">
+                <button onClick={() => run(onGenerate)} disabled={busy} className="text-gray-500 hover:text-gray-800 disabled:opacity-50">Régénérer</button>
+                <button onClick={() => run(onRevoke)} disabled={busy} className="text-red-500 hover:text-red-700 disabled:opacity-50">Révoquer</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => run(onGenerate)} disabled={busy}
+              className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 transition-colors disabled:opacity-60">
+              {busy && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />}
+              Générer un lien d'invitation
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
