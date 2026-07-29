@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Attendance;
 use App\Models\Event;
 use App\Models\Member;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,15 +14,26 @@ class EventTest extends TestCase
 {
     use RefreshDatabase;
 
+    private Organization $org;
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Un admin appartient toujours à une organisation : les événements créés
+        // via l'API sont rattachés à cette organisation (multi-tenant).
+        $this->org = Organization::factory()->create();
+        $this->admin = User::factory()->create(['organization_id' => $this->org->id]);
+    }
+
     private function actingAsAdmin()
     {
-        $admin = User::factory()->create();
-        return $this->withToken($admin->createToken('test')->plainTextToken);
+        return $this->withToken($this->admin->createToken('test')->plainTextToken);
     }
 
     public function test_index_returns_events(): void
     {
-        Event::factory(3)->create();
+        Event::factory(3)->create(['organization_id' => $this->org->id]);
 
         $this->actingAsAdmin()
             ->getJson('/api/admin/events')
@@ -96,7 +108,7 @@ class EventTest extends TestCase
 
     public function test_show_returns_event(): void
     {
-        $event = Event::factory()->create();
+        $event = Event::factory()->create(['organization_id' => $this->org->id]);
 
         $this->actingAsAdmin()
             ->getJson("/api/admin/events/{$event->id}")
@@ -106,7 +118,7 @@ class EventTest extends TestCase
 
     public function test_admin_can_delete_event(): void
     {
-        $event = Event::factory()->create();
+        $event = Event::factory()->create(['organization_id' => $this->org->id]);
 
         $this->actingAsAdmin()
             ->deleteJson("/api/admin/events/{$event->id}")
@@ -117,8 +129,8 @@ class EventTest extends TestCase
 
     public function test_deleting_event_cascades_attendances(): void
     {
-        $event  = Event::factory()->create();
-        $member = Member::factory()->create();
+        $event  = Event::factory()->create(['organization_id' => $this->org->id]);
+        $member = Member::factory()->create(['organization_id' => $this->org->id]);
         Attendance::factory()->create(['event_id' => $event->id, 'member_id' => $member->id]);
 
         $this->assertDatabaseCount('attendances', 1);

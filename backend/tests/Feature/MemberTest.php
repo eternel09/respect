@@ -83,7 +83,14 @@ class MemberTest extends TestCase
     {
         $member = Member::factory()->create();
         $event  = Event::factory()->create();
-        Attendance::factory(3)->create(['member_id' => $member->id, 'event_id' => $event->id]);
+        // Dates distinctes : la présence est unique par (membre, événement, jour).
+        Attendance::factory(3)
+            ->sequence(
+                ['attended_date' => now()->subDays(1)->toDateString()],
+                ['attended_date' => now()->subDays(2)->toDateString()],
+                ['attended_date' => now()->subDays(3)->toDateString()],
+            )
+            ->create(['member_id' => $member->id, 'event_id' => $event->id]);
 
         // Can't use withCount on the show endpoint since it returns all attendances separately
         // Verify via index which uses withCount

@@ -20,6 +20,10 @@ class AttendanceFactory extends Factory
         return [
             'member_id'     => \App\Models\Member::factory(),
             'event_id'      => \App\Models\Event::factory(),
+            // La présence appartient à l'organisation de son membre (comme le fait
+            // AttendanceController::store). Dérivé du member_id résolu pour rester
+            // cohérent même quand le test fournit son propre membre.
+            'organization_id' => fn (array $attributes) => \App\Models\Member::find($attributes['member_id'])?->organization_id,
             'attended_date' => $this->faker->dateTimeBetween('-30 days', 'now')->format('Y-m-d'),
         ];
     }
