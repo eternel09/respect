@@ -39,7 +39,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
       <aside
         className={`fixed inset-y-0 left-0 z-40 md:sticky md:top-0 md:inset-y-auto md:shrink-0 w-64 h-screen flex flex-col text-white
-                    bg-gradient-to-b from-brand via-brand-light to-accent
+                    bg-brand
                     transform transition-transform duration-300 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
