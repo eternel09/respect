@@ -25,14 +25,10 @@ return [
             'description' => 'Membres, pointage par QR code, rapports et statistiques.',
         ],
 
-        // Retiré temporairement (le temps de revoir l'approche du module mariage/
-        // événementiel). Retiré du catalogue = masqué partout (sidebar, Applications,
-        // inscription) et filtré de enabledModules() — les DONNÉES occasions restent
-        // intactes en base. Réactivation : décommenter + le pendant dans lib/modules.jsx.
-        // 'occasions' => [
-        //     'label'       => 'Invitations & événements',
-        //     'description' => 'Mariages, galas, cérémonies : plan de salle, invités, invitations QR.',
-        // ],
+        'occasions' => [
+            'label'       => 'Invitations & événements',
+            'description' => 'Mariages, galas, cérémonies : plan de salle, invités, invitations QR.',
+        ],
 
     ],
 ];

@@ -21,25 +21,21 @@ export const MODULES = {
       { to: '/admin/events',     label: 'Activités',       icon: RegIcon },
     ],
   },
-  // Module « occasions » (mariages/événementiel) retiré temporairement — voir
-  // config/modules.php côté backend. Réactivation : rétablir cette entrée + la clé
-  // dans MODULE_ORDER. Les pages/routes /events restent en place (inaccessibles
-  // tant que le module n'est pas au catalogue).
-  // occasions: {
-  //   key: 'occasions',
-  //   label: 'Invitations & événements',
-  //   description: 'Mariages, galas, cérémonies : plan de salle, invités, invitations QR.',
-  //   color: '#e08a3c',
-  //   icon: OccasionIcon,
-  //   home: '/events',
-  //   nav: [
-  //     { to: '/events', label: 'Événements', icon: OccasionIcon },
-  //   ],
-  // },
+  occasions: {
+    key: 'occasions',
+    label: 'Invitations & événements',
+    description: 'Mariages, galas, cérémonies : plan de salle, invités, invitations QR.',
+    color: '#e08a3c',
+    icon: OccasionIcon,
+    home: '/events',
+    nav: [
+      { to: '/events', label: 'Événements', icon: OccasionIcon },
+    ],
+  },
 }
 
 /** Ordre d'affichage stable (nav + cartes). */
-export const MODULE_ORDER = ['presence']
+export const MODULE_ORDER = ['presence', 'occasions']
 
 /** Entrées de navigation à plat pour les modules activés. */
 export function navForModules(enabled = []) {

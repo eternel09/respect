@@ -125,8 +125,8 @@ Plateforme fonctionnelle, déployée. Grandes briques livrées :
 - [x] Déploiement Docker / Dokploy
 
 ### Dette connue / à surveiller
-- Modules **gelés temporairement** : « occasions » (mariage/événement) retiré ;
-  envoi de cartes WhatsApp gelé puis rétabli — statut à trancher.
+- Module « occasions » (invitations électroniques mariage/événement) **rétabli**
+  au catalogue ; envoi de cartes WhatsApp gelé puis rétabli.
 - **Aucun test automatisé** côté frontend et mobile.
 - CI : seul le build APK mobile est automatisé ; `php artisan test` n'est pas
   encore lancé en CI sur les PR.
