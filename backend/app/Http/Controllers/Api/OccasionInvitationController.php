@@ -108,6 +108,9 @@ class OccasionInvitationController extends Controller
             'location'   => $occasion->location,
             'tableLabel' => $this->tableLabel($guest),
             'qrDataUri'  => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
+            // Carton personnalisé (option A) : si présent, le service WhatsApp
+            // superpose QR + nom dessus au lieu de générer le design par défaut.
+            'backgroundDataUri' => $occasion->invitationBgDataUri(),
         ];
 
         try {

@@ -170,6 +170,52 @@ function invitationPortraitHtml({ org, orgLogo, eventType, eventName, guestName,
 </body></html>`
 }
 
+/**
+ * Invitation sur carton PERSONNALISÉ (option A) : l'organisation téléverse son
+ * image de fond ; on superpose seulement le QR de l'invité et son nom. Le même
+ * carton sert à tous les invités de l'événement. Le rendu épouse le format de
+ * l'image téléversée (portrait, paysage, carré) — les unités `vw` calent les
+ * incrustations en proportion de la largeur, quelle que soit la taille.
+ */
+function customInvitationHtml({ backgroundDataUri, guestName, qrDataUri }) {
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; }
+  #wrap { position: relative; width: 100%; line-height: 0; }
+  #bg { display: block; width: 100%; height: auto; }
+  .overlay {
+    position: absolute; inset: 0; line-height: normal;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 4vw; gap: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  .strip { display: flex; align-items: flex-end; gap: 3vw; }
+  .namewrap {
+    flex: 1 1 auto; min-width: 0;
+    background: rgba(12, 18, 32, 0.55);
+    border-radius: 3vw; padding: 3vw 3.6vw; color: #fff;
+    box-shadow: 0 1.5vw 4vw rgba(0,0,0,0.28);
+  }
+  .namelabel { font-size: 2.3vw; letter-spacing: 0.35vw; text-transform: uppercase; opacity: 0.82; }
+  .name { font-size: 5.4vw; font-weight: 800; line-height: 1.06; margin-top: 0.6vw; overflow-wrap: break-word; text-shadow: 0 0.3vw 1.2vw rgba(0,0,0,0.35); }
+  .qrplate { flex: 0 0 auto; background: #fff; border-radius: 3vw; padding: 2.2vw; box-shadow: 0 1.5vw 4vw rgba(0,0,0,0.28); }
+  .qrplate img { display: block; width: 22vw; height: 22vw; }
+</style></head><body>
+  <div id="wrap">
+    <img id="bg" src="${backgroundDataUri}" alt="">
+    <div class="overlay">
+      <div class="strip">
+        <div class="namewrap">
+          <div class="namelabel">Invitation</div>
+          <div class="name">${escapeHtml(guestName)}</div>
+        </div>
+        <div class="qrplate"><img src="${qrDataUri}" alt="QR"></div>
+      </div>
+    </div>
+  </div>
+</body></html>`
+}
+
 // ── Rendu ───────────────────────────────────────────────────
 const LAUNCH_ARGS = [
   '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu',
@@ -211,10 +257,39 @@ async function renderCard(puppeteer, data) {
 
 /** Invitation portrait en PNG retina — pour WhatsApp. */
 async function renderInvitation(puppeteer, data) {
+  // Carton personnalisé téléversé (option A) → on superpose QR + nom dessus.
+  if (data && data.backgroundDataUri) {
+    return renderCustomInvitation(puppeteer, data)
+  }
   const page = await (await browser(puppeteer)).newPage()
   try {
     await page.setViewport({ width: 900, height: 1400, deviceScaleFactor: 2 })
     await page.setContent(invitationPortraitHtml(data), { waitUntil: 'networkidle0' })
+    return Buffer.from(await page.screenshot({ type: 'png' }))
+  } finally {
+    await page.close().catch(() => {})
+  }
+}
+
+/**
+ * Invitation sur carton personnalisé : le rendu épouse les dimensions natives
+ * de l'image téléversée (plafonnées), puis superpose QR + nom.
+ */
+async function renderCustomInvitation(puppeteer, data) {
+  const page = await (await browser(puppeteer)).newPage()
+  try {
+    await page.setContent(customInvitationHtml(data), { waitUntil: 'networkidle0' })
+    // Dimensions natives du carton téléversé (repli 900×1400 si illisible).
+    const dims = await page.evaluate(() => {
+      const img = document.getElementById('bg')
+      return { w: img?.naturalWidth || 900, h: img?.naturalHeight || 1400 }
+    })
+    // On plafonne le plus grand côté (poids du PNG / limite JSON du service).
+    const MAX = 1440
+    const scale = Math.min(1, MAX / Math.max(dims.w, dims.h))
+    const width = Math.round(dims.w * scale)
+    const height = Math.round(dims.h * scale)
+    await page.setViewport({ width, height, deviceScaleFactor: 2 })
     return Buffer.from(await page.screenshot({ type: 'png' }))
   } finally {
     await page.close().catch(() => {})

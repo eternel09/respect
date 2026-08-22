@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import api, { apiErrorMessage } from '../../lib/axios'
@@ -26,6 +26,8 @@ export default function OccasionDetailPage() {
   const [sending, setSending] = useState(false)
   const [resendId, setResendId] = useState(null)
   const [flash, setFlash] = useState(null) // { ok: bool, text }
+  const [bgBusy, setBgBusy] = useState(false)
+  const bgInputRef = useRef(null)
 
   const load = useCallback(() => {
     api.get(`/occasions/${id}`)
@@ -51,6 +53,32 @@ export default function OccasionDetailPage() {
     } catch (e) {
       setFlash({ ok: false, text: apiErrorMessage(e, "Échec de l'envoi des invitations.") })
     } finally { setSending(false) }
+  }
+
+  const uploadBg = async (file) => {
+    if (bgInputRef.current) bgInputRef.current.value = '' // permet de re-choisir le même fichier
+    if (!file) return
+    setBgBusy(true); setFlash(null)
+    try {
+      const fd = new FormData(); fd.append('invitation', file)
+      const res = await api.post(`/occasions/${id}/invitation-bg`, fd)
+      setFlash({ ok: true, text: res.data.message || "Carton d'invitation enregistré." })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du téléversement.') })
+    } finally { setBgBusy(false) }
+  }
+
+  const removeBg = async () => {
+    if (!confirm('Retirer le carton personnalisé ? Les invitations reprendront le design par défaut.')) return
+    setBgBusy(true); setFlash(null)
+    try {
+      await api.delete(`/occasions/${id}/invitation-bg`)
+      setFlash({ ok: true, text: "Carton d'invitation retiré." })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du retrait.') })
+    } finally { setBgBusy(false) }
   }
 
   const resend = async (guestId) => {
@@ -113,6 +141,37 @@ export default function OccasionDetailPage() {
               <p className="text-xs text-gray-400 mt-0.5">{s}</p>
             </div>
           ))}
+        </div>
+
+        {/* Carton d'invitation personnalisé */}
+        <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6 flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-gray-900">Carton d'invitation</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+              Téléversez votre visuel : l'app y ajoute automatiquement le QR code et le nom de chaque invité. Le même carton sert à tout l'événement. Sans carton, un design par défaut est généré.
+            </p>
+            <input ref={bgInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+              onChange={e => uploadBg(e.target.files?.[0])} />
+            <div className="flex flex-wrap gap-3 mt-3">
+              <button onClick={() => bgInputRef.current?.click()} disabled={bgBusy}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 disabled:opacity-60">
+                {bgBusy
+                  ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" /></svg>}
+                {o.invitation_bg_url ? 'Remplacer le carton' : 'Téléverser un carton'}
+              </button>
+              {o.invitation_bg_url && (
+                <button onClick={removeBg} disabled={bgBusy}
+                  className="text-sm font-medium text-gray-600 border border-gray-200 rounded-xl px-4 py-2.5 hover:bg-sand disabled:opacity-60">
+                  Retirer
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">PNG, JPG ou WEBP — 4 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
+          </div>
+          {o.invitation_bg_url
+            ? <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />
+            : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucun carton</div>}
         </div>
 
         {/* Tabs */}
