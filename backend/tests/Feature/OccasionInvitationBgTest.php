@@ -7,6 +7,7 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -84,5 +85,28 @@ class OccasionInvitationBgTest extends TestCase
         $this->occasion->refresh();
         $this->assertNull($this->occasion->invitation_bg_path);
         Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_preview_returns_composed_image(): void
+    {
+        // Le service WhatsApp est simulé : on ne teste que le relais backend.
+        Http::fake(['*/preview-invitation' => Http::response('PNGBYTES', 200, ['Content-Type' => 'image/png'])]);
+
+        $this->actingAsAdmin()
+            ->get("/api/occasions/{$this->occasion->id}/invitation-preview")
+            ->assertStatus(200)
+            ->assertHeader('Content-Type', 'image/png');
+
+        Http::assertSent(fn ($req) => str_ends_with($req->url(), '/preview-invitation')
+            && $req['guestName'] === 'Marie Exemple');
+    }
+
+    public function test_preview_reports_service_unreachable(): void
+    {
+        Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('down'));
+
+        $this->actingAsAdmin()
+            ->getJson("/api/occasions/{$this->occasion->id}/invitation-preview")
+            ->assertStatus(503);
     }
 }

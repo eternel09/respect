@@ -28,6 +28,7 @@ export default function OccasionDetailPage() {
   const [flash, setFlash] = useState(null) // { ok: bool, text }
   const [bgBusy, setBgBusy] = useState(false)
   const bgInputRef = useRef(null)
+  const [preview, setPreview] = useState(null) // { loading, url, error }
 
   const load = useCallback(() => {
     api.get(`/occasions/${id}`)
@@ -36,6 +37,8 @@ export default function OccasionDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
   useEffect(load, [load])
+  // Libère l'URL blob de l'aperçu quand elle change ou au démontage.
+  useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url) }, [preview?.url])
 
   const assign = async (guestId, tableId) => {
     await api.put(`/guests/${guestId}`, { occasion_table_id: tableId || null })
@@ -79,6 +82,23 @@ export default function OccasionDetailPage() {
     } catch (e) {
       setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du retrait.') })
     } finally { setBgBusy(false) }
+  }
+
+  const openPreview = async () => {
+    setPreview({ loading: true, url: null, error: null })
+    try {
+      const res = await api.get(`/occasions/${id}/invitation-preview`, { responseType: 'blob' })
+      setPreview({ loading: false, url: URL.createObjectURL(res.data), error: null })
+    } catch (e) {
+      const msg = e.response?.status === 503
+        ? 'Service WhatsApp injoignable — l’aperçu nécessite que le service soit démarré.'
+        : "Échec de la génération de l’aperçu."
+      setPreview({ loading: false, url: null, error: msg })
+    }
+  }
+
+  const closePreview = () => {
+    setPreview(p => { if (p?.url) URL.revokeObjectURL(p.url); return null })
   }
 
   const resend = async (guestId) => {
@@ -166,6 +186,11 @@ export default function OccasionDetailPage() {
                   Retirer
                 </button>
               )}
+              <button onClick={openPreview} disabled={bgBusy}
+                className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl px-4 py-2.5 hover:bg-sand disabled:opacity-60">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" /></svg>
+                Aperçu
+              </button>
             </div>
             <p className="text-xs text-gray-400 mt-2">PNG, JPG ou WEBP — 4 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
           </div>
@@ -269,6 +294,26 @@ export default function OccasionDetailPage() {
 
         {modal === 'table' && <AddTableModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {modal === 'guest' && <AddGuestModal occasionId={id} tables={tables} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
+
+        {preview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={closePreview}>
+            <div className="bg-white rounded-2xl shadow-xl p-4 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-gray-900">Aperçu de l'invitation</h3>
+                <button onClick={closePreview} className="text-gray-400 hover:text-gray-700 text-lg leading-none">✕</button>
+              </div>
+              {preview.loading && (
+                <div className="py-16 text-center">
+                  <span className="inline-block animate-spin h-7 w-7 border-2 border-brand border-t-transparent rounded-full" />
+                  <p className="text-sm text-gray-500 mt-3">Génération de l'aperçu…</p>
+                </div>
+              )}
+              {preview.error && <div className="py-8 px-3 text-center text-sm text-red-600">{preview.error}</div>}
+              {preview.url && <img src={preview.url} alt="Aperçu de l'invitation" className="w-full rounded-xl ring-1 ring-black/10" />}
+              {preview.url && <p className="text-xs text-gray-400 mt-3 text-center">Exemple avec un invité. Le QR et le nom réels sont posés à l'envoi.</p>}
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   )

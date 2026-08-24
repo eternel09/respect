@@ -134,6 +134,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Carton d'invitation personnalisé (image de fond, QR + nom superposés)
         Route::post('/occasions/{occasion}/invitation-bg', [OccasionController::class, 'uploadInvitation']);
         Route::delete('/occasions/{occasion}/invitation-bg', [OccasionController::class, 'removeInvitation']);
+        // Aperçu composé (fond + QR + nom d'un invité d'exemple) — ne renvoie qu'une image
+        Route::get('/occasions/{occasion}/invitation-preview', [OccasionInvitationController::class, 'preview']);
         // Plan de salle
         Route::post('/occasions/{occasion}/tables', [OccasionTableController::class, 'store']);
         Route::put('/occasion-tables/{occasionTable}', [OccasionTableController::class, 'update']);
