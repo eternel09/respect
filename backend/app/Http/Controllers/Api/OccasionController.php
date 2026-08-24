@@ -7,6 +7,7 @@ use App\Http\Requests\StoreOccasionRequest;
 use App\Http\Resources\GuestResource;
 use App\Http\Resources\OccasionResource;
 use App\Models\Occasion;
+use App\Services\InvitationImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -81,22 +82,27 @@ class OccasionController extends Controller
      * occasion, sur laquelle l'app superpose le QR + le nom de chaque invité.
      * Même carton pour tous les invités de l'événement.
      */
-    public function uploadInvitation(Request $request, Occasion $occasion): JsonResponse
+    public function uploadInvitation(Request $request, Occasion $occasion, InvitationImageService $images): JsonResponse
     {
+        // Validation souple : on accepte largement (le client peut apporter JPG,
+        // PNG, WEBP, HEIC d'iPhone ou un PDF de designer) puis on normalise. Le
+        // service est le vrai garde-fou : il convertit ou refuse avec un message.
         $request->validate([
-            'invitation' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:8192'],
+            'invitation' => ['required', 'file', 'max:12288'],
         ], [
             'invitation.required' => 'Sélectionnez une image de carton.',
-            'invitation.image'    => 'Le fichier doit être une image (JPG, PNG ou WEBP).',
-            'invitation.mimes'    => 'Format non pris en charge : utilisez JPG, PNG ou WEBP.',
-            'invitation.max'      => 'Image trop lourde (8 Mo maximum).',
+            'invitation.max'      => 'Fichier trop lourd (12 Mo maximum).',
         ]);
+
+        // Normalise en JPEG (redimensionné, aplati) ; lève une ValidationException
+        // (422) si le fichier est illisible ou d'un format non pris en charge.
+        $path = $images->process($request->file('invitation'));
 
         if ($occasion->invitation_bg_path) {
             Storage::disk('public')->delete($occasion->invitation_bg_path);
         }
 
-        $occasion->invitation_bg_path = $request->file('invitation')->store('invitations', 'public');
+        $occasion->invitation_bg_path = $path;
         $occasion->save();
 
         return response()->json([

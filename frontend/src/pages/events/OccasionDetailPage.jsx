@@ -170,8 +170,9 @@ export default function OccasionDetailPage() {
             <p className="text-sm text-gray-500 mt-1 max-w-2xl">
               Téléversez votre visuel : l'app y ajoute automatiquement le QR code et le nom de chaque invité. Le même carton sert à tout l'événement. Sans carton, un design par défaut est généré.
             </p>
-            <input ref={bgInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
-              onChange={e => uploadBg(e.target.files?.[0])} />
+            <input ref={bgInputRef} type="file"
+              accept="image/png,image/jpeg,image/webp,image/heic,image/heif,application/pdf,.heic,.heif,.pdf"
+              className="hidden" onChange={e => uploadBg(e.target.files?.[0])} />
             <div className="flex flex-wrap gap-3 mt-3">
               <button onClick={() => bgInputRef.current?.click()} disabled={bgBusy}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 disabled:opacity-60">
@@ -192,7 +193,7 @@ export default function OccasionDetailPage() {
                 Aperçu
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">PNG, JPG ou WEBP — 8 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
+            <p className="text-xs text-gray-400 mt-2">JPG, PNG, WEBP, HEIC (iPhone) ou PDF — 12 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
           </div>
           {o.invitation_bg_url
             ? <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />

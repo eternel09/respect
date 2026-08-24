@@ -55,16 +55,20 @@ class OccasionInvitationBgTest extends TestCase
 
         $this->occasion->refresh();
         $this->assertNotNull($this->occasion->invitation_bg_path);
+        // Normalisé en JPEG quelle que soit l'entrée.
+        $this->assertStringEndsWith('.jpg', $this->occasion->invitation_bg_path);
         Storage::disk('public')->assertExists($this->occasion->invitation_bg_path);
     }
 
-    public function test_upload_rejects_non_image(): void
+    public function test_upload_rejects_unreadable_file(): void
     {
         Storage::fake('public');
 
+        // Un fichier qui n'est ni une image ni un PDF lisible → refus 422 clair,
+        // que le serveur ait Imagick ou non.
         $this->actingAsAdmin()
             ->postJson("/api/occasions/{$this->occasion->id}/invitation-bg", [
-                'invitation' => UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf'),
+                'invitation' => UploadedFile::fake()->create('notes.txt', 10, 'text/plain'),
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors('invitation');

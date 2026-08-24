@@ -3,12 +3,22 @@ FROM serversideup/php:8.3-fpm-nginx AS base
 
 # Extensions requises : pdo_pgsql (Postgres), gd (QR/dompdf), intl, zip, bcmath
 USER root
-RUN install-php-extensions pdo_pgsql gd intl zip bcmath exif
+# imagick : normalisation des cartons d'invitation (HEIC iPhone, PDF designer,
+# redimensionnement). gd reste le repli pour les images web.
+RUN install-php-extensions pdo_pgsql gd intl zip bcmath exif imagick
+
+# Délégués ImageMagick pour HEIC (libheif) et PDF (ghostscript), + autorisation
+# de lecture des PDF (désactivée par défaut sous Debian via policy.xml).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ghostscript libheif1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -ri 's/(rights=")none("[[:space:]]+pattern="PDF")/\1read|write\2/' \
+         /etc/ImageMagick-6/policy.xml 2>/dev/null || true
 
 # Limites d'upload : PHP (drop-in conf.d, prioritaire via le préfixe zz-) pour
-# accepter les cartons d'invitation haute résolution, et nginx côté serversideup.
+# accepter les cartons haute résolution / HEIC / PDF, et nginx côté serversideup.
 COPY docker/php-uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
-ENV NGINX_CLIENT_MAX_BODY_SIZE=15m
+ENV NGINX_CLIENT_MAX_BODY_SIZE=22m
 
 USER www-data
 
