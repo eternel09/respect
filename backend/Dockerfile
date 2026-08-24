@@ -4,6 +4,12 @@ FROM serversideup/php:8.3-fpm-nginx AS base
 # Extensions requises : pdo_pgsql (Postgres), gd (QR/dompdf), intl, zip, bcmath
 USER root
 RUN install-php-extensions pdo_pgsql gd intl zip bcmath exif
+
+# Limites d'upload : PHP (drop-in conf.d, prioritaire via le préfixe zz-) pour
+# accepter les cartons d'invitation haute résolution, et nginx côté serversideup.
+COPY docker/php-uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+ENV NGINX_CLIENT_MAX_BODY_SIZE=15m
+
 USER www-data
 
 WORKDIR /var/www/html

@@ -192,7 +192,7 @@ export default function OccasionDetailPage() {
                 Aperçu
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">PNG, JPG ou WEBP — 4 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
+            <p className="text-xs text-gray-400 mt-2">PNG, JPG ou WEBP — 8 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
           </div>
           {o.invitation_bg_url
             ? <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />

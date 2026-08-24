@@ -84,11 +84,12 @@ class OccasionController extends Controller
     public function uploadInvitation(Request $request, Occasion $occasion): JsonResponse
     {
         $request->validate([
-            'invitation' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
+            'invitation' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:8192'],
         ], [
             'invitation.required' => 'Sélectionnez une image de carton.',
-            'invitation.image'    => 'Le fichier doit être une image.',
-            'invitation.max'      => 'Image trop lourde (4 Mo maximum).',
+            'invitation.image'    => 'Le fichier doit être une image (JPG, PNG ou WEBP).',
+            'invitation.mimes'    => 'Format non pris en charge : utilisez JPG, PNG ou WEBP.',
+            'invitation.max'      => 'Image trop lourde (8 Mo maximum).',
         ]);
 
         if ($occasion->invitation_bg_path) {
