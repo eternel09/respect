@@ -125,14 +125,14 @@ class NetworkFlowTest extends TestCase
 
     public function test_registration_rejects_modules_absent_from_catalog(): void
     {
-        // Le module « occasions » a été retiré du catalogue : l'inscription le refuse.
+        // Un module absent du catalogue est refusé à l'inscription.
         $this->postJson('/api/register', [
-            'organization_name'     => 'Test Occasions',
+            'organization_name'     => 'Test Module Inconnu',
             'name'                  => 'Org',
-            'email'                 => 'occ@test.cd',
+            'email'                 => 'inconnu@test.cd',
             'password'              => 'password123',
             'password_confirmation' => 'password123',
-            'modules'               => ['occasions'],
+            'modules'               => ['inexistant'],
         ])->assertStatus(422)->assertJsonValidationErrors('modules.0');
 
         // « presence » reste accepté.

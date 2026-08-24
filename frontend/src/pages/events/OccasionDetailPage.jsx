@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import api, { apiErrorMessage } from '../../lib/axios'
@@ -26,6 +26,9 @@ export default function OccasionDetailPage() {
   const [sending, setSending] = useState(false)
   const [resendId, setResendId] = useState(null)
   const [flash, setFlash] = useState(null) // { ok: bool, text }
+  const [bgBusy, setBgBusy] = useState(false)
+  const bgInputRef = useRef(null)
+  const [preview, setPreview] = useState(null) // { loading, url, error }
 
   const load = useCallback(() => {
     api.get(`/occasions/${id}`)
@@ -34,6 +37,8 @@ export default function OccasionDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
   useEffect(load, [load])
+  // Libère l'URL blob de l'aperçu quand elle change ou au démontage.
+  useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url) }, [preview?.url])
 
   const assign = async (guestId, tableId) => {
     await api.put(`/guests/${guestId}`, { occasion_table_id: tableId || null })
@@ -51,6 +56,49 @@ export default function OccasionDetailPage() {
     } catch (e) {
       setFlash({ ok: false, text: apiErrorMessage(e, "Échec de l'envoi des invitations.") })
     } finally { setSending(false) }
+  }
+
+  const uploadBg = async (file) => {
+    if (bgInputRef.current) bgInputRef.current.value = '' // permet de re-choisir le même fichier
+    if (!file) return
+    setBgBusy(true); setFlash(null)
+    try {
+      const fd = new FormData(); fd.append('invitation', file)
+      const res = await api.post(`/occasions/${id}/invitation-bg`, fd)
+      setFlash({ ok: true, text: res.data.message || "Carton d'invitation enregistré." })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du téléversement.') })
+    } finally { setBgBusy(false) }
+  }
+
+  const removeBg = async () => {
+    if (!confirm('Retirer le carton personnalisé ? Les invitations reprendront le design par défaut.')) return
+    setBgBusy(true); setFlash(null)
+    try {
+      await api.delete(`/occasions/${id}/invitation-bg`)
+      setFlash({ ok: true, text: "Carton d'invitation retiré." })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du retrait.') })
+    } finally { setBgBusy(false) }
+  }
+
+  const openPreview = async () => {
+    setPreview({ loading: true, url: null, error: null })
+    try {
+      const res = await api.get(`/occasions/${id}/invitation-preview`, { responseType: 'blob' })
+      setPreview({ loading: false, url: URL.createObjectURL(res.data), error: null })
+    } catch (e) {
+      const msg = e.response?.status === 503
+        ? 'Service WhatsApp injoignable — l’aperçu nécessite que le service soit démarré.'
+        : "Échec de la génération de l’aperçu."
+      setPreview({ loading: false, url: null, error: msg })
+    }
+  }
+
+  const closePreview = () => {
+    setPreview(p => { if (p?.url) URL.revokeObjectURL(p.url); return null })
   }
 
   const resend = async (guestId) => {
@@ -113,6 +161,42 @@ export default function OccasionDetailPage() {
               <p className="text-xs text-gray-400 mt-0.5">{s}</p>
             </div>
           ))}
+        </div>
+
+        {/* Carton d'invitation personnalisé */}
+        <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6 flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-gray-900">Carton d'invitation</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+              Téléversez votre visuel : l'app y ajoute automatiquement le QR code et le nom de chaque invité. Le même carton sert à tout l'événement. Sans carton, un design par défaut est généré.
+            </p>
+            <input ref={bgInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+              onChange={e => uploadBg(e.target.files?.[0])} />
+            <div className="flex flex-wrap gap-3 mt-3">
+              <button onClick={() => bgInputRef.current?.click()} disabled={bgBusy}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 disabled:opacity-60">
+                {bgBusy
+                  ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" /></svg>}
+                {o.invitation_bg_url ? 'Remplacer le carton' : 'Téléverser un carton'}
+              </button>
+              {o.invitation_bg_url && (
+                <button onClick={removeBg} disabled={bgBusy}
+                  className="text-sm font-medium text-gray-600 border border-gray-200 rounded-xl px-4 py-2.5 hover:bg-sand disabled:opacity-60">
+                  Retirer
+                </button>
+              )}
+              <button onClick={openPreview} disabled={bgBusy}
+                className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl px-4 py-2.5 hover:bg-sand disabled:opacity-60">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" /></svg>
+                Aperçu
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">PNG, JPG ou WEBP — 4 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
+          </div>
+          {o.invitation_bg_url
+            ? <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />
+            : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucun carton</div>}
         </div>
 
         {/* Tabs */}
@@ -210,6 +294,26 @@ export default function OccasionDetailPage() {
 
         {modal === 'table' && <AddTableModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {modal === 'guest' && <AddGuestModal occasionId={id} tables={tables} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
+
+        {preview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={closePreview}>
+            <div className="bg-white rounded-2xl shadow-xl p-4 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-gray-900">Aperçu de l'invitation</h3>
+                <button onClick={closePreview} className="text-gray-400 hover:text-gray-700 text-lg leading-none">✕</button>
+              </div>
+              {preview.loading && (
+                <div className="py-16 text-center">
+                  <span className="inline-block animate-spin h-7 w-7 border-2 border-brand border-t-transparent rounded-full" />
+                  <p className="text-sm text-gray-500 mt-3">Génération de l'aperçu…</p>
+                </div>
+              )}
+              {preview.error && <div className="py-8 px-3 text-center text-sm text-red-600">{preview.error}</div>}
+              {preview.url && <img src={preview.url} alt="Aperçu de l'invitation" className="w-full rounded-xl ring-1 ring-black/10" />}
+              {preview.url && <p className="text-xs text-gray-400 mt-3 text-center">Exemple avec un invité. Le QR et le nom réels sont posés à l'envoi.</p>}
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   )

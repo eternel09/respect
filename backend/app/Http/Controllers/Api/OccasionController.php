@@ -8,7 +8,9 @@ use App\Http\Resources\GuestResource;
 use App\Http\Resources\OccasionResource;
 use App\Models\Occasion;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Storage;
 
 class OccasionController extends Controller
 {
@@ -72,5 +74,45 @@ class OccasionController extends Controller
     {
         $occasion->delete(); // cascade → tables + invités
         return response()->json(['message' => 'Événement supprimé.']);
+    }
+
+    /**
+     * Téléverse le carton d'invitation (option A) : une image de fond par
+     * occasion, sur laquelle l'app superpose le QR + le nom de chaque invité.
+     * Même carton pour tous les invités de l'événement.
+     */
+    public function uploadInvitation(Request $request, Occasion $occasion): JsonResponse
+    {
+        $request->validate([
+            'invitation' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
+        ], [
+            'invitation.required' => 'Sélectionnez une image de carton.',
+            'invitation.image'    => 'Le fichier doit être une image.',
+            'invitation.max'      => 'Image trop lourde (4 Mo maximum).',
+        ]);
+
+        if ($occasion->invitation_bg_path) {
+            Storage::disk('public')->delete($occasion->invitation_bg_path);
+        }
+
+        $occasion->invitation_bg_path = $request->file('invitation')->store('invitations', 'public');
+        $occasion->save();
+
+        return response()->json([
+            'message'            => "Carton d'invitation enregistré.",
+            'invitation_bg_url'  => $occasion->invitationBgUrl(),
+        ]);
+    }
+
+    /** Retire le carton d'invitation (retour au design généré par défaut). */
+    public function removeInvitation(Occasion $occasion): JsonResponse
+    {
+        if ($occasion->invitation_bg_path) {
+            Storage::disk('public')->delete($occasion->invitation_bg_path);
+            $occasion->invitation_bg_path = null;
+            $occasion->save();
+        }
+
+        return response()->json(['message' => "Carton d'invitation retiré."]);
     }
 }

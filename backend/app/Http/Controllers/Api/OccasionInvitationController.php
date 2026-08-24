@@ -71,6 +71,47 @@ class OccasionInvitationController extends Controller
         ]);
     }
 
+    /**
+     * Aperçu composé du carton (fond téléversé + QR + nom) sans envoyer ni
+     * modifier de statut. Utilise un vrai invité si l'occasion en a un (rendu
+     * représentatif), sinon un invité factice. Fonctionne même si WhatsApp
+     * n'est pas connecté (le service ne rend que l'image).
+     */
+    public function preview(Occasion $occasion, Request $request, QrCodeService $qr): \Symfony\Component\HttpFoundation\Response
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $sample     = $occasion->guests()->with('table')->orderBy('name')->first();
+        $guestName  = $sample?->name ?: 'Marie Exemple';
+        $tableLabel = $sample ? $this->tableLabel($sample) : 'Table 1';
+        $token      = $sample?->token ?: (string) \Illuminate\Support\Str::uuid();
+
+        $payload = [
+            'org'        => $occasion->organization->name,
+            'orgLogo'    => $occasion->organization->logoDataUri(),
+            'eventType'  => self::TYPE_LABELS[$occasion->type] ?? 'Invitation',
+            'eventName'  => $occasion->name,
+            'guestName'  => $guestName,
+            'dateText'   => $this->dateText($occasion),
+            'location'   => $occasion->location,
+            'tableLabel' => $tableLabel,
+            'qrDataUri'  => 'data:image/svg+xml;base64,' . $qr->guest($token),
+            'backgroundDataUri' => $occasion->invitationBgDataUri(),
+        ];
+
+        try {
+            $res = $this->service()->timeout(60)->post('/preview-invitation', $payload);
+        } catch (ConnectionException) {
+            return response()->json(['message' => 'Service WhatsApp injoignable.'], 503);
+        }
+
+        if (! $res->successful()) {
+            return response()->json(['message' => "Échec de la génération de l'aperçu."], 502);
+        }
+
+        return response($res->body(), 200)->header('Content-Type', 'image/png');
+    }
+
     /** (Re)envoie l'invitation à un invité précis. */
     public function sendOne(Guest $guest, Request $request, QrCodeService $qr): JsonResponse
     {
@@ -108,6 +149,9 @@ class OccasionInvitationController extends Controller
             'location'   => $occasion->location,
             'tableLabel' => $this->tableLabel($guest),
             'qrDataUri'  => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
+            // Carton personnalisé (option A) : si présent, le service WhatsApp
+            // superpose QR + nom dessus au lieu de générer le design par défaut.
+            'backgroundDataUri' => $occasion->invitationBgDataUri(),
         ];
 
         try {
