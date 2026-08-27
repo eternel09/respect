@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import api, { apiErrorMessage } from '../../lib/axios'
@@ -297,7 +297,11 @@ export default function OccasionDetailPage() {
           <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 p-4 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Liste des invités</h3>
-              <button onClick={() => setModal('guest')} className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-xl px-3.5 py-2">+ Ajouter</button>
+              <button onClick={() => setModal('import')} className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl px-3.5 py-2 hover:bg-sand">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 12v3h-2v-3H8l4-4 4 4h-3z" /></svg>
+                Importer Excel
+              </button>
+              <button onClick={() => setModal('guest')} className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-xl px-3.5 py-2">+ Ajouter</button>
             </div>
             {guests.length === 0 ? (
               <div className="p-10 text-center text-gray-400">Aucun invité. Ajoutez-les un par un ou par import.</div>
@@ -354,6 +358,7 @@ export default function OccasionDetailPage() {
 
         {modal === 'table' && <AddTableModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {modal === 'guest' && <AddGuestModal occasionId={id} tables={tables} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
+        {modal === 'import' && <ImportGuestsModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
 
         {preview && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={closePreview}>
@@ -442,5 +447,149 @@ function AddGuestModal({ occasionId, tables, onClose, onDone }) {
         </div>
       </form>
     </Shell>
+  )
+}
+
+/* ── Import Excel des invités ─────────────────────────────────────────── */
+const norm = (h) => String(h ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const findCol = (headers, patterns) => headers.findIndex(h => patterns.some(p => norm(h).includes(p)))
+
+function ColSelect({ label, value, onChange, optional, headers }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}{optional && <span className="text-gray-400 font-normal"> (opt.)</span>}</label>
+      <select className={inputCls} value={value} onChange={e => onChange(Number(e.target.value))}>
+        {optional && <option value={-1}>— aucune</option>}
+        {headers.map((h, i) => <option key={i} value={i}>{h || `Colonne ${i + 1}`}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function ImportGuestsModal({ occasionId, onClose, onDone }) {
+  const [headers, setHeaders] = useState(null)   // libellés de colonnes
+  const [rows, setRows] = useState([])           // lignes de données (tableaux)
+  const [map, setMap] = useState({ first: -1, name: -1, phone: -1 })
+  const [error, setError] = useState(null)
+  const [parsing, setParsing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const fileRef = useRef(null)
+
+  const onFile = async (file) => {
+    if (fileRef.current) fileRef.current.value = ''
+    if (!file) return
+    setError(null); setParsing(true)
+    try {
+      const XLSX = await import('xlsx')
+      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' })
+      const nonEmpty = aoa.filter(r => r.some(c => String(c).trim() !== ''))
+      if (nonEmpty.length < 2) { setError('Le fichier semble vide ou ne contient pas de données sous les entêtes.'); return }
+      const hs = nonEmpty[0].map(h => String(h).trim())
+      const nameIdx = findCol(hs, ['nom complet', 'invite', 'name', 'guest'])
+      const firstIdx = findCol(hs, ['prenom'])
+      const lastIdx = findCol(hs, ['nom'])
+      const phoneIdx = findCol(hs, ['tel', 'phone', 'whatsapp', 'numero', 'contact', 'gsm', 'mobile'])
+      setHeaders(hs)
+      setRows(nonEmpty.slice(1))
+      setMap({
+        first: nameIdx < 0 && firstIdx >= 0 ? firstIdx : -1,
+        name: nameIdx >= 0 ? nameIdx : (lastIdx >= 0 ? lastIdx : 0),
+        phone: phoneIdx,
+      })
+    } catch {
+      setError('Impossible de lire ce fichier. Utilisez un .xlsx, .xls ou .csv.')
+    } finally { setParsing(false) }
+  }
+
+  const guests = useMemo(() => {
+    if (!headers) return []
+    return rows.map(r => {
+      const first = map.first >= 0 ? String(r[map.first] ?? '').trim() : ''
+      const last = map.name >= 0 ? String(r[map.name] ?? '').trim() : ''
+      const name = `${first} ${last}`.trim()
+      const phone = map.phone >= 0 ? String(r[map.phone] ?? '').trim() : ''
+      return { name, phone: phone || null }
+    }).filter(g => g.name)
+  }, [headers, rows, map])
+
+  const submit = async () => {
+    if (guests.length === 0) { setError('Aucun invité valide (la colonne du nom est-elle bien choisie ?).'); return }
+    setSaving(true); setError(null)
+    try {
+      for (let i = 0; i < guests.length; i += 500) {
+        await api.post(`/occasions/${occasionId}/guests/bulk`, { guests: guests.slice(i, i + 500) })
+      }
+      onDone()
+    } catch (e) {
+      setError(apiErrorMessage(e, "Échec de l'import."))
+      setSaving(false)
+    }
+  }
+
+  const downloadTemplate = async () => {
+    const XLSX = await import('xlsx')
+    const ws = XLSX.utils.aoa_to_sheet([['Nom complet', 'Téléphone'], ['Grâce Nkosi', '+243 81 234 5678']])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Invités')
+    XLSX.writeFile(wb, 'modele-invites.xlsx')
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Importer des invités (Excel)</h2>
+        <p className="text-sm text-gray-500 mb-4">Un fichier .xlsx, .xls ou .csv avec une ligne d'entête. L'app détecte les colonnes ; vous pouvez les ajuster.</p>
+
+        {error && <div className="mb-3 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">{error}</div>}
+
+        {!headers ? (
+          <>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden"
+              onChange={e => onFile(e.target.files?.[0])} />
+            <button onClick={() => fileRef.current?.click()} disabled={parsing}
+              className="w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 hover:border-brand hover:bg-sand text-gray-500 flex flex-col items-center gap-2 disabled:opacity-60">
+              {parsing
+                ? <span className="animate-spin h-6 w-6 border-2 border-brand border-t-transparent rounded-full" />
+                : <svg className="w-7 h-7 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 12v3h-2v-3H8l4-4 4 4h-3z" /></svg>}
+              <span className="text-sm font-medium">{parsing ? 'Lecture…' : 'Choisir un fichier'}</span>
+            </button>
+            <button onClick={downloadTemplate} className="mt-3 text-sm text-brand font-medium hover:underline">Télécharger un modèle Excel</button>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <ColSelect label="Prénom" optional headers={headers} value={map.first} onChange={v => setMap(m => ({ ...m, first: v }))} />
+              <ColSelect label="Nom" headers={headers} value={map.name} onChange={v => setMap(m => ({ ...m, name: v }))} />
+              <ColSelect label="Téléphone" optional headers={headers} value={map.phone} onChange={v => setMap(m => ({ ...m, phone: v }))} />
+            </div>
+
+            <div className="mt-4">
+              <p className="text-sm font-semibold text-gray-800 mb-2">{guests.length} invité(s) détecté(s) <span className="font-normal text-gray-400">— aperçu</span></p>
+              <div className="rounded-xl border border-gray-100 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead><tr className="bg-cream"><th className="text-left px-3 py-2 text-[11px] font-bold text-gray-400 uppercase">Nom</th><th className="text-left px-3 py-2 text-[11px] font-bold text-gray-400 uppercase">Téléphone</th></tr></thead>
+                  <tbody>
+                    {guests.slice(0, 5).map((g, i) => (
+                      <tr key={i} className="border-t border-gray-50"><td className="px-3 py-1.5 text-gray-800">{g.name}</td><td className="px-3 py-1.5 text-gray-500">{g.phone || '—'}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+                {guests.length > 5 && <p className="px-3 py-1.5 text-xs text-gray-400">…et {guests.length - 5} autre(s)</p>}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button type="button" onClick={() => { setHeaders(null); setRows([]); setError(null) }} className="py-2.5 px-4 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200">Changer de fichier</button>
+              <button onClick={submit} disabled={saving || guests.length === 0} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand hover:bg-brand-dark disabled:opacity-60 flex items-center justify-center gap-2">
+                {saving && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />}
+                Importer {guests.length} invité(s)
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
