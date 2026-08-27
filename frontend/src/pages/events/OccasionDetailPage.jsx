@@ -64,7 +64,7 @@ export default function OccasionDetailPage() {
     setBgBusy(true); setFlash(null)
     try {
       const fd = new FormData(); fd.append('invitation', file)
-      const res = await api.post(`/occasions/${id}/invitation-bg`, fd)
+      const res = await api.post(`/occasions/${id}/invitation-bg`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       setFlash({ ok: true, text: res.data.message || "Carton d'invitation enregistré." })
       load()
     } catch (e) {
