@@ -18,6 +18,7 @@ import QrCodesPage from './pages/admin/QrCodesPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import OccasionsPage from './pages/events/OccasionsPage'
 import OccasionDetailPage from './pages/events/OccasionDetailPage'
+import RsvpPage from './pages/events/RsvpPage'
 import ModulesPage from './pages/admin/ModulesPage'
 import NetworkPage from './pages/admin/NetworkPage'
 import { homeForModules } from './lib/modules'
@@ -45,6 +46,8 @@ export default function App() {
           <Route path="/register"    element={<RegisterPage />} />
           {/* Auto-inscription d'une sous-organisation via lien d'invitation réseau */}
           <Route path="/rejoindre/:token" element={<RegisterNetworkPage />} />
+          {/* Confirmation de présence d'un invité (RSVP public + vidéo du couple) */}
+          <Route path="/confirmer/:token" element={<RsvpPage />} />
 
           {/* Plateforme (super-admin) */}
           <Route path="/admin/organizations" element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />

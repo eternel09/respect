@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\OrganizationModuleController;
 use App\Http\Controllers\Api\PublicRegistrationController;
+use App\Http\Controllers\Api\RsvpController;
 use App\Http\Controllers\Api\OrganizationSettingsController;
 use App\Http\Controllers\Api\SubOrganizationController;
 use App\Http\Controllers\Api\QrCodeController;
@@ -51,6 +52,10 @@ Route::post('/register', [PublicRegistrationController::class, 'store'])->middle
 // Rejoindre un réseau via lien d'invitation : auto-inscription d'une sous-organisation
 Route::get('/register/network/{token}', [NetworkJoinController::class, 'show'])->middleware('throttle:30,1');
 Route::post('/register/network/{token}', [NetworkJoinController::class, 'store'])->middleware('throttle:6,1');
+
+// Confirmation de présence (RSVP) — page publique ouverte par l'invité via son jeton
+Route::get('/rsvp/{token}', [RsvpController::class, 'show'])->middleware('throttle:60,1');
+Route::post('/rsvp/{token}', [RsvpController::class, 'store'])->middleware('throttle:20,1');
 
 // Protected routes (authenticated)
 Route::middleware('auth:sanctum')->group(function () {
@@ -136,6 +141,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/occasions/{occasion}/invitation-bg', [OccasionController::class, 'removeInvitation']);
         // Aperçu composé (fond + QR + nom d'un invité d'exemple) — ne renvoie qu'une image
         Route::get('/occasions/{occasion}/invitation-preview', [OccasionInvitationController::class, 'preview']);
+        // Vidéo du couple (montrée sur la page de confirmation RSVP)
+        Route::post('/occasions/{occasion}/rsvp-video', [OccasionController::class, 'uploadRsvpVideo']);
+        Route::delete('/occasions/{occasion}/rsvp-video', [OccasionController::class, 'removeRsvpVideo']);
         // Plan de salle
         Route::post('/occasions/{occasion}/tables', [OccasionTableController::class, 'store']);
         Route::put('/occasion-tables/{occasionTable}', [OccasionTableController::class, 'update']);

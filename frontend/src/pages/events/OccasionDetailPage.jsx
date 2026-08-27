@@ -29,6 +29,8 @@ export default function OccasionDetailPage() {
   const [bgBusy, setBgBusy] = useState(false)
   const bgInputRef = useRef(null)
   const [preview, setPreview] = useState(null) // { loading, url, error }
+  const [videoBusy, setVideoBusy] = useState(false)
+  const videoInputRef = useRef(null)
 
   const load = useCallback(() => {
     api.get(`/occasions/${id}`)
@@ -82,6 +84,32 @@ export default function OccasionDetailPage() {
     } catch (e) {
       setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du retrait.') })
     } finally { setBgBusy(false) }
+  }
+
+  const uploadVideo = async (file) => {
+    if (videoInputRef.current) videoInputRef.current.value = ''
+    if (!file) return
+    setVideoBusy(true); setFlash(null)
+    try {
+      const fd = new FormData(); fd.append('video', file)
+      const res = await api.post(`/occasions/${id}/rsvp-video`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setFlash({ ok: true, text: res.data.message || 'Vidéo enregistrée.' })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du téléversement de la vidéo.') })
+    } finally { setVideoBusy(false) }
+  }
+
+  const removeVideo = async () => {
+    if (!confirm('Retirer la vidéo du couple ?')) return
+    setVideoBusy(true); setFlash(null)
+    try {
+      await api.delete(`/occasions/${id}/rsvp-video`)
+      setFlash({ ok: true, text: 'Vidéo retirée.' })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du retrait.') })
+    } finally { setVideoBusy(false) }
   }
 
   const openPreview = async () => {
@@ -198,6 +226,37 @@ export default function OccasionDetailPage() {
           {o.invitation_bg_url
             ? <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />
             : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucun carton</div>}
+        </div>
+
+        {/* Vidéo du couple (page de confirmation) */}
+        <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6 flex items-start gap-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-gray-900">Vidéo du couple</h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+              Montrée à l'invité sur la page de confirmation, quand il ouvre le lien reçu dans l'invitation. Format vertical (short) recommandé.
+            </p>
+            <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" className="hidden"
+              onChange={e => uploadVideo(e.target.files?.[0])} />
+            <div className="flex flex-wrap gap-3 mt-3">
+              <button onClick={() => videoInputRef.current?.click()} disabled={videoBusy}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 disabled:opacity-60">
+                {videoBusy
+                  ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h7A2.5 2.5 0 0 1 16 6.5v2l4-2.5v12l-4-2.5v2A2.5 2.5 0 0 1 13.5 20h-7A2.5 2.5 0 0 1 4 17.5v-11z" /></svg>}
+                {o.rsvp_video_url ? 'Remplacer la vidéo' : 'Téléverser une vidéo'}
+              </button>
+              {o.rsvp_video_url && (
+                <button onClick={removeVideo} disabled={videoBusy}
+                  className="text-sm font-medium text-gray-600 border border-gray-200 rounded-xl px-4 py-2.5 hover:bg-sand disabled:opacity-60">
+                  Retirer
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">MP4, MOV ou WEBM — 100 Mo max.</p>
+          </div>
+          {o.rsvp_video_url
+            ? <video src={o.rsvp_video_url} className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 bg-black flex-shrink-0" muted playsInline preload="metadata" />
+            : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucune vidéo</div>}
         </div>
 
         {/* Tabs */}

@@ -188,9 +188,10 @@ app.post('/send-invitation', async (req, res) => {
     const png = await renderInvitation(puppeteer, req.body)
     const media = new MessageMedia('image/png', png.toString('base64'), 'invitation.png')
     const table = req.body.tableLabel ? `\n🍽️ Votre place : ${req.body.tableLabel}` : ''
+    const rsvp = req.body.rsvpUrl ? `\n✅ Confirmez votre présence : ${req.body.rsvpUrl}` : ''
     const caption =
       `💌 ${req.body.guestName}, vous êtes convié(e) à ${req.body.eventName}.\n` +
-      `📅 ${req.body.dateText}${req.body.location ? ` · ${req.body.location}` : ''}${table}\n` +
+      `📅 ${req.body.dateText}${req.body.location ? ` · ${req.body.location}` : ''}${table}${rsvp}\n` +
       `Présentez ce QR à l'accueil le jour J. Au plaisir de vous y voir !`
 
     await client.sendMessage(numberId._serialized, media, { caption })
