@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Limites d'upload : PHP (drop-in conf.d, prioritaire via le préfixe zz-) pour
 # accepter les cartons haute résolution / HEIC / PDF, et nginx côté serversideup.
 COPY docker/php-uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
-ENV NGINX_CLIENT_MAX_BODY_SIZE=22m
+ENV NGINX_CLIENT_MAX_BODY_SIZE=120m
 
 USER www-data
 

@@ -122,4 +122,43 @@ class OccasionController extends Controller
 
         return response()->json(['message' => "Carton d'invitation retiré."]);
     }
+
+    /**
+     * Téléverse la vidéo « short » du couple, montrée à l'invité sur la page de
+     * confirmation (RSVP). Une vidéo par occasion. Stockée telle quelle.
+     */
+    public function uploadRsvpVideo(Request $request, Occasion $occasion): JsonResponse
+    {
+        $request->validate([
+            'video' => ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/webm', 'max:102400'],
+        ], [
+            'video.required'  => 'Sélectionnez une vidéo.',
+            'video.mimetypes' => 'Format non pris en charge : utilisez MP4, MOV ou WEBM.',
+            'video.max'       => 'Vidéo trop lourde (100 Mo maximum).',
+        ]);
+
+        if ($occasion->rsvp_video_path) {
+            Storage::disk('public')->delete($occasion->rsvp_video_path);
+        }
+
+        $occasion->rsvp_video_path = $request->file('video')->store('rsvp-videos', 'public');
+        $occasion->save();
+
+        return response()->json([
+            'message'        => 'Vidéo enregistrée.',
+            'rsvp_video_url' => $occasion->rsvpVideoUrl(),
+        ]);
+    }
+
+    /** Retire la vidéo du couple. */
+    public function removeRsvpVideo(Occasion $occasion): JsonResponse
+    {
+        if ($occasion->rsvp_video_path) {
+            Storage::disk('public')->delete($occasion->rsvp_video_path);
+            $occasion->rsvp_video_path = null;
+            $occasion->save();
+        }
+
+        return response()->json(['message' => 'Vidéo retirée.']);
+    }
 }

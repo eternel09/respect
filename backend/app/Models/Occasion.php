@@ -73,6 +73,14 @@ class Occasion extends Model
         return 'data:' . $mime . ';base64,' . base64_encode($disk->get($this->invitation_bg_path));
     }
 
+    /** URL publique de la vidéo du couple (RSVP), ou null. */
+    public function rsvpVideoUrl(): ?string
+    {
+        return $this->rsvp_video_path
+            ? Storage::disk('public')->url($this->rsvp_video_path)
+            : null;
+    }
+
     /** Passé (la fin, sinon la date, est dépassée) → plus scannable. */
     public function isExpired(): bool
     {

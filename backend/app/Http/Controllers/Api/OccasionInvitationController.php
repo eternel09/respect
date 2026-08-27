@@ -152,6 +152,8 @@ class OccasionInvitationController extends Controller
             // Carton personnalisé (option A) : si présent, le service WhatsApp
             // superpose QR + nom dessus au lieu de générer le design par défaut.
             'backgroundDataUri' => $occasion->invitationBgDataUri(),
+            // Lien public de confirmation de présence (RSVP + vidéo du couple).
+            'rsvpUrl' => rtrim(config('app.frontend_url'), '/') . '/confirmer/' . $guest->token,
         ];
 
         try {
