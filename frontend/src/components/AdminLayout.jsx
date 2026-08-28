@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import Sidebar from './Sidebar'
+import Icon from './ui/Icon'
 import api from '../lib/axios'
 import { useAuth } from '../context/AuthContext'
 import { MODULES, MODULE_ORDER } from '../lib/modules'
@@ -94,7 +95,7 @@ function TopBar({ onMenu }) {
         className="md:hidden w-9 h-9 -ml-1 rounded-lg flex items-center justify-center text-gray-500 hover:bg-sand transition-colors"
         aria-label="Ouvrir le menu"
       >
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" /></svg>
+        <Icon name="menu" size={24} />
       </button>
 
       {/* Icônes ancrées au coin droit */}
@@ -106,7 +107,7 @@ function TopBar({ onMenu }) {
             title="Applications"
             className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-sand transition-colors"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z" /></svg>
+            <Icon name="apps" size={22} />
           </button>
 
           <AnimatePresence>
@@ -156,7 +157,7 @@ function TopBar({ onMenu }) {
             title="Notifications"
             className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-sand transition-colors"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" /></svg>
+            <Icon name="notifications" size={22} />
             {unread > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                 {unread > 9 ? '9+' : unread}
@@ -176,9 +177,7 @@ function TopBar({ onMenu }) {
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                         n.type === 'checkin' ? 'bg-emerald-50 text-emerald-600' : 'bg-accent-soft text-accent-dark'
                       }`}>
-                        {n.type === 'checkin'
-                          ? <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                          : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>}
+                        <Icon name={n.type === 'checkin' ? 'how_to_reg' : 'person_add'} size={18} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-900 truncate">{n.title}</p>
@@ -249,13 +248,23 @@ function TopBar({ onMenu }) {
 
 export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
 
   return (
     <div className="flex min-h-screen bg-sand">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar onMenu={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.div>
+        </main>
         <footer className="px-4 sm:px-8 py-4 text-xs text-gray-400 flex flex-col sm:flex-row items-center gap-2 sm:gap-0 sm:justify-between border-t border-black/5">
           <span>© 2026 Signiq · Gestion de présence par QR</span>
           <span>Fait avec ❤ pour les organisations</span>
