@@ -13,8 +13,9 @@
   --color-accent-soft:  #f8e6d2;
 
   /* Neutres chauds */
-  --color-sand:         #f6f2ea;
-  --color-cream:        #fbf8f3;
+  /* Fond neutre frais (remplace l'ancien beige sable) */
+  --color-sand:         #f4f5f7;
+  --color-cream:        #fafbfc;
 
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
