@@ -51,10 +51,14 @@ export function homeForModules(enabled = []) {
   return first ? MODULES[first].home : '/admin/modules'
 }
 
-/* ── Icônes (Material Symbols) ──────────────────────────────────────── */
-export const DashIcon = () => <Icon name="space_dashboard" />
-export const AttendIcon = () => <Icon name="how_to_reg" />
-export const MembersIcon = () => <Icon name="groups" />
-export const RegIcon = () => <Icon name="event" />
-export const OccasionIcon = () => <Icon name="celebration" />
-export const PresenceIcon = () => <Icon name="fact_check" />
+/* ── Icônes (Material Symbols) ──────────────────────────────────────────
+ * Déclarations de fonctions (hoistées) : l'objet MODULES ci-dessus les
+ * référence avant cette ligne. Des `const` (non hoistées) déclencheraient
+ * une ReferenceError « Cannot access … before initialization » (TDZ) à
+ * l'évaluation du module — ne pas convertir en fonctions fléchées. */
+export function DashIcon() { return <Icon name="space_dashboard" /> }
+export function AttendIcon() { return <Icon name="how_to_reg" /> }
+export function MembersIcon() { return <Icon name="groups" /> }
+export function RegIcon() { return <Icon name="event" /> }
+export function OccasionIcon() { return <Icon name="celebration" /> }
+export function PresenceIcon() { return <Icon name="fact_check" /> }
