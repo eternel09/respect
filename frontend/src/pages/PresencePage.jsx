@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion, useScroll, useTransform } from 'motion/react'
+import Icon from '../components/ui/Icon'
 import api, { apiErrorMessage } from '../lib/axios'
 
 const container = {
@@ -24,13 +25,13 @@ function TopNav() {
       <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-brand">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
+            <Icon name="interpreter_mode" size={20} className="text-white" />
           </div>
           <span className="font-bold text-gray-900">Famille Respect</span>
         </div>
         <div className="flex items-center gap-2">
           <button className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" /></svg>
+            <Icon name="notifications" size={20} />
           </button>
           <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm font-semibold">A</div>
         </div>
@@ -105,11 +106,9 @@ export default function PresencePage() {
                 transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.1 }}
                 className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${status?.type === 'success' ? 'bg-emerald-100' : 'bg-amber-100'}`}
               >
-                <svg className={`w-8 h-8 ${status?.type === 'success' ? 'text-emerald-600' : 'text-amber-600'}`} viewBox="0 0 24 24" fill="currentColor">
-                  <path d={status?.type === 'success' ? 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z' : 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'} />
-                </svg>
+                <Icon name={status?.type === 'success' ? 'check_circle' : 'info'} size={34} fill={1} className={status?.type === 'success' ? 'text-emerald-600' : 'text-amber-600'} />
               </motion.div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">{status?.message}</h2>
+              <h2 className="font-display text-2xl font-medium text-gray-900 mb-2 tracking-tight">{status?.message}</h2>
               <p className="text-gray-400 text-sm">{event?.name || 'Famille Respect'}</p>
               <button onClick={() => { setStep('choice'); setPhone(''); setError(null) }} className="mt-6 text-sm font-medium text-brand hover:text-brand-dark transition-colors">
                 ← Retour
@@ -117,7 +116,7 @@ export default function PresencePage() {
             </motion.div>
           ) : step === 'checkin' ? (
             <motion.div key="checkin" {...stepTransition} className="bg-white rounded-3xl shadow-xl shadow-brand/5 ring-1 ring-black/5 p-6 sm:p-8 max-w-md mx-auto">
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Signaler votre présence</h2>
+              <h2 className="font-display text-2xl font-medium text-gray-900 mb-1 tracking-tight">Signaler votre présence</h2>
               <p className="text-gray-500 text-sm mb-6">{event?.name}</p>
               <form onSubmit={handleCheckin} className="space-y-4">
                 <div>
@@ -150,9 +149,9 @@ export default function PresencePage() {
               {/* En-tête */}
               <motion.div variants={item} className="text-center mb-8">
                 <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-brand shadow-lg shadow-brand/20">
-                  <svg className="w-7 h-7 fill-white" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
+                  <Icon name="groups" size={30} fill={1} className="text-white" />
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 tracking-tight">Bienvenue au culte de la famille</h1>
+                <h1 className="font-display text-[2rem] sm:text-[2.5rem] font-medium text-gray-900 mb-2 tracking-tight">Bienvenue au culte de la famille</h1>
                 <p className="text-gray-500 text-sm max-w-md mx-auto">Nous sommes heureux de vous voir aujourd'hui. Veuillez enregistrer votre présence ou justifier votre absence.</p>
               </motion.div>
 
@@ -165,7 +164,7 @@ export default function PresencePage() {
                   className="w-full bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 flex items-center gap-4 hover:shadow-md hover:ring-brand/20 transition-shadow text-left"
                 >
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-brand/10">
-                    <svg className="w-5 h-5 fill-brand" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                    <Icon name="how_to_reg" size={22} fill={1} className="text-brand" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Service</p>
@@ -182,7 +181,7 @@ export default function PresencePage() {
                   className="w-full bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 flex items-center gap-4 hover:shadow-md hover:ring-accent/30 transition-shadow text-left"
                 >
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-accent-soft">
-                    <svg className="w-5 h-5 fill-accent-dark" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" /></svg>
+                    <Icon name="event_busy" size={22} fill={1} className="text-accent-dark" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Empêchement</p>
@@ -213,11 +212,11 @@ export default function PresencePage() {
                   </p>
                   <div className="flex flex-wrap gap-3 text-sm">
                     <span className="flex items-center gap-1.5 text-gray-600">
-                      <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" /></svg>
+                      <Icon name="calendar_month" size={18} className="text-gray-400" />
                       <span className="capitalize">{today}</span>
                     </span>
                     <span className="flex items-center gap-1.5 text-gray-600">
-                      <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
+                      <Icon name="schedule" size={18} className="text-gray-400" />
                       {time}
                     </span>
                   </div>
