@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { MODULES, MODULE_ORDER, homeForModules } from '../../lib/modules'
 import logoWhite from '../../assets/logo-white.png'
 import logoFull from '../../assets/logo-full.png'
+import Icon from '../../components/ui/Icon'
 
 /**
  * Auto-inscription publique en 2 étapes :
@@ -136,7 +137,7 @@ export default function RegisterPage() {
                   className="w-full py-3 bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 mt-2 shadow-lg shadow-brand/20"
                 >
                   Continuer
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" /></svg>
+                  <Icon name="arrow_forward" size={18} />
                 </motion.button>
               </form>
 
@@ -170,7 +171,7 @@ export default function RegisterPage() {
                         </span>
                         <span className={`w-5 h-5 shrink-0 rounded-md border flex items-center justify-center ${on ? 'text-white border-transparent' : 'border-gray-300'}`}
                           style={on ? { background: m.color } : {}}>
-                          {on && <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>}
+                          {on && <Icon name="check" size={16} />}
                         </span>
                       </button>
                     )
@@ -180,7 +181,7 @@ export default function RegisterPage() {
                 <div className="flex gap-3 pt-1">
                   <button type="button" onClick={() => { setError(null); setStep(1) }}
                     className="py-3 px-4 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center gap-1.5">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M14 18l1.41-1.41L10.83 12l4.58-4.59L14 6l-6 6z" /></svg>
+                    <Icon name="arrow_back" size={18} />
                     Retour
                   </button>
                   <motion.button

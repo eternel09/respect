@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import api from '../../lib/axios'
 import CreateOrganizationModal from '../../components/CreateOrganizationModal'
 import Pagination from '../../components/Pagination'
+import Icon from '../../components/ui/Icon'
 
 export default function OrganizationsPage() {
   const { user, logout } = useAuth()
@@ -35,7 +36,7 @@ export default function OrganizationsPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-brand">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
+              <Icon name="domain" size={20} className="text-white" />
             </div>
             <div>
               <p className="font-bold text-sm leading-tight text-brand">Signiq</p>
@@ -58,7 +59,7 @@ export default function OrganizationsPage() {
             </div>
             <button onClick={() => setShow(true)}
               className="flex items-center justify-center gap-1.5 text-sm font-semibold text-white rounded-xl px-4 py-2.5 bg-brand hover:bg-brand-dark transition-colors shadow-lg shadow-brand/20">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+              <Icon name="add" size={18} />
               Nouvelle organisation
             </button>
           </div>
