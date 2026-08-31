@@ -4,6 +4,7 @@ import PageShell from '../../components/PageShell'
 import AddMemberModal from '../../components/AddMemberModal'
 import Pagination from '../../components/Pagination'
 import MemberDetailModal from '../../components/MemberDetailModal'
+import Icon from '../../components/ui/Icon'
 import api, { downloadFile, apiErrorMessage } from '../../lib/axios'
 
 function Avatar({ name }) {
@@ -19,13 +20,13 @@ function Avatar({ name }) {
 
 function StatCard({ icon, iconWrap = 'bg-brand/10 text-brand', label, value, sub, badge }) {
   return (
-    <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm">
+    <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm transition-all duration-200 hover:shadow-lg hover:shadow-brand/5 hover:-translate-y-0.5">
       <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconWrap}`}>{icon}</div>
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${iconWrap}`}><Icon name={icon} size={22} /></div>
         {badge && <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{badge}</span>}
       </div>
       <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-[1.9rem] leading-none font-bold text-gray-900 mt-1.5 tracking-tight tabular-nums">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   )
@@ -148,7 +149,7 @@ export default function MembersPage() {
               >
                 {badgeBusy === created.member.id
                   ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>}
+                  : <Icon name="download" size={18} />}
                 Télécharger le badge
               </button>
               <button onClick={() => setCreated(null)} className="text-emerald-700 hover:text-emerald-900 text-sm">✕</button>
@@ -161,41 +162,41 @@ export default function MembersPage() {
           <StatCard
             label="Total des membres"
             value={stats.total.toLocaleString('fr-FR')}
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>}
+            icon="groups"
           />
           <StatCard
             label="Nouveaux ce mois-ci"
             value={stats.newThisMonth}
             sub="Inscriptions du mois"
             iconWrap="bg-emerald-50 text-emerald-600"
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" /></svg>}
+            icon="person_add"
           />
           <StatCard
             label="Sur cette page"
             value={members.length}
             sub="Membres affichés"
             iconWrap="bg-accent-soft text-accent-dark"
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>}
+            icon="visibility"
           />
           {/* CTA card */}
-          <button onClick={() => setShowAdd(true)} className="rounded-2xl p-5 text-left text-white flex flex-col justify-between shadow-lg shadow-brand/20 transition-colors hover:bg-brand-dark bg-brand min-h-[120px]">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center mb-3">
-              <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+          <button onClick={() => setShowAdd(true)} className="group rounded-2xl p-5 text-left text-white flex flex-col justify-between shadow-lg shadow-brand/20 hover:bg-brand-dark hover:-translate-y-0.5 bg-brand min-h-[120px]">
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center mb-3 transition-transform group-hover:scale-110">
+              <Icon name="person_add" size={22} />
             </div>
-            <span className="font-semibold">Ajouter un membre</span>
+            <span className="font-semibold flex items-center gap-1">Ajouter un membre <Icon name="arrow_forward" size={18} className="transition-transform group-hover:translate-x-0.5" /></span>
           </button>
         </div>
 
         {/* Search toolbar */}
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
           <div className="flex-1 relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" /></svg>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"><Icon name="search" size={20} /></span>
             <input
               type="text"
               placeholder="Rechercher par nom ou téléphone…"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-sand border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
+              className="w-full pl-10 pr-4 py-2 text-sm bg-sand border border-black/5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -212,7 +213,7 @@ export default function MembersPage() {
             >
               {badgeBusy === 'cards'
                 ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
-                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h5v2H6v-2zm0 4h8v1.5H6V14zm10-4.5h2.5V12H16V9.5z" /></svg>}
+                : <Icon name="badge" size={18} />}
               Cartes
             </button>
             <button
@@ -223,7 +224,7 @@ export default function MembersPage() {
             >
               {badgeBusy === 'all'
                 ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
-                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" /></svg>}
+                : <Icon name="download" size={18} />}
               Badges
             </button>
             {/* CTA principal : le flow idéal du système (badges pré-imprimés) */}
@@ -235,7 +236,7 @@ export default function MembersPage() {
             >
               {badgeBusy === 'blank'
                 ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm13-1h2v2h2v2h-2v2h-2v-2h-2v-2h2v-2z" /></svg>}
+                : <Icon name="qr_code_2" size={18} />}
               Générer badges vierges
             </button>
           </div>
@@ -289,10 +290,10 @@ export default function MembersPage() {
                         >
                           {badgeBusy === m.id
                             ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" />
-                            : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm12 0h2v2h-2v-2zm0 4h2v2h-2v-2zm-2-4h2v2h-2v-2zm4 0h2v2h-2v-2zm0 4h2v2h-2v-2z" /></svg>}
+                            : <Icon name="qr_code_2" size={20} />}
                         </button>
                         <button onClick={() => setDetailId(m.id)} title="Voir la fiche" className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand hover:bg-sand transition-colors">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-7a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" /></svg>
+                          <Icon name="visibility" size={20} />
                         </button>
                       </div>
                     </td>

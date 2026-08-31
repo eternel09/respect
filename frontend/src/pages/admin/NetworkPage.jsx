@@ -7,6 +7,7 @@ import PageShell from '../../components/PageShell'
 import { useAuth } from '../../context/AuthContext'
 import { exportNetworkExcel, exportNetworkPptx } from '../../lib/networkExport'
 import api, { apiErrorMessage } from '../../lib/axios'
+import Icon from '../../components/ui/Icon'
 
 /** Rafraîchissement automatique — perçu comme « temps réel », sans WebSocket. */
 const REFRESH_MS = 20000
@@ -51,10 +52,10 @@ const addBtnClass =
   'inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 shadow-lg shadow-brand/20 transition-colors'
 
 function AddIcon() {
-  return <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
+  return <Icon name="add" size={18} />
 }
 function DownloadIcon() {
-  return <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z" /></svg>
+  return <Icon name="download" size={18} />
 }
 function Spinner() {
   return <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
@@ -188,7 +189,7 @@ export default function NetworkPage() {
           /* ── État vide : aucune sous-organisation encore ── */
           <div className="bg-white rounded-2xl ring-1 ring-black/5 p-12 text-center">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-brand/10 text-brand flex items-center justify-center mb-4">
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M9 2h6v5H9V2zM2 17h6v5H2v-5zm14 0h6v5h-6v-5zM11 7h2v4h5v3h-2v-1h-3v1h-2v-1H8v1H6v-3h5V7z" /></svg>
+              <Icon name="account_tree" size={28} />
             </div>
             <h3 className="text-lg font-bold text-gray-900">Créez votre première sous-organisation</h3>
             <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
@@ -324,7 +325,7 @@ function InviteBox({ token, onGenerate, onRevoke }) {
     <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm mb-5">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12a3.1 3.1 0 013.1-3.1h4V7h-4a5 5 0 100 10h4v-1.9h-4A3.1 3.1 0 013.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 010 6.2h-4V17h4a5 5 0 100-10z" /></svg>
+          <Icon name="link" size={20} />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-bold text-gray-900">Lien d'invitation</h3>
@@ -386,7 +387,7 @@ function CreateSubOrgModal({ onClose, onCreated }) {
         {created ? (
           <>
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+              <Icon name="check" size={24} />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Sous-organisation créée</h2>
             <p className="text-sm text-gray-500 mb-5">

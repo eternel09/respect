@@ -15,7 +15,7 @@ export default function PageShell({ title, subtitle, actions, children }) {
       {(title || actions) && (
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            {title && <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">{title}</h1>}
+            {title && <h1 className="font-display text-[1.7rem] sm:text-[2rem] leading-tight font-medium text-gray-900 tracking-tight">{title}</h1>}
             {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
           </div>
           {actions && <div className="flex-shrink-0">{actions}</div>}

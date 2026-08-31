@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
+import Icon from '../../components/ui/Icon'
 import api, { apiErrorMessage } from '../../lib/axios'
 import { OCC_TYPES } from './OccasionsPage'
 
@@ -150,14 +151,14 @@ export default function OccasionDetailPage() {
     <AdminLayout>
       <div className="p-4 sm:p-6 lg:p-8">
         <button onClick={() => navigate('/events')} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-4">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z" /></svg>Tous les événements
+          <Icon name="arrow_back" size={18} />Tous les événements
         </button>
 
         {/* Header */}
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-6 mb-5 flex flex-col md:flex-row md:items-start gap-4">
           <div className="flex-1 min-w-0">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full" style={{ background: t.color + '22', color: t.color }}>{t.emoji} {t.label}</span>
-            <h1 className="text-2xl font-bold text-gray-900 mt-2.5 tracking-tight">{o.name}</h1>
+            <h1 className="font-display text-[1.9rem] font-medium text-gray-900 mt-2.5 tracking-tight">{o.name}</h1>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-2">
               <span>📅 {fmtDate(o.date)}{fmtTime(o.starts_at) && ` · ${fmtTime(o.starts_at)}${fmtTime(o.ends_at) ? ' → ' + fmtTime(o.ends_at) : ''}`}</span>
               {o.location && <span>📍 {o.location}</span>}
@@ -166,7 +167,7 @@ export default function OccasionDetailPage() {
           <button onClick={sendInvites} disabled={sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors flex-shrink-0 disabled:opacity-60">
             {sending
               ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 3.5A11.8 11.8 0 0 0 12 0C5.5 0 .16 5.33.16 11.9c0 2.1.55 4.14 1.59 5.94L.06 24l6.3-1.65a11.9 11.9 0 0 0 5.68 1.45c6.55 0 11.89-5.33 11.89-11.9 0-3.18-1.24-6.16-3.43-8.4z" /></svg>}
+              : <Icon name="send" size={18} />}
             {sending ? 'Envoi en cours…' : 'Envoyer les invitations'}
           </button>
         </div>
@@ -206,7 +207,7 @@ export default function OccasionDetailPage() {
                 className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 disabled:opacity-60">
                 {bgBusy
                   ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" /></svg>}
+                  : <Icon name="upload" size={18} />}
                 {o.invitation_bg_url ? 'Remplacer le carton' : 'Téléverser un carton'}
               </button>
               {o.invitation_bg_url && (
@@ -217,7 +218,7 @@ export default function OccasionDetailPage() {
               )}
               <button onClick={openPreview} disabled={bgBusy}
                 className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl px-4 py-2.5 hover:bg-sand disabled:opacity-60">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" /></svg>
+                <Icon name="visibility" size={18} />
                 Aperçu
               </button>
             </div>
@@ -242,7 +243,7 @@ export default function OccasionDetailPage() {
                 className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 disabled:opacity-60">
                 {videoBusy
                   ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h7A2.5 2.5 0 0 1 16 6.5v2l4-2.5v12l-4-2.5v2A2.5 2.5 0 0 1 13.5 20h-7A2.5 2.5 0 0 1 4 17.5v-11z" /></svg>}
+                  : <Icon name="videocam" size={18} />}
                 {o.rsvp_video_url ? 'Remplacer la vidéo' : 'Téléverser une vidéo'}
               </button>
               {o.rsvp_video_url && (
@@ -298,7 +299,7 @@ export default function OccasionDetailPage() {
             <div className="flex items-center gap-3 p-4 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Liste des invités</h3>
               <button onClick={() => setModal('import')} className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl px-3.5 py-2 hover:bg-sand">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 12v3h-2v-3H8l4-4 4 4h-3z" /></svg>
+                <Icon name="upload_file" size={18} />
                 Importer Excel
               </button>
               <button onClick={() => setModal('guest')} className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-xl px-3.5 py-2">+ Ajouter</button>
@@ -339,11 +340,11 @@ export default function OccasionDetailPage() {
                                 title={g.invite_status === 'sent' ? "Renvoyer l'invitation" : "Envoyer l'invitation"}>
                                 {resendId === g.id
                                   ? <span className="inline-block animate-spin h-4 w-4 border-2 border-[#25D366] border-t-transparent rounded-full align-middle" />
-                                  : <svg className="w-4 h-4 inline align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" /></svg>}
+                                  : <Icon name="send" size={18} className="inline align-middle" />}
                               </button>
                             )}
                             <button onClick={() => delGuest(g.id)} className="text-gray-300 hover:text-red-500 align-middle" title="Supprimer">
-                              <svg className="w-4 h-4 inline align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
+                              <Icon name="delete" size={18} className="inline align-middle" />
                             </button>
                           </td>
                         </tr>
@@ -552,7 +553,7 @@ function ImportGuestsModal({ occasionId, onClose, onDone }) {
               className="w-full py-8 rounded-2xl border-2 border-dashed border-gray-200 hover:border-brand hover:bg-sand text-gray-500 flex flex-col items-center gap-2 disabled:opacity-60">
               {parsing
                 ? <span className="animate-spin h-6 w-6 border-2 border-brand border-t-transparent rounded-full" />
-                : <svg className="w-7 h-7 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 12v3h-2v-3H8l4-4 4 4h-3z" /></svg>}
+                : <Icon name="upload_file" size={28} className="text-gray-400" />}
               <span className="text-sm font-medium">{parsing ? 'Lecture…' : 'Choisir un fichier'}</span>
             </button>
             <button onClick={downloadTemplate} className="mt-3 text-sm text-brand font-medium hover:underline">Télécharger un modèle Excel</button>

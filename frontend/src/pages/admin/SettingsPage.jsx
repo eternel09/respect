@@ -3,6 +3,7 @@ import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
 import api, { apiErrorMessage } from '../../lib/axios'
 import { useAuth } from '../../context/AuthContext'
+import Icon from '../../components/ui/Icon'
 
 /** Liaison WhatsApp (service whatsapp-web.js) : statut + QR à scanner. */
 function WhatsAppSection() {
@@ -38,7 +39,7 @@ function WhatsAppSection() {
   return (
     <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-6 mt-6">
       <div className="flex items-center gap-2.5 mb-1">
-        <svg className="w-5 h-5 text-[#25D366]" viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 3.55A11.8 11.8 0 0012.04 0C5.5 0 .16 5.33.16 11.9c0 2.1.55 4.14 1.59 5.94L.06 24l6.3-1.65a11.9 11.9 0 005.68 1.45c6.55 0 11.89-5.33 11.89-11.9 0-3.18-1.24-6.16-3.48-8.35z" /></svg>
+        <Icon name="chat" size={20} className="text-[#25D366]" />
         <h2 className="font-bold text-gray-900">WhatsApp</h2>
         <span className={`w-2.5 h-2.5 rounded-full ${st.dot}`} />
       </div>
@@ -138,7 +139,7 @@ export default function SettingsPage() {
                   <div className="w-16 h-16 rounded-2xl ring-1 ring-black/5 bg-sand flex items-center justify-center overflow-hidden flex-shrink-0">
                     {currentLogo
                       ? <img src={currentLogo} alt="logo" className="w-full h-full object-contain" />
-                      : <svg className="w-7 h-7 text-gray-300" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" /></svg>}
+                      : <Icon name="image" size={28} className="text-gray-300" />}
                   </div>
                   <div>
                     <label className="inline-block cursor-pointer text-sm font-medium text-brand border border-brand/30 hover:bg-brand/5 rounded-xl px-3 py-2 transition-colors">

@@ -6,6 +6,7 @@ import { homeForModules } from '../../lib/modules'
 import api from '../../lib/axios'
 import logoWhite from '../../assets/logo-white.png'
 import logoFull from '../../assets/logo-full.png'
+import Icon from '../../components/ui/Icon'
 
 /**
  * Auto-inscription d'une sous-organisation via le lien d'invitation d'une
@@ -70,7 +71,7 @@ export default function RegisterNetworkPage() {
           {invalid ? (
             <div className="text-center">
               <div className="w-14 h-14 mx-auto rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
-                <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
+                <Icon name="info" size={28} />
               </div>
               <h1 className="text-gray-900 text-xl font-bold mb-1">Lien invalide</h1>
               <p className="text-gray-500 text-sm">Ce lien d'invitation n'est plus valide. Demandez-en un nouveau à l'administrateur de votre réseau.</p>

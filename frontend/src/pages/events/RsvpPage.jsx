@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import api, { apiErrorMessage } from '../../lib/axios'
+import Icon from '../../components/ui/Icon'
 
 const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null
@@ -94,7 +95,7 @@ export default function RsvpPage() {
           ) : confirmed ? (
             <div className="mt-6">
               <div className="inline-flex items-center gap-2 text-emerald-700 bg-emerald-50 rounded-full px-4 py-2 text-sm font-semibold">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                <Icon name="check" size={16} />
                 Présence confirmée
               </div>
               {result?.table && <p className="mt-3 text-sm text-gray-500">Votre table : <span className="font-semibold text-gray-800">{/^\d+$/.test(result.table) ? 'Table ' + result.table : result.table}</span></p>}

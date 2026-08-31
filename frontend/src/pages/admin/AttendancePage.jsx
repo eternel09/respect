@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
 import Pagination from '../../components/Pagination'
+import Icon from '../../components/ui/Icon'
 import api from '../../lib/axios'
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
@@ -19,8 +20,8 @@ function Avatar({ name }) {
 
 function StatCard({ icon, iconWrap = 'bg-brand/10 text-brand', label, value, sub }) {
   return (
-    <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${iconWrap}`}>{icon}</div>
+    <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm transition-all duration-200 hover:shadow-lg hover:shadow-brand/5 hover:-translate-y-0.5">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${iconWrap}`}><Icon name={icon} size={22} /></div>
       <p className="text-sm text-gray-500">{label}</p>
       <p className="text-2xl font-bold text-gray-900 mt-1 truncate">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
@@ -76,19 +77,19 @@ export default function AttendancePage() {
             label="Total pointages"
             value={(meta?.total ?? 0).toLocaleString()}
             sub="Pour le filtre actuel"
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>}
+            icon="how_to_reg"
           />
           <StatCard
             label="Date sélectionnée"
             value={dateLabel}
             iconWrap="bg-accent-soft text-accent-dark"
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" /></svg>}
+            icon="calendar_month"
           />
           <StatCard
             label="Événement"
             value={selectedEvent ? selectedEvent.name : 'Tous'}
             iconWrap="bg-emerald-50 text-emerald-600"
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" /></svg>}
+            icon="event"
           />
         </div>
 
@@ -119,9 +120,9 @@ export default function AttendancePage() {
           <div className="sm:self-end">
             <button
               onClick={resetToday}
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-sm font-medium text-white rounded-xl px-4 py-2 transition-colors hover:bg-brand-dark bg-brand"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-sm font-medium text-white rounded-xl px-4 py-2 hover:bg-brand-dark bg-brand"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" /></svg>
+              <Icon name="today" size={18} />
               Aujourd'hui
             </button>
           </div>
@@ -165,7 +166,7 @@ export default function AttendancePage() {
                     <td className="px-5 py-4 text-gray-500">{a.created_at?.slice(11, 16)}</td>
                     <td className="px-5 py-4 text-right">
                       <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                        <Icon name="check" size={14} />
                         Présent
                       </span>
                     </td>
