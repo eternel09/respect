@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import api, { apiErrorMessage } from '../lib/axios'
+import Icon from '../components/ui/Icon'
 
 const container = {
   hidden: {},
@@ -87,12 +88,12 @@ export default function OnboardingPage() {
           {/* Logo */}
           <motion.div variants={item} className="flex items-center gap-2.5 mb-8">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-brand shadow-sm shadow-brand/30">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" /></svg>
+              <Icon name="interpreter_mode" size={20} className="text-white" />
             </div>
             <span className="font-bold text-gray-900">Famille Respect</span>
           </motion.div>
 
-          <motion.h1 variants={item} className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 tracking-tight">Bienvenue dans notre famille</motion.h1>
+          <motion.h1 variants={item} className="font-display text-[2rem] sm:text-[2.5rem] font-medium text-gray-900 mb-2 tracking-tight">Bienvenue dans notre famille</motion.h1>
           <motion.p variants={item} className="text-gray-500 text-sm mb-8 leading-relaxed">Veuillez remplir les informations ci-dessous pour intégrer la communauté Famille Respect.</motion.p>
 
           {status && (
@@ -137,7 +138,7 @@ export default function OnboardingPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Numéro de Téléphone</label>
               <div className="relative">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
+                <Icon name="call" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   name="phone"
                   type="tel"
@@ -202,7 +203,7 @@ export default function OnboardingPage() {
           <motion.div variants={item} className="bg-white rounded-2xl p-4 ring-1 ring-black/5">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-accent-soft">
-                <svg className="w-4 h-4 fill-accent-dark" viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7v2a9 9 0 000-18z" /><path d="M12.5 8H11v5l4.25 2.52.75-1.23-3.5-2.04z" /></svg>
+                <Icon name="history" size={18} fill={1} className="text-accent-dark" />
               </div>
               <p className="text-xs font-bold uppercase tracking-wide text-brand">Processus instantané</p>
             </div>
