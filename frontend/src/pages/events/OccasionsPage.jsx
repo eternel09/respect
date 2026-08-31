@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
+import Icon from '../../components/ui/Icon'
 import api, { apiErrorMessage } from '../../lib/axios'
 
 export const OCC_TYPES = {
@@ -17,10 +18,10 @@ const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { w
 
 function Tile({ icon, wrap, label, value, sub }) {
   return (
-    <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${wrap}`}>{icon}</div>
+    <div className="bg-white rounded-2xl p-5 ring-1 ring-black/5 shadow-sm transition-all duration-200 hover:shadow-lg hover:shadow-brand/5 hover:-translate-y-0.5">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${wrap}`}><Icon name={icon} size={22} /></div>
       <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-[1.9rem] leading-none font-bold text-gray-900 mt-1.5 tracking-tight tabular-nums">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   )
@@ -50,21 +51,17 @@ export default function OccasionsPage() {
     <AdminLayout>
       <PageShell title="Événements" subtitle="Mariages, galas et cérémonies — invités, plan de salle et invitations.">
         <div className="flex justify-end -mt-14 mb-6">
-          <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-accent-dark hover:bg-accent rounded-xl px-4 py-2.5 shadow-lg shadow-accent-dark/25 transition-colors">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z" /></svg>
+          <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-accent-dark hover:bg-accent hover:-translate-y-0.5 rounded-xl px-4 py-2.5 shadow-lg shadow-accent-dark/25">
+            <Icon name="add" size={20} />
             Nouvel événement
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
-          <Tile wrap="bg-brand/10 text-brand" label="Événements à venir" value={upcoming} sub={`sur ${items.length} au total`}
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /></svg>} />
-          <Tile wrap="bg-accent-soft text-accent-dark" label="Invités (tous événements)" value={totalGuests.toLocaleString('fr-FR')}
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>} />
-          <Tile wrap="bg-amber-50 text-amber-700" label="Invitations envoyées" value={totalInvited.toLocaleString('fr-FR')}
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5z" /></svg>} />
-          <Tile wrap="bg-emerald-50 text-emerald-600" label="Confirmations reçues" value={totalConfirmed.toLocaleString('fr-FR')}
-            icon={<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>} />
+          <Tile wrap="bg-brand/10 text-brand" label="Événements à venir" value={upcoming} sub={`sur ${items.length} au total`} icon="celebration" />
+          <Tile wrap="bg-accent-soft text-accent-dark" label="Invités (tous événements)" value={totalGuests.toLocaleString('fr-FR')} icon="groups" />
+          <Tile wrap="bg-amber-50 text-amber-700" label="Invitations envoyées" value={totalInvited.toLocaleString('fr-FR')} icon="mail" />
+          <Tile wrap="bg-emerald-50 text-emerald-600" label="Confirmations reçues" value={totalConfirmed.toLocaleString('fr-FR')} icon="task_alt" />
         </div>
 
         {loading ? (
@@ -138,7 +135,7 @@ function CreateOccasionModal({ onClose, onCreated }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl p-6 sm:p-7" onClick={e => e.stopPropagation()}>
-        <h2 className="text-xl font-bold text-gray-900">Nouvel événement</h2>
+        <h2 className="font-display text-2xl font-medium text-gray-900 tracking-tight">Nouvel événement</h2>
         <p className="text-sm text-gray-500 mb-5">Mariage, gala, cérémonie… vous ajouterez ensuite le plan de salle et les invités.</p>
         {error && <div className="mb-4 px-4 py-3 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">{error}</div>}
         <form onSubmit={submit} className="space-y-4">
