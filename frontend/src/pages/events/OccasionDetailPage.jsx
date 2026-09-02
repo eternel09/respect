@@ -4,6 +4,7 @@ import AdminLayout from '../../components/AdminLayout'
 import Icon from '../../components/ui/Icon'
 import api, { apiErrorMessage } from '../../lib/axios'
 import { OCC_TYPES } from './OccasionsPage'
+import { useAuth } from '../../context/AuthContext'
 
 const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null
@@ -19,6 +20,11 @@ const Pill = ({ children, cls }) => <span className={`inline-flex items-center g
 export default function OccasionDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  // Agent confiné à cet événement (accueil/gestion) : masque les actions
+  // réservées à l'organisateur. La gestion d'équipe est réservée à l'admin.
+  const isEventAgent = !!user?.occasion_id
+  const canManageTeam = user?.role === 'admin' && !isEventAgent
   const [data, setData] = useState(null) // { occasion, tables, guests }
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('plan')
@@ -164,12 +170,14 @@ export default function OccasionDetailPage() {
               {o.location && <span>📍 {o.location}</span>}
             </div>
           </div>
-          <button onClick={sendInvites} disabled={sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors flex-shrink-0 disabled:opacity-60">
-            {sending
-              ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              : <Icon name="send" size={18} />}
-            {sending ? 'Envoi en cours…' : 'Envoyer les invitations'}
-          </button>
+          {!isEventAgent && (
+            <button onClick={sendInvites} disabled={sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors flex-shrink-0 disabled:opacity-60">
+              {sending
+                ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                : <Icon name="send" size={18} />}
+              {sending ? 'Envoi en cours…' : 'Envoyer les invitations'}
+            </button>
+          )}
         </div>
 
         {flash && (
@@ -192,6 +200,7 @@ export default function OccasionDetailPage() {
           ))}
         </div>
 
+        {!isEventAgent && (<>
         {/* Carton d'invitation personnalisé */}
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6 flex items-start gap-4">
           <div className="flex-1 min-w-0">
@@ -259,10 +268,11 @@ export default function OccasionDetailPage() {
             ? <video src={o.rsvp_video_url} className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 bg-black flex-shrink-0" muted playsInline preload="metadata" />
             : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucune vidéo</div>}
         </div>
+        </>)}
 
         {/* Tabs */}
         <div className="flex gap-6 border-b border-gray-200 mb-5">
-          {[['plan', 'Plan de salle'], ['guests', `Invités · ${guests.length}`]].map(([k, l]) => (
+          {[['plan', 'Plan de salle'], ['guests', `Invités · ${guests.length}`], ...(canManageTeam ? [['team', 'Équipe']] : [])].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={`pb-2.5 -mb-px text-sm font-semibold border-b-2 transition-colors ${tab === k ? 'text-brand border-accent' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>{l}</button>
           ))}
         </div>
@@ -356,6 +366,9 @@ export default function OccasionDetailPage() {
             )}
           </div>
         )}
+
+        {/* Équipe de l'événement */}
+        {tab === 'team' && canManageTeam && <TeamPanel occasionId={id} />}
 
         {modal === 'table' && <AddTableModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {modal === 'guest' && <AddGuestModal occasionId={id} tables={tables} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
@@ -592,5 +605,146 @@ function ImportGuestsModal({ occasionId, onClose, onDone }) {
         )}
       </div>
     </div>
+  )
+}
+
+/* ── Équipe de l'événement ──────────────────────────────────────────────
+ * L'admin crée des comptes confinés à cet événement :
+ *  - Agent d'accueil (rôle scanner) : scanne les QR des invités depuis l'app.
+ *  - Gestion des invités (rôle secrétaire) : ajoute/gère les invités (web).
+ * Ces comptes ne voient que cet événement.
+ */
+const AGENT_ROLES = {
+  scanner:    { label: "Agent d'accueil",   icon: 'qr_code_scanner', desc: "Scanne les QR des invités à l'entrée (app mobile).", cls: 'bg-brand/10 text-brand' },
+  secretaire: { label: 'Gestion des invités', icon: 'group_add',      desc: "Ajoute et gère la liste des invités (back-office).", cls: 'bg-accent-soft text-accent-dark' },
+}
+
+function TeamPanel({ occasionId }) {
+  const [agents, setAgents] = useState(null)
+  const [err, setErr] = useState(null)
+  const [showAdd, setShowAdd] = useState(false)
+
+  const load = useCallback(() => {
+    api.get(`/occasions/${occasionId}/team`)
+      .then(res => setAgents(res.data.data || []))
+      .catch(e => setErr(apiErrorMessage(e, "Chargement de l'équipe impossible.")))
+  }, [occasionId])
+  useEffect(load, [load])
+
+  const remove = async (a) => {
+    if (!confirm(`Supprimer le compte de ${a.name} ? Cette personne perdra l'accès.`)) return
+    try { await api.delete(`/occasion-team/${a.id}`); load() }
+    catch (e) { setErr(apiErrorMessage(e, 'Suppression impossible.')) }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+        <div>
+          <h3 className="font-bold text-gray-900">Équipe de l'événement</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Comptes réservés à cet événement — accueil (scan) et gestion des invités.</p>
+        </div>
+        <button onClick={() => setShowAdd(true)} className="ml-auto inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-xl px-3.5 py-2">
+          <Icon name="person_add" size={18} />
+          Ajouter un membre
+        </button>
+      </div>
+
+      {err && <div className="mx-4 mt-4 px-4 py-2.5 rounded-xl text-sm bg-red-50 text-red-600 border border-red-200">{err}</div>}
+
+      {agents === null ? (
+        <div className="p-10 text-center"><span className="inline-block animate-spin h-6 w-6 border-2 border-brand border-t-transparent rounded-full" /></div>
+      ) : agents.length === 0 ? (
+        <div className="p-10 text-center text-gray-400">
+          Aucun membre pour l'instant. Ajoutez un agent d'accueil (pour scanner à l'entrée) ou un gestionnaire d'invités.
+        </div>
+      ) : (
+        <ul className="divide-y divide-gray-50">
+          {agents.map(a => {
+            const r = AGENT_ROLES[a.role] || AGENT_ROLES.secretaire
+            return (
+              <li key={a.id} className="flex items-center gap-3 px-4 py-3 hover:bg-sand/50">
+                <span className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${r.cls}`}><Icon name={r.icon} size={20} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-gray-900 truncate">{a.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{a.email}</p>
+                </div>
+                <Pill cls={r.cls}>{r.label}</Pill>
+                <button onClick={() => remove(a)} className="text-gray-300 hover:text-red-500 ml-1" title="Supprimer le compte">
+                  <Icon name="delete" size={18} />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {showAdd && <AddAgentModal occasionId={occasionId} onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load() }} />}
+    </div>
+  )
+}
+
+function AddAgentModal({ occasionId, onClose, onDone }) {
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'scanner' })
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setSaving(true); setErr(null)
+    try {
+      await api.post(`/occasions/${occasionId}/team`, form)
+      onDone()
+    } catch (e2) {
+      const d = e2.response?.data
+      setErr(d?.errors ? Object.values(d.errors)[0][0] : apiErrorMessage(e2, 'Création impossible.'))
+      setSaving(false)
+    }
+  }
+
+  const inputCls = 'w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand'
+
+  return (
+    <Shell title="Ajouter un membre de l'équipe" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        {err && <div className="px-4 py-2.5 rounded-xl text-sm bg-red-50 text-red-600 border border-red-200">{err}</div>}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Rôle</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {Object.entries(AGENT_ROLES).map(([k, r]) => (
+              <button type="button" key={k} onClick={() => set('role', k)}
+                className={`text-left p-3 rounded-xl border transition-colors ${form.role === k ? 'border-brand ring-2 ring-brand/30 bg-brand/5' : 'border-gray-200 hover:bg-sand'}`}>
+                <span className="flex items-center gap-2 font-semibold text-sm text-gray-900"><Icon name={r.icon} size={18} />{r.label}</span>
+                <span className="block text-xs text-gray-500 mt-1">{r.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+          <input className={inputCls} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Jean Kalala" autoFocus />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email (identifiant de connexion)</label>
+          <input type="email" className={inputCls} value={form.email} onChange={e => set('email', e.target.value)} placeholder="jean@exemple.cd" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+          <input type="text" className={inputCls} value={form.password} onChange={e => set('password', e.target.value)} placeholder="Au moins 6 caractères" />
+          <p className="text-xs text-gray-400 mt-1">Communiquez ces identifiants au membre. Il se connecte {form.role === 'scanner' ? "sur l'app mobile pour scanner." : 'au back-office pour gérer les invités.'}</p>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200">Annuler</button>
+          <button type="submit" disabled={saving} className="flex-[2] py-2.5 rounded-xl text-sm font-semibold text-white bg-brand hover:bg-brand-dark disabled:opacity-60 flex items-center justify-center gap-2">
+            {saving && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />}
+            Créer le compte
+          </button>
+        </div>
+      </form>
+    </Shell>
   )
 }

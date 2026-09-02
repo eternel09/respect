@@ -27,7 +27,13 @@ export default function LoginPage() {
     setLoading(true); setError(null)
     try {
       const data = await login(form.email, form.password)
-      navigate(data?.user?.role === 'super_admin' ? '/admin/organizations' : '/admin/dashboard')
+      const u = data?.user
+      // Agent d'événement → son événement ; super-admin → organisations ; sinon back-office.
+      navigate(
+        u?.role === 'super_admin' ? '/admin/organizations'
+        : u?.occasion_id ? `/events/${u.occasion_id}`
+        : '/admin/dashboard'
+      )
     } catch (err) {
       setError(err.response?.data?.message || 'Identifiants incorrects.')
     } finally {

@@ -22,6 +22,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'organization_id',
+        'occasion_id',
         'name',
         'email',
         'password',
@@ -31,6 +32,18 @@ class User extends Authenticatable
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /** Occasion à laquelle l'agent est confiné (null = utilisateur d'organisation). */
+    public function occasion()
+    {
+        return $this->belongsTo(Occasion::class);
+    }
+
+    /** Agent rattaché à un seul événement (accueil / gestion invités). */
+    public function isEventScoped(): bool
+    {
+        return $this->occasion_id !== null;
     }
 
     /**
