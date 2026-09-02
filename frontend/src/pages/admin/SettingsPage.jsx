@@ -5,6 +5,40 @@ import api, { apiErrorMessage } from '../../lib/axios'
 import { useAuth } from '../../context/AuthContext'
 import Icon from '../../components/ui/Icon'
 
+// Lien de téléchargement de l'app scanner (Android). L'APK est publié en asset
+// de Release GitHub (tag stable `mobile-latest`) par le workflow « Build Mobile
+// APK ». Surchargable via VITE_APP_DOWNLOAD_URL (déploiement white-label).
+const APK_URL = import.meta.env.VITE_APP_DOWNLOAD_URL
+  || 'https://github.com/eternel09/respect/releases/download/mobile-latest/signiq-scanner.apk'
+
+/** Téléchargement de l'application mobile scanner (APK Android). */
+function MobileAppSection() {
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-6 mt-6">
+      <div className="flex items-center gap-2.5 mb-1">
+        <Icon name="android" size={20} className="text-emerald-600" />
+        <h2 className="font-bold text-gray-900">Application mobile</h2>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">
+        App scanner de terrain : pointage des présences par QR code, avec mode hors-ligne et synchronisation.
+      </p>
+      <a
+        href={APK_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-white rounded-xl px-4 py-2.5 bg-brand hover:bg-brand-dark transition-colors shadow-lg shadow-brand/20"
+      >
+        <Icon name="download" size={20} />
+        Télécharger l'application (Android)
+      </a>
+      <p className="text-xs text-gray-400 mt-3">
+        Fichier .APK · Android uniquement. Autorisez l'installation depuis des sources inconnues,
+        puis ouvrez le fichier téléchargé pour installer.
+      </p>
+    </div>
+  )
+}
+
 /** Liaison WhatsApp (service whatsapp-web.js) : statut + QR à scanner. */
 function WhatsAppSection() {
   const [status, setStatus] = useState({ state: 'loading', qr: null, message: null })
@@ -183,7 +217,12 @@ export default function SettingsPage() {
           </form>
         )}
 
-        {!loading && <div className="max-w-xl"><WhatsAppSection /></div>}
+        {!loading && (
+          <div className="max-w-xl">
+            <MobileAppSection />
+            <WhatsAppSection />
+          </div>
+        )}
       </PageShell>
     </AdminLayout>
   )
