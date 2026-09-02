@@ -28,7 +28,8 @@ export default function OccasionDetailPage() {
   const [data, setData] = useState(null) // { occasion, tables, guests }
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('plan')
-  const [modal, setModal] = useState(null) // 'table' | 'guest'
+  const [modal, setModal] = useState(null) // 'table' | 'guest' | 'import'
+  const [editTable, setEditTable] = useState(null) // table en cours de renommage
   const [err, setErr] = useState(null)
   const [sending, setSending] = useState(false)
   const [resendId, setResendId] = useState(null)
@@ -54,6 +55,11 @@ export default function OccasionDetailPage() {
     load()
   }
   const delGuest = async (guestId) => { if (confirm('Supprimer cet invité ?')) { await api.delete(`/guests/${guestId}`); load() } }
+  const delTable = async (tb) => {
+    if (!confirm(`Supprimer la table « ${tb.label} » ? Les invités assignés redeviennent « non assignés ».`)) return
+    try { await api.delete(`/occasion-tables/${tb.id}`); load() }
+    catch (e) { setFlash({ ok: false, text: apiErrorMessage(e, 'Suppression impossible.') }) }
+  }
 
   const sendInvites = async () => {
     if (!confirm('Envoyer les invitations WhatsApp aux invités pas encore contactés ?')) return
@@ -282,7 +288,9 @@ export default function OccasionDetailPage() {
           <>
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-gray-500">{tables.length} table(s) — assignez les invités depuis l'onglet Invités.</p>
-              <button onClick={() => setModal('table')} className="text-sm font-medium text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-sand">+ Ajouter une table</button>
+              {!isEventAgent && (
+                <button onClick={() => setModal('table')} className="text-sm font-medium text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-sand">+ Ajouter une table</button>
+              )}
             </div>
             {tables.length === 0 ? (
               <div className="bg-white rounded-2xl ring-1 ring-black/5 p-10 text-center text-gray-400">Aucune table. Ajoutez les tables de votre plan de salle.</div>
@@ -291,7 +299,19 @@ export default function OccasionDetailPage() {
                 {tables.map(tb => {
                   const full = tb.occupied >= tb.seats
                   return (
-                    <div key={tb.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 text-center">
+                    <div key={tb.id} className="group relative bg-white rounded-2xl border border-gray-200 shadow-sm p-4 text-center">
+                      {!isEventAgent && (
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <button onClick={() => setEditTable(tb)} title="Renommer / modifier"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-brand hover:bg-sand">
+                            <Icon name="edit" size={16} />
+                          </button>
+                          <button onClick={() => delTable(tb)} title="Supprimer la table"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50">
+                            <Icon name="delete" size={16} />
+                          </button>
+                        </div>
+                      )}
                       <div className={`w-14 h-14 mx-auto mb-2.5 rounded-full flex items-center justify-center font-extrabold text-lg ${full ? 'border-2 border-emerald-500 text-emerald-600' : 'border-2 border-dashed border-gray-300 text-brand'}`}>{tb.label.length > 3 ? '★' : tb.label}</div>
                       <div className="text-sm font-bold text-gray-800">{/^\d+$/.test(tb.label) ? 'Table ' + tb.label : tb.label}</div>
                       <div className="text-xs text-gray-500 mt-0.5">{tb.occupied}/{tb.seats} places</div>
@@ -371,6 +391,7 @@ export default function OccasionDetailPage() {
         {tab === 'team' && canManageTeam && <TeamPanel occasionId={id} />}
 
         {modal === 'table' && <AddTableModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
+        {editTable && <AddTableModal occasionId={id} table={editTable} onClose={() => setEditTable(null)} onDone={() => { setEditTable(null); load() }} />}
         {modal === 'guest' && <AddGuestModal occasionId={id} tables={tables} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {modal === 'import' && <ImportGuestsModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
 
@@ -409,14 +430,19 @@ function Shell({ title, children, onClose }) {
 }
 const inputCls = 'w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand'
 
-function AddTableModal({ occasionId, onClose, onDone }) {
-  const [label, setLabel] = useState(''); const [seats, setSeats] = useState(8)
+function AddTableModal({ occasionId, table = null, onClose, onDone }) {
+  const editing = !!table
+  const [label, setLabel] = useState(table?.label ?? ''); const [seats, setSeats] = useState(table?.seats ?? 8)
   const [saving, setSaving] = useState(false); const [err, setErr] = useState(null)
   const submit = async (e) => { e.preventDefault(); setSaving(true); setErr(null)
-    try { await api.post(`/occasions/${occasionId}/tables`, { label, seats: Number(seats) }); onDone() }
-    catch (e2) { setErr(apiErrorMessage(e2, 'Ajout impossible.')); setSaving(false) } }
+    try {
+      if (editing) await api.put(`/occasion-tables/${table.id}`, { label, seats: Number(seats) })
+      else await api.post(`/occasions/${occasionId}/tables`, { label, seats: Number(seats) })
+      onDone()
+    }
+    catch (e2) { setErr(apiErrorMessage(e2, editing ? 'Modification impossible.' : 'Ajout impossible.')); setSaving(false) } }
   return (
-    <Shell title="Ajouter une table" onClose={onClose}>
+    <Shell title={editing ? 'Modifier la table' : 'Ajouter une table'} onClose={onClose}>
       {err && <div className="mb-3 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">{err}</div>}
       <form onSubmit={submit} className="space-y-3">
         <div><label className="block text-sm font-medium text-gray-700 mb-1">Libellé</label>
@@ -425,7 +451,7 @@ function AddTableModal({ occasionId, onClose, onDone }) {
           <input type="number" min="1" max="100" className={inputCls} value={seats} onChange={e => setSeats(e.target.value)} /></div>
         <div className="flex gap-3 pt-1">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200">Annuler</button>
-          <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand hover:bg-brand-dark disabled:opacity-60">Ajouter</button>
+          <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand hover:bg-brand-dark disabled:opacity-60">{editing ? 'Enregistrer' : 'Ajouter'}</button>
         </div>
       </form>
     </Shell>
