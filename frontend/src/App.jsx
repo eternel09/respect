@@ -23,10 +23,12 @@ import ModulesPage from './pages/admin/ModulesPage'
 import NetworkPage from './pages/admin/NetworkPage'
 import { homeForModules } from './lib/modules'
 
-// Atterrissage : super-admin → organisations, sinon accueil du 1ᵉʳ module actif.
+// Atterrissage : super-admin → organisations, agent d'événement → son
+// événement, sinon accueil du 1ᵉʳ module actif.
 function AdminHome() {
   const { user } = useAuth()
   if (user?.role === 'super_admin') return <Navigate to="/admin/organizations" replace />
+  if (user?.occasion_id) return <Navigate to={`/events/${user.occasion_id}`} replace />
   return <Navigate to={homeForModules(user?.organization?.modules || [])} replace />
 }
 

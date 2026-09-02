@@ -15,9 +15,11 @@ use Illuminate\Http\Request;
 class OccasionScanController extends Controller
 {
     /** Occasions actives (non passées) de l'organisation de l'agent. */
-    public function occasions(): JsonResponse
+    public function occasions(Request $request): JsonResponse
     {
         $occasions = Occasion::active()->withCount('guests')
+            // Agent confiné à un événement : il ne voit que le sien.
+            ->when($request->user()->occasion_id, fn ($q, $id) => $q->whereKey($id))
             ->orderBy('date')
             ->get(['id', 'name', 'type', 'date', 'location'])
             ->map(fn (Occasion $o) => [

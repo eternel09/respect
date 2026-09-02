@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\OccasionController;
 use App\Http\Controllers\Api\OccasionInvitationController;
 use App\Http\Controllers\Api\OccasionScanController;
 use App\Http\Controllers\Api\OccasionTableController;
+use App\Http\Controllers\Api\OccasionTeamController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\Api\OrganizationModuleController;
@@ -58,7 +59,9 @@ Route::get('/rsvp/{token}', [RsvpController::class, 'show'])->middleware('thrott
 Route::post('/rsvp/{token}', [RsvpController::class, 'store'])->middleware('throttle:20,1');
 
 // Protected routes (authenticated)
-Route::middleware('auth:sanctum')->group(function () {
+// ConfineEventAgent confine les « agents d'événement » (users.occasion_id défini)
+// à leur seul événement ; sans effet sur les utilisateurs d'organisation.
+Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class])->group(function () {
     // Accessible à tout utilisateur authentifié (tous rôles)
     Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
     Route::get('/admin/me', [AdminAuthController::class, 'me']);
@@ -100,6 +103,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Lien d'invitation réseau (générer / révoquer)
         Route::post('/admin/sub-organizations/invite', [SubOrganizationController::class, 'generateInvite']);
         Route::delete('/admin/sub-organizations/invite', [SubOrganizationController::class, 'revokeInvite']);
+
+        // Équipe d'un événement : comptes agents confinés (accueil / invités)
+        Route::get('/occasions/{occasion}/team', [OccasionTeamController::class, 'index']);
+        Route::post('/occasions/{occasion}/team', [OccasionTeamController::class, 'store']);
+        Route::delete('/occasion-team/{user}', [OccasionTeamController::class, 'destroy']);
     });
 
     // Back-office — gestion (administrateur & secrétaire)

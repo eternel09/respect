@@ -48,6 +48,11 @@ class AdminAuthController extends Controller
             'name'         => $user->name,
             'email'        => $user->email,
             'role'         => $user->role,
+            // Agent confiné à un événement : le front/mobile s'y limite.
+            'occasion_id'  => $user->occasion_id,
+            'occasion'     => $user->occasion_id && $user->occasion
+                ? ['id' => $user->occasion->id, 'name' => $user->occasion->name]
+                : null,
             'organization' => $user->organization
                 ? [
                     'id'      => $user->organization->id,
