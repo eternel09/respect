@@ -573,7 +573,7 @@ function ColSelect({ label, value, onChange, optional, headers }) {
 function ImportGuestsModal({ occasionId, onClose, onDone }) {
   const [headers, setHeaders] = useState(null)   // libellés de colonnes
   const [rows, setRows] = useState([])           // lignes de données (tableaux)
-  const [map, setMap] = useState({ first: -1, name: -1, phone: -1 })
+  const [map, setMap] = useState({ first: -1, name: -1, phone: -1, table: -1 })
   const [error, setError] = useState(null)
   const [parsing, setParsing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -595,12 +595,14 @@ function ImportGuestsModal({ occasionId, onClose, onDone }) {
       const firstIdx = findCol(hs, ['prenom'])
       const lastIdx = findCol(hs, ['nom'])
       const phoneIdx = findCol(hs, ['tel', 'phone', 'whatsapp', 'numero', 'contact', 'gsm', 'mobile'])
+      const tableIdx = findCol(hs, ['table', 'mesa'])
       setHeaders(hs)
       setRows(nonEmpty.slice(1))
       setMap({
         first: nameIdx < 0 && firstIdx >= 0 ? firstIdx : -1,
         name: nameIdx >= 0 ? nameIdx : (lastIdx >= 0 ? lastIdx : 0),
         phone: phoneIdx,
+        table: tableIdx,
       })
     } catch {
       setError('Impossible de lire ce fichier. Utilisez un .xlsx, .xls ou .csv.')
@@ -614,7 +616,8 @@ function ImportGuestsModal({ occasionId, onClose, onDone }) {
       const last = map.name >= 0 ? String(r[map.name] ?? '').trim() : ''
       const name = `${first} ${last}`.trim()
       const phone = map.phone >= 0 ? String(r[map.phone] ?? '').trim() : ''
-      return { name, phone: phone || null }
+      const table = map.table >= 0 ? String(r[map.table] ?? '').trim() : ''
+      return { name, phone: phone || null, table: table || null }
     }).filter(g => g.name)
   }, [headers, rows, map])
 
@@ -634,7 +637,7 @@ function ImportGuestsModal({ occasionId, onClose, onDone }) {
 
   const downloadTemplate = async () => {
     const XLSX = await import('xlsx')
-    const ws = XLSX.utils.aoa_to_sheet([['Nom complet', 'Téléphone'], ['Grâce Nkosi', '+243 81 234 5678']])
+    const ws = XLSX.utils.aoa_to_sheet([['Nom complet', 'Téléphone', 'Table'], ['Grâce Nkosi', '+243 81 234 5678', 'Honneur']])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Invités')
     XLSX.writeFile(wb, 'modele-invites.xlsx')
@@ -663,20 +666,22 @@ function ImportGuestsModal({ occasionId, onClose, onDone }) {
           </>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <ColSelect label="Prénom" optional headers={headers} value={map.first} onChange={v => setMap(m => ({ ...m, first: v }))} />
               <ColSelect label="Nom" headers={headers} value={map.name} onChange={v => setMap(m => ({ ...m, name: v }))} />
               <ColSelect label="Téléphone" optional headers={headers} value={map.phone} onChange={v => setMap(m => ({ ...m, phone: v }))} />
+              <ColSelect label="Table" optional headers={headers} value={map.table} onChange={v => setMap(m => ({ ...m, table: v }))} />
             </div>
+            {map.table >= 0 && <p className="text-xs text-gray-400 mt-2">Les tables citées seront créées automatiquement si elles n'existent pas encore.</p>}
 
             <div className="mt-4">
               <p className="text-sm font-semibold text-gray-800 mb-2">{guests.length} invité(s) détecté(s) <span className="font-normal text-gray-400">— aperçu</span></p>
               <div className="rounded-xl border border-gray-100 overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead><tr className="bg-cream"><th className="text-left px-3 py-2 text-[11px] font-bold text-gray-400 uppercase">Nom</th><th className="text-left px-3 py-2 text-[11px] font-bold text-gray-400 uppercase">Téléphone</th></tr></thead>
+                  <thead><tr className="bg-cream"><th className="text-left px-3 py-2 text-[11px] font-bold text-gray-400 uppercase">Nom</th><th className="text-left px-3 py-2 text-[11px] font-bold text-gray-400 uppercase">Téléphone</th>{map.table >= 0 && <th className="text-left px-3 py-2 text-[11px] font-bold text-gray-400 uppercase">Table</th>}</tr></thead>
                   <tbody>
                     {guests.slice(0, 5).map((g, i) => (
-                      <tr key={i} className="border-t border-gray-50"><td className="px-3 py-1.5 text-gray-800">{g.name}</td><td className="px-3 py-1.5 text-gray-500">{g.phone || '—'}</td></tr>
+                      <tr key={i} className="border-t border-gray-50"><td className="px-3 py-1.5 text-gray-800">{g.name}</td><td className="px-3 py-1.5 text-gray-500">{g.phone || '—'}</td>{map.table >= 0 && <td className="px-3 py-1.5 text-gray-500">{g.table || '—'}</td>}</tr>
                     ))}
                   </tbody>
                 </table>

@@ -26,25 +26,80 @@ class GuestController extends Controller
         return response()->json(new GuestResource($guest->load('table')), 201);
     }
 
-    /** Ajout en lot (import d'une liste d'invités). */
+    /** Ajout en lot (import d'une liste d'invités), avec assignation de table
+     *  optionnelle : une colonne « table » du fichier suffit — les tables
+     *  absentes sont créées automatiquement pour cet événement. */
     public function bulkStore(Request $request, Occasion $occasion): JsonResponse
     {
         $data = $request->validate([
-            'guests'                     => ['required', 'array', 'min:1', 'max:1000'],
-            'guests.*.name'              => ['required', 'string', 'max:120'],
-            'guests.*.phone'             => ['nullable', 'string', 'max:30'],
+            'guests'          => ['required', 'array', 'min:1', 'max:1000'],
+            'guests.*.name'   => ['required', 'string', 'max:120'],
+            'guests.*.phone'  => ['nullable', 'string', 'max:30'],
+            'guests.*.table'  => ['nullable', 'string', 'max:40'],
         ]);
 
+        // Résout (ou crée) les tables citées, indexées par libellé normalisé.
+        $tables = $this->resolveTables($occasion, $data['guests']);
+
         $created = collect($data['guests'])->map(fn ($g) => $occasion->guests()->create([
-            'organization_id' => $occasion->organization_id,
-            'name'            => $g['name'],
-            'phone'           => $g['phone'] ?? null,
+            'organization_id'   => $occasion->organization_id,
+            'name'              => $g['name'],
+            'phone'             => $g['phone'] ?? null,
+            'occasion_table_id' => $tables[$this->tableKey($g['table'] ?? null)] ?? null,
         ]));
 
+        $newTables = $occasion->tables()->count() - $tables['__existing_count'];
+
         return response()->json([
-            'message' => count($created) . ' invité(s) ajouté(s).',
+            'message' => count($created) . ' invité(s) ajouté(s).'
+                . ($newTables > 0 ? " {$newTables} table(s) créée(s)." : ''),
             'count'   => $created->count(),
         ], 201);
+    }
+
+    /**
+     * Retourne une map [libellé normalisé => id de table], en créant les tables
+     * manquantes de l'occasion. La clé spéciale `__existing_count` porte le
+     * nombre de tables préexistantes (pour compter les créations).
+     */
+    private function resolveTables(Occasion $occasion, array $guests): array
+    {
+        $existing = $occasion->tables()->get();
+        $map = ['__existing_count' => $existing->count()];
+        foreach ($existing as $t) {
+            $map[$this->tableKey($t->label)] = $t->id;
+        }
+
+        // Nombre d'invités visant chaque table → capacité par défaut sensée.
+        $wanted = collect($guests)
+            ->map(fn ($g) => $this->tableKey($g['table'] ?? null))
+            ->filter()
+            ->countBy();
+
+        foreach ($guests as $g) {
+            $label = trim((string) ($g['table'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+            $key = $this->tableKey($label);
+            if (! array_key_exists($key, $map)) {
+                $seats = min(500, max(10, $wanted[$key] ?? 10));
+                $map[$key] = $occasion->tables()->create([
+                    'organization_id' => $occasion->organization_id,
+                    'label'           => $label,
+                    'seats'           => $seats,
+                ])->id;
+            }
+        }
+
+        return $map;
+    }
+
+    /** Normalise un libellé de table pour le rapprochement (casse/espaces). */
+    private function tableKey(?string $label): ?string
+    {
+        $label = trim((string) $label);
+        return $label === '' ? null : mb_strtolower($label);
     }
 
     public function update(Request $request, Guest $guest): JsonResponse
