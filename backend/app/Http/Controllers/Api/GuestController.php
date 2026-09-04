@@ -62,6 +62,23 @@ class GuestController extends Controller
         return response()->json(['message' => 'Invité supprimé.']);
     }
 
+    /** Suppression en masse : ne supprime que les invités de CETTE occasion. */
+    public function bulkDestroy(Request $request, Occasion $occasion): JsonResponse
+    {
+        $data = $request->validate([
+            'ids'   => ['required', 'array', 'min:1', 'max:2000'],
+            'ids.*' => ['integer'],
+        ]);
+
+        // Borné à l'occasion : des ids étrangers sont simplement ignorés.
+        $deleted = $occasion->guests()->whereIn('id', $data['ids'])->delete();
+
+        return response()->json([
+            'message' => $deleted . ' invité(s) supprimé(s).',
+            'count'   => $deleted,
+        ]);
+    }
+
     private function rules(Occasion $occasion, bool $partial = false): array
     {
         $req = $partial ? 'sometimes' : 'required';

@@ -30,6 +30,9 @@ export default function OccasionDetailPage() {
   const [tab, setTab] = useState('plan')
   const [modal, setModal] = useState(null) // 'table' | 'guest' | 'import'
   const [editTable, setEditTable] = useState(null) // table en cours de renommage
+  const [selected, setSelected] = useState(() => new Set()) // ids invités cochés
+  const [confirmBulk, setConfirmBulk] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [err, setErr] = useState(null)
   const [sending, setSending] = useState(false)
   const [resendId, setResendId] = useState(null)
@@ -55,6 +58,24 @@ export default function OccasionDetailPage() {
     load()
   }
   const delGuest = async (guestId) => { if (confirm('Supprimer cet invité ?')) { await api.delete(`/guests/${guestId}`); load() } }
+
+  const toggleOne = (id) => setSelected(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+  const bulkDelete = async () => {
+    setBulkBusy(true)
+    try {
+      const ids = [...selected]
+      const res = await api.post(`/occasions/${id}/guests/bulk-delete`, { ids })
+      setSelected(new Set()); setConfirmBulk(false)
+      setFlash({ ok: true, text: res.data.message })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Suppression impossible.') })
+    } finally { setBulkBusy(false) }
+  }
   const delTable = async (tb) => {
     if (!confirm(`Supprimer la table « ${tb.label} » ? Les invités assignés redeviennent « non assignés ».`)) return
     try { await api.delete(`/occasion-tables/${tb.id}`); load() }
@@ -334,19 +355,45 @@ export default function OccasionDetailPage() {
               </button>
               <button onClick={() => setModal('guest')} className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-xl px-3.5 py-2">+ Ajouter</button>
             </div>
+
+            {/* Barre de sélection multiple */}
+            {selected.size > 0 && (
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-brand/5 border-b border-brand/10">
+                <span className="text-sm font-semibold text-brand">{selected.size} invité(s) sélectionné(s)</span>
+                <button onClick={() => setSelected(new Set())} className="text-sm text-gray-500 hover:text-gray-700">Tout désélectionner</button>
+                <button onClick={() => setConfirmBulk(true)} className="ml-auto inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl px-3.5 py-2">
+                  <Icon name="delete" size={18} />
+                  Supprimer ({selected.size})
+                </button>
+              </div>
+            )}
+
             {guests.length === 0 ? (
               <div className="p-10 text-center text-gray-400">Aucun invité. Ajoutez-les un par un ou par import.</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[640px]">
+                <table className="w-full text-sm min-w-[680px]">
                   <thead><tr className="border-b border-gray-100">
+                    <th className="w-10 px-4 py-3">
+                      <input type="checkbox" aria-label="Tout sélectionner"
+                        className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand/40 cursor-pointer align-middle"
+                        checked={guests.length > 0 && selected.size === guests.length}
+                        ref={el => { if (el) el.indeterminate = selected.size > 0 && selected.size < guests.length }}
+                        onChange={e => setSelected(e.target.checked ? new Set(guests.map(g => g.id)) : new Set())} />
+                    </th>
                     {['Invité', 'Téléphone', 'Table', 'Invitation', 'Confirmation', ''].map(h => <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wide">{h}</th>)}
                   </tr></thead>
                   <tbody>
                     {guests.map(g => {
                       const [il, ic] = INVITE[g.invite_status] || INVITE.pending
+                      const checked = selected.has(g.id)
                       return (
-                        <tr key={g.id} className="border-b border-gray-50 last:border-0 hover:bg-sand/50">
+                        <tr key={g.id} className={`border-b border-gray-50 last:border-0 transition-colors ${checked ? 'bg-brand/5' : 'hover:bg-sand/50'}`}>
+                          <td className="px-4 py-3">
+                            <input type="checkbox" aria-label={`Sélectionner ${g.name}`}
+                              className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand/40 cursor-pointer align-middle"
+                              checked={checked} onChange={() => toggleOne(g.id)} />
+                          </td>
                           <td className="px-4 py-3 font-medium text-gray-900">{g.name}</td>
                           <td className="px-4 py-3 text-gray-500">{g.phone || '—'}</td>
                           <td className="px-4 py-3">
@@ -394,6 +441,23 @@ export default function OccasionDetailPage() {
         {editTable && <AddTableModal occasionId={id} table={editTable} onClose={() => setEditTable(null)} onDone={() => { setEditTable(null); load() }} />}
         {modal === 'guest' && <AddGuestModal occasionId={id} tables={tables} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {modal === 'import' && <ImportGuestsModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
+        {confirmBulk && (
+          <Shell title="Supprimer les invités sélectionnés ?" onClose={() => !bulkBusy && setConfirmBulk(false)}>
+            <div className="flex items-start gap-3 mb-4">
+              <span className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0"><Icon name="delete" size={22} /></span>
+              <p className="text-sm text-gray-600">
+                Vous êtes sur le point de supprimer <b className="text-gray-900">{selected.size} invité(s)</b>. Cette action est définitive et retire aussi leurs éventuelles confirmations et invitations.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setConfirmBulk(false)} disabled={bulkBusy} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-60">Annuler</button>
+              <button type="button" onClick={bulkDelete} disabled={bulkBusy} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2">
+                {bulkBusy && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />}
+                Supprimer {selected.size}
+              </button>
+            </div>
+          </Shell>
+        )}
 
         {preview && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={closePreview}>
