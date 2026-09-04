@@ -30,6 +30,7 @@ class ConfineEventAgent
         'api/occasions/{occasion}',
         'api/occasions/{occasion}/guests',
         'api/occasions/{occasion}/guests/bulk',
+        'api/occasions/{occasion}/guests/bulk-delete',
         'api/guests/{guest}',
     ];
 
