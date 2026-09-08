@@ -258,7 +258,7 @@ export default function OccasionDetailPage() {
                 Aperçu
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">JPG, PNG, WEBP, HEIC (iPhone) ou <b>PDF</b> — 12 Mo max. Un <b>PDF</b> avec les repères « MR, MME, COUPLE », « TABLE N° » et « QR » reste vectoriel et est envoyé en PDF (nom, table et QR posés automatiquement). Sinon, portrait recommandé avec de la place en bas.</p>
+            <p className="text-xs text-gray-400 mt-2">JPG, PNG, WEBP, HEIC (iPhone) ou <b>PDF</b> — 30 Mo max. Un <b>PDF</b> avec les repères « MR, MME, COUPLE », « TABLE N° » et « QR » reste vectoriel et est envoyé en PDF (nom, table et QR posés automatiquement). Sinon, portrait recommandé avec de la place en bas.</p>
           </div>
           {o.invitation_bg_url
             ? (o.invitation_is_pdf
