@@ -30,6 +30,7 @@ export default function OccasionDetailPage() {
   const [tab, setTab] = useState('plan')
   const [modal, setModal] = useState(null) // 'table' | 'guest' | 'import'
   const [editTable, setEditTable] = useState(null) // table en cours de renommage
+  const [editOccasion, setEditOccasion] = useState(null) // événement en cours d'édition
   const [selected, setSelected] = useState(() => new Set()) // ids invités cochés
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
@@ -191,7 +192,15 @@ export default function OccasionDetailPage() {
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-6 mb-5 flex flex-col md:flex-row md:items-start gap-4">
           <div className="flex-1 min-w-0">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full" style={{ background: t.color + '22', color: t.color }}>{t.emoji} {t.label}</span>
-            <h1 className="font-display text-[1.9rem] font-medium text-gray-900 mt-2.5 tracking-tight">{o.name}</h1>
+            <div className="flex items-center gap-2 mt-2.5">
+              <h1 className="font-display text-[1.9rem] font-medium text-gray-900 tracking-tight min-w-0 break-words">{o.name}</h1>
+              {!isEventAgent && (
+                <button onClick={() => setEditOccasion(o)} title="Modifier l'événement"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-brand hover:bg-sand transition-colors flex-shrink-0">
+                  <Icon name="edit" size={18} />
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-2">
               <span>📅 {fmtDate(o.date)}{fmtTime(o.starts_at) && ` · ${fmtTime(o.starts_at)}${fmtTime(o.ends_at) ? ' → ' + fmtTime(o.ends_at) : ''}`}</span>
               {o.location && <span>📍 {o.location}</span>}
@@ -441,6 +450,7 @@ export default function OccasionDetailPage() {
 
         {modal === 'table' && <AddTableModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {editTable && <AddTableModal occasionId={id} table={editTable} onClose={() => setEditTable(null)} onDone={() => { setEditTable(null); load() }} />}
+        {editOccasion && <EditOccasionModal occasion={editOccasion} onClose={() => setEditOccasion(null)} onDone={() => { setEditOccasion(null); load() }} />}
         {modal === 'guest' && <AddGuestModal occasionId={id} tables={tables} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {modal === 'import' && <ImportGuestsModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {confirmBulk && (
@@ -523,6 +533,81 @@ function AddTableModal({ occasionId, table = null, onClose, onDone }) {
         <div className="flex gap-3 pt-1">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200">Annuler</button>
           <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand hover:bg-brand-dark disabled:opacity-60">{editing ? 'Enregistrer' : 'Ajouter'}</button>
+        </div>
+      </form>
+    </Shell>
+  )
+}
+
+// datetime ISO → valeur d'un input datetime-local ('YYYY-MM-DDTHH:mm').
+const dtLocal = (iso) => (iso ? String(iso).slice(0, 16) : '')
+
+function EditOccasionModal({ occasion, onClose, onDone }) {
+  const [form, setForm] = useState({
+    name: occasion.name || '',
+    type: occasion.type || 'mariage',
+    date: occasion.date || '',
+    starts_at: dtLocal(occasion.starts_at),
+    ends_at: dtLocal(occasion.ends_at),
+    location: occasion.location || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setSaving(true); setError(null)
+    try {
+      const payload = { ...form }
+      if (!payload.starts_at) delete payload.starts_at
+      if (!payload.ends_at) delete payload.ends_at
+      if (!payload.location) delete payload.location
+      await api.put(`/occasions/${occasion.id}`, payload)
+      onDone()
+    } catch (err) {
+      const d = err.response?.data
+      setError(d?.errors ? Object.values(d.errors)[0][0] : apiErrorMessage(err, 'Modification impossible.'))
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Shell title="Modifier l'événement" onClose={onClose}>
+      {error && <div className="mb-3 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">{error}</div>}
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom de l'événement</label>
+          <input className={inputCls} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Mariage Sarah & David" autoFocus />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(OCC_TYPES).map(([k, t]) => (
+              <button type="button" key={k} onClick={() => set('type', k)}
+                className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${form.type === k ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-sand'}`}
+                style={form.type === k ? { background: t.color } : {}}>{t.emoji} {t.label}</button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
+            <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Lieu</label>
+            <input className={inputCls} value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="Salle Bonanza" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Début <span className="text-gray-400 font-normal">(opt.)</span></label>
+            <input type="datetime-local" className={inputCls} value={form.starts_at} onChange={(e) => set('starts_at', e.target.value)} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Fin <span className="text-gray-400 font-normal">(opt.)</span></label>
+            <input type="datetime-local" className={inputCls} value={form.ends_at} onChange={(e) => set('ends_at', e.target.value)} /></div>
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200">Annuler</button>
+          <button type="submit" disabled={saving} className="flex-[2] py-2.5 rounded-xl text-sm font-semibold text-white bg-brand hover:bg-brand-dark disabled:opacity-60 flex items-center justify-center gap-2">
+            {saving && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />}
+            Enregistrer
+          </button>
         </div>
       </form>
     </Shell>
