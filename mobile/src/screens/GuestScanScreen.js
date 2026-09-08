@@ -29,8 +29,12 @@ export default function GuestScanScreen({ occasion, onBack }) {
     Vibration.vibrate(fb.vibrate)
     setFeedback(result)
     if (result.status === 'checked_in') setCount((c) => c + 1)
-    setTimeout(() => { setFeedback(null); busy.current = false }, 2200)
+    // Plus d'auto-fermeture : l'agent lit le nom et la table à son rythme,
+    // puis appuie sur « Scanner le suivant » pour reprendre.
   }
+
+  // Ferme le détail et réactive le scan (bouton « Scanner le suivant »).
+  const dismiss = () => { setFeedback(null); busy.current = false }
 
   const onScanned = async ({ data }) => {
     if (busy.current || !data) return
@@ -102,11 +106,17 @@ export default function GuestScanScreen({ occasion, onBack }) {
             <>
               <Text style={s.fbName} numberOfLines={2}>{guest.name}</Text>
 
-              {/* L'information clé : la table */}
+              {/* L'information clé : la table. La police s'ajuste pour rester
+                  entière (pas de caractère coupé), même sur un libellé long. */}
               {guest.table ? (
                 <View style={s.tableBox}>
                   <Text style={s.tableLabel}>TABLE</Text>
-                  <Text style={s.tableValue} numberOfLines={1}>{guest.table}</Text>
+                  <Text
+                    style={s.tableValue}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.4}
+                  >{guest.table}</Text>
                 </View>
               ) : (
                 <Text style={s.noTable}>Aucune table assignée</Text>
@@ -118,6 +128,11 @@ export default function GuestScanScreen({ occasion, onBack }) {
           ) : (
             <Text style={s.fbMessage} numberOfLines={3}>{feedback.message}</Text>
           )}
+
+          {/* Reprise manuelle : le détail reste affiché tant qu'on n'appuie pas. */}
+          <TouchableOpacity style={s.nextBtn} onPress={dismiss} activeOpacity={0.85}>
+            <Text style={s.nextBtnText}>Scanner le suivant  →</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -156,13 +171,22 @@ const s = StyleSheet.create({
   tableBox: {
     marginTop: 20, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.5)', borderRadius: 22,
-    paddingVertical: 14, paddingHorizontal: 34, alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center',
+    maxWidth: '88%',
   },
   tableLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12, letterSpacing: 3, fontWeight: '700' },
-  tableValue: { color: colors.white, fontSize: 46, fontWeight: 'bold', marginTop: 2 },
+  // Taille réduite + ajustement automatique : un libellé de table long
+  // (« Famille Kalala », « Table d'honneur »…) reste lisible et entier.
+  tableValue: { color: colors.white, fontSize: 30, lineHeight: 34, fontWeight: 'bold', marginTop: 4, textAlign: 'center' },
   noTable: { color: 'rgba(255,255,255,0.9)', fontSize: 15, marginTop: 18, fontStyle: 'italic' },
   badge: {
     marginTop: 16, color: colors.white, fontSize: 13, fontWeight: '600',
     backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, overflow: 'hidden',
   },
+
+  nextBtn: {
+    marginTop: 30, backgroundColor: colors.white, borderRadius: 16,
+    paddingVertical: 15, paddingHorizontal: 40, alignSelf: 'center',
+  },
+  nextBtnText: { color: colors.text, fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
 })
