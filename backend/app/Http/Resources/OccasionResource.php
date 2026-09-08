@@ -19,6 +19,7 @@ class OccasionResource extends JsonResource
             'location'          => $this->location,
             'description'       => $this->description,
             'invitation_bg_url' => $this->invitationBgUrl(),
+            'invitation_is_pdf' => $this->invitationIsPdf(),
             'rsvp_video_url'    => $this->rsvpVideoUrl(),
             'is_expired'        => $this->isExpired(),
             'guests_count'    => $this->whenCounted('guests'),

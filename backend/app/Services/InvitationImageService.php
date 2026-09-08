@@ -23,15 +23,44 @@ class InvitationImageService
     private const MAX_EDGE = 1600;      // plus grand côté (px) après redimension
     private const JPEG_QUALITY = 85;
 
-    /** Traite l'upload et stocke un JPEG normalisé. Retourne le chemin (disque public). */
+    /**
+     * Traite l'upload et retourne le chemin (disque public).
+     *  - PDF  : conservé TEL QUEL (vectoriel) — l'app y détecte les repères et
+     *           tamponne nom/table/QR à l'envoi. Ne pas rasteriser.
+     *  - Image: normalisée en JPEG (aplati, redimensionné).
+     */
     public function process(UploadedFile $file): string
     {
+        if ($this->isPdf($file)) {
+            return $this->storePdf($file);
+        }
+
         $blob = extension_loaded('imagick')
             ? $this->viaImagick($file)
             : $this->viaGd($file);
 
         $path = 'invitations/' . Str::uuid() . '.jpg';
         Storage::disk('public')->put($path, $blob);
+
+        return $path;
+    }
+
+    private function isPdf(UploadedFile $file): bool
+    {
+        return strtolower((string) $file->getClientOriginalExtension()) === 'pdf'
+            || $file->getMimeType() === 'application/pdf';
+    }
+
+    /** Stocke le PDF d'origine (après contrôle sommaire d'en-tête). */
+    private function storePdf(UploadedFile $file): string
+    {
+        $bytes = (string) file_get_contents($file->getRealPath());
+        if (! str_starts_with($bytes, '%PDF-')) {
+            throw $this->reject('Ce PDF semble invalide ou endommagé.');
+        }
+
+        $path = 'invitations/' . Str::uuid() . '.pdf';
+        Storage::disk('public')->put($path, $bytes);
 
         return $path;
     }

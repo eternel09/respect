@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "express": "^4.19.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
     "qrcode": "^1.5.3",
     "whatsapp-web.js": "^1.26.0"
   }
