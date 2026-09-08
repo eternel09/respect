@@ -161,7 +161,8 @@ class OccasionInvitationController extends Controller
             // superpose QR + nom dessus au lieu de générer le design par défaut.
             'backgroundDataUri' => $occasion->invitationBgDataUri(),
             // Lien public de confirmation de présence (RSVP + vidéo du couple).
-            'rsvpUrl' => rtrim(config('app.frontend_url'), '/') . '/confirmer/' . $guest->token,
+            // Omis tant que le site n'a pas d'URL publique (évite un lien localhost).
+            'rsvpUrl' => $this->rsvpUrl($guest),
         ];
 
         // Modèle PDF : le service détecte les repères et tamponne nom/table/QR.
@@ -196,6 +197,30 @@ class OccasionInvitationController extends Controller
             'invite_error'  => \Illuminate\Support\Str::limit($res->json('message') ?? 'Échec inconnu.', 190),
         ])->save();
         return false;
+    }
+
+    /**
+     * Lien public de confirmation (RSVP), ou null si le site n'a pas d'URL
+     * publique configurée. On n'envoie jamais un lien localhost / injoignable
+     * aux invités : la ligne « Confirmez votre présence » disparaît alors du
+     * message. Il suffit de définir FRONTEND_URL sur le vrai domaine pour la
+     * réactiver automatiquement.
+     */
+    private function rsvpUrl(Guest $guest): ?string
+    {
+        $base = rtrim((string) config('app.frontend_url'), '/');
+
+        if ($base === '' || ! preg_match('#^https?://#i', $base)) {
+            return null;
+        }
+
+        $host = strtolower((string) parse_url($base, PHP_URL_HOST));
+        if ($host === '' || in_array($host, ['localhost', '127.0.0.1', '0.0.0.0', '::1'], true)
+            || str_ends_with($host, '.local')) {
+            return null;
+        }
+
+        return $base . '/confirmer/' . $guest->token;
     }
 
     private function tableLabel(Guest $guest): ?string
