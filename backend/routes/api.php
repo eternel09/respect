@@ -147,6 +147,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         // Carton d'invitation personnalisé (image de fond, QR + nom superposés)
         Route::post('/occasions/{occasion}/invitation-bg', [OccasionController::class, 'uploadInvitation']);
         Route::delete('/occasions/{occasion}/invitation-bg', [OccasionController::class, 'removeInvitation']);
+        // Message d'accompagnement WhatsApp (ajouté à la légende automatique)
+        Route::put('/occasions/{occasion}/invitation-message', [OccasionController::class, 'updateInvitationMessage']);
         // Aperçu composé (fond + QR + nom d'un invité d'exemple) — ne renvoie qu'une image
         Route::get('/occasions/{occasion}/invitation-preview', [OccasionInvitationController::class, 'preview']);
         // Vidéo du couple (montrée sur la page de confirmation RSVP)

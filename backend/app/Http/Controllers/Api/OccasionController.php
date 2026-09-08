@@ -124,6 +124,26 @@ class OccasionController extends Controller
     }
 
     /**
+     * Message d'accompagnement WhatsApp : un mot personnalisé ajouté en tête de
+     * la légende automatique de chaque invitation. Vide = seule la légende
+     * automatique est envoyée.
+     */
+    public function updateInvitationMessage(Request $request, Occasion $occasion): JsonResponse
+    {
+        $data = $request->validate([
+            'message' => ['nullable', 'string', 'max:1000'],
+        ], ['message.max' => 'Message trop long (1000 caractères maximum).']);
+
+        $occasion->invitation_message = trim((string) ($data['message'] ?? '')) ?: null;
+        $occasion->save();
+
+        return response()->json([
+            'message'            => 'Message enregistré.',
+            'invitation_message' => $occasion->invitation_message,
+        ]);
+    }
+
+    /**
      * Téléverse la vidéo « short » du couple, montrée à l'invité sur la page de
      * confirmation (RSVP). Une vidéo par occasion. Stockée telle quelle.
      */

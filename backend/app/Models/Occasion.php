@@ -15,7 +15,7 @@ class Occasion extends Model
 
     protected $fillable = [
         'organization_id', 'created_by', 'name', 'type', 'date',
-        'starts_at', 'ends_at', 'location', 'description',
+        'starts_at', 'ends_at', 'location', 'description', 'invitation_message',
     ];
 
     protected $casts = [

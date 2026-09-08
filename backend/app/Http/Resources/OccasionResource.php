@@ -18,6 +18,7 @@ class OccasionResource extends JsonResource
             'ends_at'         => $this->ends_at?->toIso8601String(),
             'location'          => $this->location,
             'description'       => $this->description,
+            'invitation_message' => $this->invitation_message,
             'invitation_bg_url' => $this->invitationBgUrl(),
             'invitation_is_pdf' => $this->invitationIsPdf(),
             'rsvp_video_url'    => $this->rsvpVideoUrl(),
