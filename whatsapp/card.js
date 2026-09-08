@@ -285,7 +285,9 @@ async function renderCustomInvitation(puppeteer, data) {
       return { w: img?.naturalWidth || 900, h: img?.naturalHeight || 1400 }
     })
     // On plafonne le plus grand côté (poids du PNG / limite JSON du service).
-    const MAX = 1440
+    // Relevé de 1440 → 2400 : un carton haut (format story) restait flou une
+    // fois emballé en PDF. Le rendu final = ce plafond × deviceScaleFactor.
+    const MAX = 2400
     const scale = Math.min(1, MAX / Math.max(dims.w, dims.h))
     const width = Math.round(dims.w * scale)
     const height = Math.round(dims.h * scale)
