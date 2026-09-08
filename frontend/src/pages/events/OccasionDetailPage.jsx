@@ -31,6 +31,8 @@ export default function OccasionDetailPage() {
   const [modal, setModal] = useState(null) // 'table' | 'guest' | 'import'
   const [editTable, setEditTable] = useState(null) // table en cours de renommage
   const [editOccasion, setEditOccasion] = useState(null) // événement en cours d'édition
+  const [msg, setMsg] = useState('')      // message d'accompagnement WhatsApp
+  const [savingMsg, setSavingMsg] = useState(false)
   const [selected, setSelected] = useState(() => new Set()) // ids invités cochés
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
@@ -46,11 +48,21 @@ export default function OccasionDetailPage() {
 
   const load = useCallback(() => {
     api.get(`/occasions/${id}`)
-      .then(res => setData(res.data))
+      .then(res => { setData(res.data); setMsg(res.data.occasion?.invitation_message || '') })
       .catch(e => setErr(apiErrorMessage(e, 'Événement introuvable.')))
       .finally(() => setLoading(false))
   }, [id])
   useEffect(load, [load])
+
+  const saveMsg = async () => {
+    setSavingMsg(true)
+    try {
+      await api.put(`/occasions/${id}/invitation-message`, { message: msg })
+      setFlash({ ok: true, text: 'Message d\'accompagnement enregistré.' })
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Enregistrement impossible.') })
+    } finally { setSavingMsg(false) }
+  }
   // Libère l'URL blob de l'aperçu quand elle change ou au démontage.
   useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url) }, [preview?.url])
 
@@ -305,6 +317,30 @@ export default function OccasionDetailPage() {
           {o.rsvp_video_url
             ? <video src={o.rsvp_video_url} className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 bg-black flex-shrink-0" muted playsInline preload="metadata" />
             : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucune vidéo</div>}
+        </div>
+
+        {/* Message d'accompagnement WhatsApp (ajouté à la légende automatique) */}
+        <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6">
+          <h3 className="font-bold text-gray-900">Message d'accompagnement</h3>
+          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+            Un mot personnalisé ajouté <b>en plus</b> du message automatique WhatsApp (nom de l'invité, date, lieu, table, confirmation). Laissez vide pour n'envoyer que le message automatique.
+          </p>
+          <textarea
+            value={msg}
+            onChange={e => setMsg(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="Ex. Chère famille, c'est avec une immense joie que nous vous convions à célébrer notre union…"
+            className="mt-3 w-full px-3.5 py-2.5 rounded-xl text-sm bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand resize-none"
+          />
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-400 tabular-nums">{msg.length}/1000</span>
+            <button onClick={saveMsg} disabled={savingMsg}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2 disabled:opacity-60">
+              {savingMsg && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />}
+              Enregistrer le message
+            </button>
+          </div>
         </div>
         </>)}
 

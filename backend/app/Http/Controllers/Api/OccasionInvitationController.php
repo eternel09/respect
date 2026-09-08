@@ -163,6 +163,8 @@ class OccasionInvitationController extends Controller
             // Lien public de confirmation de présence (RSVP + vidéo du couple).
             // Omis tant que le site n'a pas d'URL publique (évite un lien localhost).
             'rsvpUrl' => $this->rsvpUrl($guest),
+            // Mot personnalisé de l'organisateur, ajouté à la légende automatique.
+            'customMessage' => $occasion->invitation_message,
         ];
 
         // Modèle PDF : le service détecte les repères et tamponne nom/table/QR.
