@@ -16,28 +16,45 @@ const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
 const { renderCard, renderInvitation, renderPrintPdf, warmUp } = require('./card')
-const { composeInvitationPdf, pngToPdf } = require('./invitation-pdf')
+// Chargement DÉFENSIF du module PDF : s'il est indisponible (dépendances non
+// installées, erreur de chargement…), le service doit QUAND MÊME démarrer et
+// ouvrir la session WhatsApp — l'envoi d'invitations retombe alors sur l'image
+// (comportement historique). La connexion WhatsApp ne doit jamais dépendre de
+// la fonctionnalité PDF.
+let pdfMod = null
+try {
+  pdfMod = require('./invitation-pdf')
+} catch (e) {
+  console.error('[wa] module PDF invitation indisponible (repli image) :', e.message)
+}
 
 /**
- * Construit le média WhatsApp de l'invitation, TOUJOURS en PDF.
- *  - Modèle PDF téléversé (avec repères MR/MME/COUPLE, TABLE N°, QR) → on
- *    tamponne nom + table + QR dessus (rendu vectoriel conservé).
- *  - Modèle sans repères → on renvoie le modèle tel quel (design préservé).
- *  - Sinon (carton image / design par défaut) → rendu puis emballé en PDF.
+ * Construit le média WhatsApp de l'invitation → { buffer, mime, filename }.
+ *  - Libs PDF présentes → PDF (modèle PDF tamponné nom/table/QR, ou image
+ *    emballée en PDF).
+ *  - Sinon → image PNG (repli historique) : la session reste prioritaire.
  */
-async function buildInvitationPdf(body) {
-  if (body.templatePdfBase64) {
-    const tpl = Buffer.from(body.templatePdfBase64, 'base64')
-    const qrPng = body.qrText
-      ? await QRCode.toBuffer(String(body.qrText), { type: 'png', margin: 1, width: 600 })
-      : null
-    const pdf = await composeInvitationPdf(tpl, {
-      guestName: body.guestName, tableLabel: body.tableLabel, qrPng,
-    })
-    return pdf || tpl // repères absents : on préserve le modèle
+async function buildInvitationMedia(body) {
+  if (pdfMod) {
+    try {
+      if (body.templatePdfBase64) {
+        const tpl = Buffer.from(body.templatePdfBase64, 'base64')
+        const qrPng = body.qrText
+          ? await QRCode.toBuffer(String(body.qrText), { type: 'png', margin: 1, width: 600 })
+          : null
+        const pdf = await pdfMod.composeInvitationPdf(tpl, {
+          guestName: body.guestName, tableLabel: body.tableLabel, qrPng,
+        })
+        return { buffer: pdf || tpl, mime: 'application/pdf', filename: 'invitation.pdf' }
+      }
+      const png = await renderInvitation(puppeteer, body)
+      return { buffer: await pdfMod.pngToPdf(png), mime: 'application/pdf', filename: 'invitation.pdf' }
+    } catch (e) {
+      console.error('[wa] composition PDF échouée, repli image :', e.message)
+    }
   }
   const png = await renderInvitation(puppeteer, body)
-  return await pngToPdf(png)
+  return { buffer: png, mime: 'image/png', filename: 'invitation.png' }
 }
 
 const PORT = process.env.PORT || 3001
@@ -145,8 +162,8 @@ app.post('/preview-invitation', async (req, res) => {
   try {
     // Modèle PDF → aperçu PDF composé ; sinon aperçu image (design par défaut).
     if (req.body.templatePdfBase64) {
-      const pdf = await buildInvitationPdf(req.body)
-      return res.type('pdf').send(pdf)
+      const { buffer, mime } = await buildInvitationMedia(req.body)
+      return res.type(mime === 'application/pdf' ? 'pdf' : 'png').send(buffer)
     }
     const png = await renderInvitation(puppeteer, req.body)
     res.type('png').send(png)
@@ -213,8 +230,8 @@ app.post('/send-invitation', async (req, res) => {
     const numberId = await client.getNumberId(digits)
     if (!numberId) return res.status(404).json({ message: "Ce numéro n'est pas sur WhatsApp." })
 
-    const pdf = await buildInvitationPdf(req.body)
-    const media = new MessageMedia('application/pdf', pdf.toString('base64'), 'invitation.pdf')
+    const { buffer, mime, filename } = await buildInvitationMedia(req.body)
+    const media = new MessageMedia(mime, buffer.toString('base64'), filename)
     const table = req.body.tableLabel ? `\n🍽️ Votre place : ${req.body.tableLabel}` : ''
     const rsvp = req.body.rsvpUrl ? `\n✅ Confirmez votre présence : ${req.body.rsvpUrl}` : ''
     const caption =
