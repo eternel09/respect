@@ -99,6 +99,13 @@ class OccasionInvitationController extends Controller
             'backgroundDataUri' => $occasion->invitationBgDataUri(),
         ];
 
+        // Aperçu d'un modèle PDF : composé et renvoyé en PDF (repères + valeurs).
+        if ($occasion->invitationIsPdf()) {
+            $payload['templatePdfBase64'] = $occasion->invitationTemplateBase64();
+            $payload['qrText'] = $token;
+            unset($payload['backgroundDataUri']);
+        }
+
         try {
             $res = $this->service()->timeout(60)->post('/preview-invitation', $payload);
         } catch (ConnectionException) {
@@ -109,7 +116,8 @@ class OccasionInvitationController extends Controller
             return response()->json(['message' => "Échec de la génération de l'aperçu."], 502);
         }
 
-        return response($res->body(), 200)->header('Content-Type', 'image/png');
+        $contentType = $occasion->invitationIsPdf() ? 'application/pdf' : 'image/png';
+        return response($res->body(), 200)->header('Content-Type', $contentType);
     }
 
     /** (Re)envoie l'invitation à un invité précis. */
@@ -155,6 +163,14 @@ class OccasionInvitationController extends Controller
             // Lien public de confirmation de présence (RSVP + vidéo du couple).
             'rsvpUrl' => rtrim(config('app.frontend_url'), '/') . '/confirmer/' . $guest->token,
         ];
+
+        // Modèle PDF : le service détecte les repères et tamponne nom/table/QR.
+        // Le QR encode le jeton de l'invité (identique à ce que scanne l'accueil).
+        if ($occasion->invitationIsPdf()) {
+            $payload['templatePdfBase64'] = $occasion->invitationTemplateBase64();
+            $payload['qrText'] = $guest->token;
+            unset($payload['backgroundDataUri']);
+        }
 
         try {
             $res = $this->service()->timeout(120)->post('/send-invitation', $payload);

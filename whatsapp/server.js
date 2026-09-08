@@ -16,6 +16,29 @@ const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
 const { renderCard, renderInvitation, renderPrintPdf, warmUp } = require('./card')
+const { composeInvitationPdf, pngToPdf } = require('./invitation-pdf')
+
+/**
+ * Construit le média WhatsApp de l'invitation, TOUJOURS en PDF.
+ *  - Modèle PDF téléversé (avec repères MR/MME/COUPLE, TABLE N°, QR) → on
+ *    tamponne nom + table + QR dessus (rendu vectoriel conservé).
+ *  - Modèle sans repères → on renvoie le modèle tel quel (design préservé).
+ *  - Sinon (carton image / design par défaut) → rendu puis emballé en PDF.
+ */
+async function buildInvitationPdf(body) {
+  if (body.templatePdfBase64) {
+    const tpl = Buffer.from(body.templatePdfBase64, 'base64')
+    const qrPng = body.qrText
+      ? await QRCode.toBuffer(String(body.qrText), { type: 'png', margin: 1, width: 600 })
+      : null
+    const pdf = await composeInvitationPdf(tpl, {
+      guestName: body.guestName, tableLabel: body.tableLabel, qrPng,
+    })
+    return pdf || tpl // repères absents : on préserve le modèle
+  }
+  const png = await renderInvitation(puppeteer, body)
+  return await pngToPdf(png)
+}
 
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.API_KEY || 'signiq-dev-key'
@@ -120,6 +143,11 @@ app.post('/preview-card', async (req, res) => {
 
 app.post('/preview-invitation', async (req, res) => {
   try {
+    // Modèle PDF → aperçu PDF composé ; sinon aperçu image (design par défaut).
+    if (req.body.templatePdfBase64) {
+      const pdf = await buildInvitationPdf(req.body)
+      return res.type('pdf').send(pdf)
+    }
     const png = await renderInvitation(puppeteer, req.body)
     res.type('png').send(png)
   } catch (e) {
@@ -185,8 +213,8 @@ app.post('/send-invitation', async (req, res) => {
     const numberId = await client.getNumberId(digits)
     if (!numberId) return res.status(404).json({ message: "Ce numéro n'est pas sur WhatsApp." })
 
-    const png = await renderInvitation(puppeteer, req.body)
-    const media = new MessageMedia('image/png', png.toString('base64'), 'invitation.png')
+    const pdf = await buildInvitationPdf(req.body)
+    const media = new MessageMedia('application/pdf', pdf.toString('base64'), 'invitation.pdf')
     const table = req.body.tableLabel ? `\n🍽️ Votre place : ${req.body.tableLabel}` : ''
     const rsvp = req.body.rsvpUrl ? `\n✅ Confirmez votre présence : ${req.body.rsvpUrl}` : ''
     const caption =

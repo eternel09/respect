@@ -52,6 +52,25 @@ class Occasion extends Model
             : null;
     }
 
+    /** Le carton téléversé est un modèle PDF (repères détectés à l'envoi). */
+    public function invitationIsPdf(): bool
+    {
+        return $this->invitation_bg_path !== null
+            && str_ends_with(strtolower($this->invitation_bg_path), '.pdf');
+    }
+
+    /** Contenu du modèle PDF en base64 (pour le service WhatsApp), ou null. */
+    public function invitationTemplateBase64(): ?string
+    {
+        if (! $this->invitationIsPdf()) {
+            return null;
+        }
+        $disk = Storage::disk('public');
+        return $disk->exists($this->invitation_bg_path)
+            ? base64_encode($disk->get($this->invitation_bg_path))
+            : null;
+    }
+
     /**
      * Carton d'invitation en data-URI (pour le rendu Puppeteer côté WhatsApp) —
      * même principe que le logo d'organisation. Null si aucun carton ou fichier

@@ -258,10 +258,12 @@ export default function OccasionDetailPage() {
                 Aperçu
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">JPG, PNG, WEBP, HEIC (iPhone) ou PDF — 12 Mo max. Portrait recommandé. Laissez de la place en bas (le QR et le nom s'y posent).</p>
+            <p className="text-xs text-gray-400 mt-2">JPG, PNG, WEBP, HEIC (iPhone) ou <b>PDF</b> — 12 Mo max. Un <b>PDF</b> avec les repères « MR, MME, COUPLE », « TABLE N° » et « QR » reste vectoriel et est envoyé en PDF (nom, table et QR posés automatiquement). Sinon, portrait recommandé avec de la place en bas.</p>
           </div>
           {o.invitation_bg_url
-            ? <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />
+            ? (o.invitation_is_pdf
+                ? <div className="w-24 h-32 rounded-xl ring-1 ring-black/10 bg-red-50 text-red-500 flex flex-col items-center justify-center gap-1 flex-shrink-0"><Icon name="picture_as_pdf" size={30} /><span className="text-[10px] font-semibold text-gray-500">Modèle PDF</span></div>
+                : <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />)
             : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucun carton</div>}
         </div>
 
@@ -461,7 +463,7 @@ export default function OccasionDetailPage() {
 
         {preview && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={closePreview}>
-            <div className="bg-white rounded-2xl shadow-xl p-4 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <div className={`bg-white rounded-2xl shadow-xl p-4 w-full ${o.invitation_is_pdf ? 'max-w-md' : 'max-w-sm'}`} onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-gray-900">Aperçu de l'invitation</h3>
                 <button onClick={closePreview} className="text-gray-400 hover:text-gray-700 text-lg leading-none">✕</button>
@@ -473,7 +475,12 @@ export default function OccasionDetailPage() {
                 </div>
               )}
               {preview.error && <div className="py-8 px-3 text-center text-sm text-red-600">{preview.error}</div>}
-              {preview.url && <img src={preview.url} alt="Aperçu de l'invitation" className="w-full rounded-xl ring-1 ring-black/10" />}
+              {preview.url && (o.invitation_is_pdf
+                ? <>
+                    <iframe src={preview.url} title="Aperçu de l'invitation" className="w-full h-[70vh] rounded-xl ring-1 ring-black/10 bg-gray-50" />
+                    <a href={preview.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"><Icon name="open_in_new" size={16} />Ouvrir en plein écran</a>
+                  </>
+                : <img src={preview.url} alt="Aperçu de l'invitation" className="w-full rounded-xl ring-1 ring-black/10" />)}
               {preview.url && <p className="text-xs text-gray-400 mt-3 text-center">Exemple avec un invité. Le QR et le nom réels sont posés à l'envoi.</p>}
             </div>
           </div>
