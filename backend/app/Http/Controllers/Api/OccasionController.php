@@ -88,10 +88,10 @@ class OccasionController extends Controller
         // PNG, WEBP, HEIC d'iPhone ou un PDF de designer) puis on normalise. Le
         // service est le vrai garde-fou : il convertit ou refuse avec un message.
         $request->validate([
-            'invitation' => ['required', 'file', 'max:12288'],
+            'invitation' => ['required', 'file', 'max:30720'],
         ], [
             'invitation.required' => 'Sélectionnez une image de carton.',
-            'invitation.max'      => 'Fichier trop lourd (12 Mo maximum).',
+            'invitation.max'      => 'Fichier trop lourd (30 Mo maximum).',
         ]);
 
         // Normalise en JPEG (redimensionné, aplati) ; lève une ValidationException
