@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Icon from '../../components/ui/Icon'
-import api, { apiErrorMessage } from '../../lib/axios'
+import api, { apiErrorMessage, downloadFile } from '../../lib/axios'
 import { OCC_TYPES } from './OccasionsPage'
 import { useAuth } from '../../context/AuthContext'
 
@@ -257,6 +257,13 @@ export default function OccasionDetailPage() {
           </div>
           {!isEventAgent && (
             <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => downloadFile(`/download/occasions/${id}/invited-guests`, 'invites-envoyes.pdf')}
+                disabled={!o.invited_count}
+                title={o.invited_count ? 'Télécharger la liste PDF des invités déjà contactés, groupés par table' : "Aucune invitation envoyée pour l'instant"}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-xl px-4 py-2.5 transition-colors disabled:opacity-50">
+                <Icon name="download" size={18} />
+                Liste (PDF)
+              </button>
               <button onClick={sendInvites} disabled={sending || o.invites_sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors disabled:opacity-60">
                 {sending || o.invites_sending
                   ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
