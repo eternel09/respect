@@ -96,14 +96,22 @@ export default function OccasionDetailPage() {
   }
 
   const sendInvites = async () => {
-    if (!confirm('Envoyer les invitations WhatsApp aux invités pas encore contactés ?')) return
+    if (!confirm(
+      'Envoyer les invitations WhatsApp aux invités pas encore contactés ?\n\n'
+      + 'Les envois sont espacés de quelques secondes pour protéger votre numéro '
+      + "d'un blocage WhatsApp : sur une longue liste, cela peut durer plusieurs "
+      + 'minutes. Laissez la page ouverte ; les statuts se mettent à jour ensuite.'
+    )) return
     setSending(true); setFlash(null)
     try {
       const res = await api.post(`/occasions/${id}/send-invitations`)
       setFlash({ ok: true, text: res.data.message || 'Invitations envoyées.' })
       load()
     } catch (e) {
-      setFlash({ ok: false, text: apiErrorMessage(e, "Échec de l'envoi des invitations.") })
+      // Sur une longue liste, le proxy peut couper la connexion avant la fin,
+      // mais l'envoi se poursuit côté serveur. On invite à rafraîchir.
+      setFlash({ ok: false, text: apiErrorMessage(e, "L'envoi se poursuit en arrière-plan. Rafraîchissez la page dans quelques minutes pour voir les statuts.") })
+      load()
     } finally { setSending(false) }
   }
 
