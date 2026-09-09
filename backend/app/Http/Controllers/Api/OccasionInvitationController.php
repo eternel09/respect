@@ -45,9 +45,31 @@ class OccasionInvitationController extends Controller
             ]);
         }
 
+        // Espacement anti-blocage : l'envoi se fait de façon synchrone en
+        // patientant entre chaque invité. On lève la limite de temps PHP et on
+        // poursuit même si le client se déconnecte (proxy/onglet fermé) — les
+        // statuts sont persistés au fil de l'eau, l'écran se rafraîchit après.
+        @set_time_limit(0);
+        @ignore_user_abort(true);
+
+        $delay      = (int) config('services.whatsapp.invite_delay');
+        $jitter     = (int) config('services.whatsapp.invite_jitter');
+        $batchSize  = (int) config('services.whatsapp.invite_batch_size');
+        $batchPause = (int) config('services.whatsapp.invite_batch_pause');
+
         $sent = 0; $failed = 0;
 
-        foreach ($guests as $guest) {
+        foreach ($guests->values() as $index => $guest) {
+            // On patiente AVANT chaque envoi sauf le premier : délai de base +
+            // aléa, plus une pause longue tous les $batchSize envois.
+            if ($index > 0 && $delay > 0) {
+                $wait = $delay + ($jitter > 0 ? random_int(0, $jitter) : 0);
+                if ($batchSize > 0 && $batchPause > 0 && $index % $batchSize === 0) {
+                    $wait += $batchPause;
+                }
+                sleep($wait);
+            }
+
             $result = $this->dispatch($occasion, $guest, $qr);
 
             if ($result === 'not_ready') {

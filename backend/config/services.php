@@ -45,6 +45,17 @@ return [
     'whatsapp' => [
         'url' => env('WHATSAPP_SERVICE_URL', 'http://127.0.0.1:3001'),
         'key' => env('WHATSAPP_SERVICE_KEY', 'signiq-dev-key'),
+
+        // Espacement des envois groupés d'invitations (anti-blocage WhatsApp).
+        // whatsapp-web.js pilote un compte WhatsApp normal : envoyer en rafale
+        // vers des numéros qui ne nous ont jamais écrit est le principal
+        // déclencheur de blocage. On patiente entre chaque envoi, avec une part
+        // d'aléa (un rythme régulier est plus détectable), et une pause plus
+        // longue par paquets. Mettre le délai à 0 restaure l'envoi instantané.
+        'invite_delay'       => (int) env('WHATSAPP_INVITE_DELAY', 8),        // secondes de base entre 2 envois
+        'invite_jitter'      => (int) env('WHATSAPP_INVITE_JITTER', 5),       // aléa ajouté (0..N s)
+        'invite_batch_size'  => (int) env('WHATSAPP_INVITE_BATCH_SIZE', 20),  // envois avant une pause longue (0 = jamais)
+        'invite_batch_pause' => (int) env('WHATSAPP_INVITE_BATCH_PAUSE', 60), // durée de cette pause (s)
     ],
 
     // Jeton lecture seule pour servir l'APK depuis la release GitHub privée
