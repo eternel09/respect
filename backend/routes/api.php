@@ -167,6 +167,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::delete('/guests/{guest}', [GuestController::class, 'destroy']);
         // Invitations WhatsApp (QR + carte)
         Route::post('/occasions/{occasion}/send-invitations', [OccasionInvitationController::class, 'sendAll']);
+        Route::post('/occasions/{occasion}/stop-invitations', [OccasionInvitationController::class, 'stopAll']);
         Route::post('/guests/{guest}/invite', [OccasionInvitationController::class, 'sendOne']);
     });
 });

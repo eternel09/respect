@@ -41,10 +41,15 @@ class OccasionInvitationController extends Controller
         // périmé (un envoi antérieur tué sans libérer son verrou est ainsi
         // repris automatiquement). update() renvoie le nombre de lignes
         // touchées : 0 = un autre envoi tourne déjà.
+        // Jeton propre à CETTE exécution : posé avec le verrou, il sert ensuite
+        // à vérifier, à chaque tour, qu'on possède toujours l'envoi. L'effacer
+        // (bouton « Stopper » ou reprise d'un verrou périmé) arrête la boucle.
+        $token = (string) \Illuminate\Support\Str::uuid();
+
         $stale = now()->subMinutes(self::SEND_LOCK_STALE_MINUTES);
         $acquired = Occasion::whereKey($occasion->id)
             ->where(fn ($q) => $q->whereNull('invites_sending_at')->orWhere('invites_sending_at', '<=', $stale))
-            ->update(['invites_sending_at' => now()]);
+            ->update(['invites_sending_at' => now(), 'invites_send_token' => $token]);
 
         if ($acquired === 0) {
             return response()->json([
@@ -82,7 +87,7 @@ class OccasionInvitationController extends Controller
             $batchSize  = (int) config('services.whatsapp.invite_batch_size');
             $batchPause = (int) config('services.whatsapp.invite_batch_pause');
 
-            $sent = 0; $failed = 0;
+            $sent = 0; $failed = 0; $cancelled = false;
 
             foreach ($guests->values() as $index => $guest) {
                 // On patiente AVANT chaque envoi sauf le premier : délai de base +
@@ -95,10 +100,19 @@ class OccasionInvitationController extends Controller
                     sleep($wait);
                 }
 
-                // Heartbeat : tant que l'envoi progresse, le verrou reste frais
-                // (rythme < STALE), donc jamais repris à tort ; s'il meurt, il se
-                // périme et devient reprenable.
-                Occasion::whereKey($occasion->id)->update(['invites_sending_at' => now()]);
+                // Heartbeat + vérification de possession en une seule écriture
+                // atomique : on rafraîchit le verrou UNIQUEMENT s'il porte encore
+                // notre jeton. 0 ligne touchée = l'envoi a été stoppé (bouton
+                // « Stopper » qui a effacé le jeton) ou repris (péremption) →
+                // on s'arrête proprement, juste après l'invité précédent.
+                $stillMine = Occasion::whereKey($occasion->id)
+                    ->where('invites_send_token', $token)
+                    ->update(['invites_sending_at' => now()]);
+
+                if ($stillMine === 0) {
+                    $cancelled = true;
+                    break;
+                }
 
                 $result = $this->dispatch($occasion, $guest, $qr);
 
@@ -115,6 +129,14 @@ class OccasionInvitationController extends Controller
                 $result === true ? $sent++ : $failed++;
             }
 
+            if ($cancelled) {
+                return response()->json([
+                    'sent' => $sent, 'failed' => $failed, 'skipped' => $skipped, 'cancelled' => true,
+                    'message' => "Envoi interrompu : {$sent} invitation(s) envoyée(s) avant l'arrêt."
+                        . ($failed ? " Échecs : {$failed}." : ''),
+                ]);
+            }
+
             return response()->json([
                 'sent' => $sent, 'failed' => $failed, 'skipped' => $skipped,
                 'message' => "Invitations envoyées : {$sent}."
@@ -122,11 +144,36 @@ class OccasionInvitationController extends Controller
                     . ($skipped ? " Sans téléphone : {$skipped}." : ''),
             ]);
         } finally {
-            // Libération du verrou, quelle que soit l'issue (succès, retour
-            // anticipé, exception). ignore_user_abort garantit que ce bloc
-            // s'exécute même si le client s'est déconnecté.
-            Occasion::whereKey($occasion->id)->update(['invites_sending_at' => null]);
+            // Libération du verrou, quelle que soit l'issue (succès, arrêt,
+            // retour anticipé, exception) — mais SEULEMENT s'il porte toujours
+            // notre jeton, pour ne pas effacer le verrou d'un envoi qui aurait
+            // repris le nôtre (péremption) ou d'un « Stopper » déjà passé.
+            // ignore_user_abort garantit l'exécution même client déconnecté.
+            Occasion::whereKey($occasion->id)
+                ->where('invites_send_token', $token)
+                ->update(['invites_sending_at' => null, 'invites_send_token' => null]);
         }
+    }
+
+    /**
+     * Interrompt l'envoi groupé en cours : on efface le verrou et son jeton, ce
+     * que la boucle d'envoi détecte à son prochain tour (elle s'arrête alors
+     * juste après l'invitation en cours). Sans effet s'il n'y a aucun envoi.
+     */
+    public function stopAll(Occasion $occasion, Request $request): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $cleared = Occasion::whereKey($occasion->id)
+            ->whereNotNull('invites_sending_at')
+            ->update(['invites_sending_at' => null, 'invites_send_token' => null]);
+
+        return response()->json([
+            'stopped' => $cleared > 0,
+            'message' => $cleared > 0
+                ? 'Arrêt demandé. L’envoi s’interrompt juste après l’invitation en cours.'
+                : 'Aucun envoi en cours à interrompre.',
+        ]);
     }
 
     /**

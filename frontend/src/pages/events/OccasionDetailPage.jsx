@@ -38,6 +38,7 @@ export default function OccasionDetailPage() {
   const [bulkBusy, setBulkBusy] = useState(false)
   const [err, setErr] = useState(null)
   const [sending, setSending] = useState(false)
+  const [stopping, setStopping] = useState(false)
   const [resendId, setResendId] = useState(null)
   const [flash, setFlash] = useState(null) // { ok: bool, text }
   const [bgBusy, setBgBusy] = useState(false)
@@ -127,6 +128,20 @@ export default function OccasionDetailPage() {
       setFlash({ ok: false, text: apiErrorMessage(e, "L'envoi se poursuit en arrière-plan. Rafraîchissez la page dans quelques minutes pour voir les statuts.") })
       load()
     } finally { setSending(false) }
+  }
+  // Stoppe l'envoi groupé en cours : la boucle serveur s'arrête juste après
+  // l'invitation en cours. Requête indépendante — part même pendant que la
+  // requête d'envoi (bloquante) est encore en attente dans le même onglet.
+  const stopInvites = async () => {
+    if (!confirm("Stopper l'envoi en cours ? Les invités déjà contactés restent « Envoyée » ; les autres pourront être relancés plus tard.")) return
+    setStopping(true)
+    try {
+      const res = await api.post(`/occasions/${id}/stop-invitations`)
+      setFlash({ ok: true, text: res.data.message || 'Arrêt demandé.' })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, "Impossible de stopper l'envoi.") })
+    } finally { setStopping(false) }
   }
 
   const uploadBg = async (file) => {
@@ -241,12 +256,21 @@ export default function OccasionDetailPage() {
             </div>
           </div>
           {!isEventAgent && (
-            <button onClick={sendInvites} disabled={sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors flex-shrink-0 disabled:opacity-60">
-              {sending
-                ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                : <Icon name="send" size={18} />}
-              {sending ? 'Envoi en cours…' : 'Envoyer les invitations'}
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={sendInvites} disabled={sending || o.invites_sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors disabled:opacity-60">
+                {sending || o.invites_sending
+                  ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  : <Icon name="send" size={18} />}
+                {sending || o.invites_sending ? 'Envoi en cours…' : 'Envoyer les invitations'}
+              </button>
+              {(sending || o.invites_sending) && (
+                <button onClick={stopInvites} disabled={stopping} title="Interrompre l'envoi en cours"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl px-4 py-2.5 transition-colors disabled:opacity-60">
+                  <Icon name="stop_circle" size={18} />
+                  {stopping ? 'Arrêt…' : 'Stopper'}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
