@@ -89,6 +89,20 @@ export default function OccasionDetailPage() {
       setFlash({ ok: false, text: apiErrorMessage(e, 'Suppression impossible.') })
     } finally { setBulkBusy(false) }
   }
+  // Marque les invités sélectionnés comme « déjà invités » (envoyées à la main,
+  // hors système) pour que l'envoi groupé ne les recontacte pas.
+  const bulkMarkInvited = async () => {
+    setBulkBusy(true)
+    try {
+      const ids = [...selected]
+      const res = await api.post(`/occasions/${id}/guests/bulk-mark-invited`, { ids })
+      setSelected(new Set())
+      setFlash({ ok: true, text: res.data.message })
+      load()
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Action impossible.') })
+    } finally { setBulkBusy(false) }
+  }
   const delTable = async (tb) => {
     if (!confirm(`Supprimer la table « ${tb.label} » ? Les invités assignés redeviennent « non assignés ».`)) return
     try { await api.delete(`/occasion-tables/${tb.id}`); load() }
@@ -416,7 +430,13 @@ export default function OccasionDetailPage() {
               <div className="flex items-center gap-3 px-4 py-2.5 bg-brand/5 border-b border-brand/10">
                 <span className="text-sm font-semibold text-brand">{selected.size} invité(s) sélectionné(s)</span>
                 <button onClick={() => setSelected(new Set())} className="text-sm text-gray-500 hover:text-gray-700">Tout désélectionner</button>
-                <button onClick={() => setConfirmBulk(true)} className="ml-auto inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl px-3.5 py-2">
+                <button onClick={bulkMarkInvited} disabled={bulkBusy}
+                  title="Marquer comme déjà invités (envois faits à la main) : l'envoi groupé ne les recontactera pas."
+                  className="ml-auto inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl px-3.5 py-2 disabled:opacity-60">
+                  <Icon name="done_all" size={18} />
+                  Marquer envoyée(s)
+                </button>
+                <button onClick={() => setConfirmBulk(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl px-3.5 py-2">
                   <Icon name="delete" size={18} />
                   Supprimer ({selected.size})
                 </button>

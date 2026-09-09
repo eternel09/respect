@@ -134,6 +134,37 @@ class GuestController extends Controller
         ]);
     }
 
+    /**
+     * Marque en masse des invités comme « déjà invités » (statut 'sent'), ou
+     * les remet « en attente » (status=pending). Sert quand des invitations ont
+     * été envoyées à la main, hors système : ainsi l'envoi groupé ne les
+     * recontacte pas. Ne modifie que les invités de CETTE occasion.
+     */
+    public function bulkMarkInvited(Request $request, Occasion $occasion): JsonResponse
+    {
+        $data = $request->validate([
+            'ids'    => ['required', 'array', 'min:1', 'max:2000'],
+            'ids.*'  => ['integer'],
+            'status' => ['nullable', 'in:sent,pending'],
+        ]);
+
+        $markSent = ($data['status'] ?? 'sent') === 'sent';
+
+        $attrs = $markSent
+            ? ['invite_status' => 'sent', 'invited_at' => now(), 'invite_error' => null]
+            : ['invite_status' => 'pending', 'invited_at' => null, 'invite_error' => null];
+
+        // Borné à l'occasion : des ids étrangers sont simplement ignorés.
+        $count = $occasion->guests()->whereIn('id', $data['ids'])->update($attrs);
+
+        return response()->json([
+            'message' => $markSent
+                ? $count . ' invité(s) marqué(s) comme déjà invité(s).'
+                : $count . ' invité(s) remis en attente.',
+            'count'   => $count,
+        ]);
+    }
+
     private function rules(Occasion $occasion, bool $partial = false): array
     {
         $req = $partial ? 'sometimes' : 'required';

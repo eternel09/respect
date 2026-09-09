@@ -162,6 +162,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::post('/occasions/{occasion}/guests', [GuestController::class, 'store']);
         Route::post('/occasions/{occasion}/guests/bulk', [GuestController::class, 'bulkStore']);
         Route::post('/occasions/{occasion}/guests/bulk-delete', [GuestController::class, 'bulkDestroy']);
+        Route::post('/occasions/{occasion}/guests/bulk-mark-invited', [GuestController::class, 'bulkMarkInvited']);
         Route::put('/guests/{guest}', [GuestController::class, 'update']);
         Route::delete('/guests/{guest}', [GuestController::class, 'destroy']);
         // Invitations WhatsApp (QR + carte)

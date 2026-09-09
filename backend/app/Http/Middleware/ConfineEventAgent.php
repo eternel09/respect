@@ -31,6 +31,7 @@ class ConfineEventAgent
         'api/occasions/{occasion}/guests',
         'api/occasions/{occasion}/guests/bulk',
         'api/occasions/{occasion}/guests/bulk-delete',
+        'api/occasions/{occasion}/guests/bulk-mark-invited',
         'api/guests/{guest}',
     ];
 
