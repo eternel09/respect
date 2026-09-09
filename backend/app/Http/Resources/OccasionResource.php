@@ -22,6 +22,10 @@ class OccasionResource extends JsonResource
             'invitation_bg_url' => $this->invitationBgUrl(),
             'invitation_is_pdf' => $this->invitationIsPdf(),
             'rsvp_video_url'    => $this->rsvpVideoUrl(),
+            // Un envoi groupé est-il en cours ? (verrou frais, non périmé) —
+            // permet d'afficher le bouton « Stopper » même après rechargement.
+            'invites_sending'   => $this->invites_sending_at !== null
+                && $this->invites_sending_at->greaterThan(now()->subMinutes(10)),
             'is_expired'        => $this->isExpired(),
             'guests_count'    => $this->whenCounted('guests'),
             'tables_count'    => $this->whenCounted('tables'),

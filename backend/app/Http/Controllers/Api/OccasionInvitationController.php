@@ -23,73 +23,156 @@ class OccasionInvitationController extends Controller
         'autre'        => 'Invitation',
     ];
 
+    /** Un envoi dont le heartbeat s'est tu depuis ce délai est réputé mort (process tué) et repris. */
+    private const SEND_LOCK_STALE_MINUTES = 10;
+
     /** Envoie l'invitation à tous les invités joignables (avec téléphone). */
     public function sendAll(Occasion $occasion, Request $request, QrCodeService $qr): JsonResponse
     {
         abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
 
-        // Par défaut on (re)cible les invités pas encore envoyés ; ?all=1 force tout le monde.
-        $guests = $occasion->guests()->with('table')
-            ->whereNotNull('phone')
-            ->when(! $request->boolean('all'), fn ($q) => $q->where('invite_status', '!=', 'sent'))
-            ->get();
+        // Verrou anti-doublon : un seul envoi groupé à la fois par événement.
+        // Sans lui, deux exécutions parallèles (re-clic, rechargement, second
+        // onglet, relance après un timeout du proxy) voient les mêmes invités
+        // encore « en attente » — pas encore atteints — et les contactent tous
+        // les deux (invitations envoyées deux fois). Le risque explose avec
+        // l'espacement, qui fait durer un envoi plusieurs minutes.
+        // Réservation atomique : on ne pose l'horodatage que s'il est absent ou
+        // périmé (un envoi antérieur tué sans libérer son verrou est ainsi
+        // repris automatiquement). update() renvoie le nombre de lignes
+        // touchées : 0 = un autre envoi tourne déjà.
+        // Jeton propre à CETTE exécution : posé avec le verrou, il sert ensuite
+        // à vérifier, à chaque tour, qu'on possède toujours l'envoi. L'effacer
+        // (bouton « Stopper » ou reprise d'un verrou périmé) arrête la boucle.
+        $token = (string) \Illuminate\Support\Str::uuid();
 
-        $skipped = $occasion->guests()->whereNull('phone')->count();
+        $stale = now()->subMinutes(self::SEND_LOCK_STALE_MINUTES);
+        $acquired = Occasion::whereKey($occasion->id)
+            ->where(fn ($q) => $q->whereNull('invites_sending_at')->orWhere('invites_sending_at', '<=', $stale))
+            ->update(['invites_sending_at' => now(), 'invites_send_token' => $token]);
 
-        if ($guests->isEmpty()) {
+        if ($acquired === 0) {
             return response()->json([
-                'sent' => 0, 'failed' => 0, 'skipped' => $skipped,
-                'message' => $skipped > 0
-                    ? "Aucun invité à contacter — {$skipped} sans numéro de téléphone."
-                    : 'Toutes les invitations ont déjà été envoyées.',
-            ]);
+                'message' => 'Un envoi est déjà en cours pour cet événement. Patientez qu’il se termine avant de relancer.',
+            ], 409);
         }
 
-        // Espacement anti-blocage : l'envoi se fait de façon synchrone en
-        // patientant entre chaque invité. On lève la limite de temps PHP et on
-        // poursuit même si le client se déconnecte (proxy/onglet fermé) — les
-        // statuts sont persistés au fil de l'eau, l'écran se rafraîchit après.
-        @set_time_limit(0);
-        @ignore_user_abort(true);
+        try {
+            // Par défaut on (re)cible les invités pas encore envoyés ; ?all=1 force tout le monde.
+            $guests = $occasion->guests()->with('table')
+                ->whereNotNull('phone')
+                ->when(! $request->boolean('all'), fn ($q) => $q->where('invite_status', '!=', 'sent'))
+                ->get();
 
-        $delay      = (int) config('services.whatsapp.invite_delay');
-        $jitter     = (int) config('services.whatsapp.invite_jitter');
-        $batchSize  = (int) config('services.whatsapp.invite_batch_size');
-        $batchPause = (int) config('services.whatsapp.invite_batch_pause');
+            $skipped = $occasion->guests()->whereNull('phone')->count();
 
-        $sent = 0; $failed = 0;
-
-        foreach ($guests->values() as $index => $guest) {
-            // On patiente AVANT chaque envoi sauf le premier : délai de base +
-            // aléa, plus une pause longue tous les $batchSize envois.
-            if ($index > 0 && $delay > 0) {
-                $wait = $delay + ($jitter > 0 ? random_int(0, $jitter) : 0);
-                if ($batchSize > 0 && $batchPause > 0 && $index % $batchSize === 0) {
-                    $wait += $batchPause;
-                }
-                sleep($wait);
-            }
-
-            $result = $this->dispatch($occasion, $guest, $qr);
-
-            if ($result === 'not_ready') {
-                // WhatsApp non connecté : on arrête tout de suite sans marquer d'échec.
+            if ($guests->isEmpty()) {
                 return response()->json([
-                    'message' => 'WhatsApp n’est pas connecté. Liez le compte depuis les Réglages, puis réessayez.',
-                ], 409);
-            }
-            if ($result === 'offline') {
-                return response()->json(['message' => 'Service WhatsApp injoignable.'], 503);
+                    'sent' => 0, 'failed' => 0, 'skipped' => $skipped,
+                    'message' => $skipped > 0
+                        ? "Aucun invité à contacter — {$skipped} sans numéro de téléphone."
+                        : 'Toutes les invitations ont déjà été envoyées.',
+                ]);
             }
 
-            $result === true ? $sent++ : $failed++;
+            // Espacement anti-blocage : l'envoi se fait de façon synchrone en
+            // patientant entre chaque invité. On lève la limite de temps PHP et on
+            // poursuit même si le client se déconnecte (proxy/onglet fermé) — les
+            // statuts sont persistés au fil de l'eau, l'écran se rafraîchit après.
+            @set_time_limit(0);
+            @ignore_user_abort(true);
+
+            $delay      = (int) config('services.whatsapp.invite_delay');
+            $jitter     = (int) config('services.whatsapp.invite_jitter');
+            $batchSize  = (int) config('services.whatsapp.invite_batch_size');
+            $batchPause = (int) config('services.whatsapp.invite_batch_pause');
+
+            $sent = 0; $failed = 0; $cancelled = false;
+
+            foreach ($guests->values() as $index => $guest) {
+                // On patiente AVANT chaque envoi sauf le premier : délai de base +
+                // aléa, plus une pause longue tous les $batchSize envois.
+                if ($index > 0 && $delay > 0) {
+                    $wait = $delay + ($jitter > 0 ? random_int(0, $jitter) : 0);
+                    if ($batchSize > 0 && $batchPause > 0 && $index % $batchSize === 0) {
+                        $wait += $batchPause;
+                    }
+                    sleep($wait);
+                }
+
+                // Heartbeat + vérification de possession en une seule écriture
+                // atomique : on rafraîchit le verrou UNIQUEMENT s'il porte encore
+                // notre jeton. 0 ligne touchée = l'envoi a été stoppé (bouton
+                // « Stopper » qui a effacé le jeton) ou repris (péremption) →
+                // on s'arrête proprement, juste après l'invité précédent.
+                $stillMine = Occasion::whereKey($occasion->id)
+                    ->where('invites_send_token', $token)
+                    ->update(['invites_sending_at' => now()]);
+
+                if ($stillMine === 0) {
+                    $cancelled = true;
+                    break;
+                }
+
+                $result = $this->dispatch($occasion, $guest, $qr);
+
+                if ($result === 'not_ready') {
+                    // WhatsApp non connecté : on arrête tout de suite sans marquer d'échec.
+                    return response()->json([
+                        'message' => 'WhatsApp n’est pas connecté. Liez le compte depuis les Réglages, puis réessayez.',
+                    ], 409);
+                }
+                if ($result === 'offline') {
+                    return response()->json(['message' => 'Service WhatsApp injoignable.'], 503);
+                }
+
+                $result === true ? $sent++ : $failed++;
+            }
+
+            if ($cancelled) {
+                return response()->json([
+                    'sent' => $sent, 'failed' => $failed, 'skipped' => $skipped, 'cancelled' => true,
+                    'message' => "Envoi interrompu : {$sent} invitation(s) envoyée(s) avant l'arrêt."
+                        . ($failed ? " Échecs : {$failed}." : ''),
+                ]);
+            }
+
+            return response()->json([
+                'sent' => $sent, 'failed' => $failed, 'skipped' => $skipped,
+                'message' => "Invitations envoyées : {$sent}."
+                    . ($failed ? " Échecs : {$failed}." : '')
+                    . ($skipped ? " Sans téléphone : {$skipped}." : ''),
+            ]);
+        } finally {
+            // Libération du verrou, quelle que soit l'issue (succès, arrêt,
+            // retour anticipé, exception) — mais SEULEMENT s'il porte toujours
+            // notre jeton, pour ne pas effacer le verrou d'un envoi qui aurait
+            // repris le nôtre (péremption) ou d'un « Stopper » déjà passé.
+            // ignore_user_abort garantit l'exécution même client déconnecté.
+            Occasion::whereKey($occasion->id)
+                ->where('invites_send_token', $token)
+                ->update(['invites_sending_at' => null, 'invites_send_token' => null]);
         }
+    }
+
+    /**
+     * Interrompt l'envoi groupé en cours : on efface le verrou et son jeton, ce
+     * que la boucle d'envoi détecte à son prochain tour (elle s'arrête alors
+     * juste après l'invitation en cours). Sans effet s'il n'y a aucun envoi.
+     */
+    public function stopAll(Occasion $occasion, Request $request): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $cleared = Occasion::whereKey($occasion->id)
+            ->whereNotNull('invites_sending_at')
+            ->update(['invites_sending_at' => null, 'invites_send_token' => null]);
 
         return response()->json([
-            'sent' => $sent, 'failed' => $failed, 'skipped' => $skipped,
-            'message' => "Invitations envoyées : {$sent}."
-                . ($failed ? " Échecs : {$failed}." : '')
-                . ($skipped ? " Sans téléphone : {$skipped}." : ''),
+            'stopped' => $cleared > 0,
+            'message' => $cleared > 0
+                ? 'Arrêt demandé. L’envoi s’interrompt juste après l’invitation en cours.'
+                : 'Aucun envoi en cours à interrompre.',
         ]);
     }
 

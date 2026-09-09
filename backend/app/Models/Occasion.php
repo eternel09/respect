@@ -19,9 +19,10 @@ class Occasion extends Model
     ];
 
     protected $casts = [
-        'date'      => 'date',
-        'starts_at' => 'datetime',
-        'ends_at'   => 'datetime',
+        'date'               => 'date',
+        'starts_at'          => 'datetime',
+        'ends_at'            => 'datetime',
+        'invites_sending_at' => 'datetime',
     ];
 
     public function organization()
