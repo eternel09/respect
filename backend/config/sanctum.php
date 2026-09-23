@@ -54,6 +54,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Délai d'inactivité (minutes)
+    |--------------------------------------------------------------------------
+    |
+    | Un token non utilisé depuis plus longtemps que cette durée est refusé :
+    | l'utilisateur doit se reconnecter. Contrairement à `expiration` (durée de
+    | vie absolue), c'est un délai « glissant » recalculé à chaque requête.
+    | 0 = désactivé.
+    |
+    */
+
+    'idle_timeout' => (int) env('SANCTUM_IDLE_TIMEOUT', 1),
+
+    /*
+    |--------------------------------------------------------------------------
     | Token Prefix
     |--------------------------------------------------------------------------
     |
