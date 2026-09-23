@@ -33,6 +33,7 @@ class TicketPdfService
             'order'    => $order,
             'occasion' => $order->occasion,
             'tickets'  => $tickets,
+            'design'   => $order->occasion->ticketDesignDataUri(), // null = design standard
         ])->output();
     }
 

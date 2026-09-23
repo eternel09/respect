@@ -116,6 +116,31 @@ class Occasion extends Model
             : null;
     }
 
+    /** URL publique du visuel de billet personnalisé, ou null. */
+    public function ticketDesignUrl(): ?string
+    {
+        return $this->ticket_design_path
+            ? Storage::disk('public')->url($this->ticket_design_path)
+            : null;
+    }
+
+    /** Visuel de billet en data-URI (pour l'incrustation dans le PDF dompdf), ou null. */
+    public function ticketDesignDataUri(): ?string
+    {
+        if (! $this->ticket_design_path) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+        if (! $disk->exists($this->ticket_design_path)) {
+            return null;
+        }
+
+        $mime = $disk->mimeType($this->ticket_design_path) ?: 'image/jpeg';
+
+        return 'data:' . $mime . ';base64,' . base64_encode($disk->get($this->ticket_design_path));
+    }
+
     /** Passé (la fin, sinon la date, est dépassée) → plus scannable. */
     public function isExpired(): bool
     {
