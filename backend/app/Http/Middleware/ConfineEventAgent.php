@@ -26,6 +26,7 @@ class ConfineEventAgent
         'api/occasion-scan/occasions',
         'api/occasion-scan/manifest',
         'api/occasion-scan',
+        'api/occasion-scan/ticket',
         // Gestion des invités (secrétaire) de l'occasion
         'api/occasions/{occasion}',
         'api/occasions/{occasion}/guests',

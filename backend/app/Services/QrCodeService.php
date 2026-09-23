@@ -46,4 +46,10 @@ class QrCodeService
     {
         return $this->member($token);
     }
+
+    /** QR d'un e-billet (SVG base64) — encode le jeton opaque scanné à l'entrée. */
+    public function ticket(string $token): string
+    {
+        return $this->member($token);
+    }
 }
