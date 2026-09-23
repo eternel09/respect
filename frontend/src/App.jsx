@@ -18,7 +18,10 @@ import QrCodesPage from './pages/admin/QrCodesPage'
 import ReportsPage from './pages/admin/ReportsPage'
 import OccasionsPage from './pages/events/OccasionsPage'
 import OccasionDetailPage from './pages/events/OccasionDetailPage'
+import OccasionTicketingPage from './pages/events/OccasionTicketingPage'
 import RsvpPage from './pages/events/RsvpPage'
+import BilletteriePage from './pages/events/BilletteriePage'
+import BilletterieOrderPage from './pages/events/BilletterieOrderPage'
 import ModulesPage from './pages/admin/ModulesPage'
 import NetworkPage from './pages/admin/NetworkPage'
 import { homeForModules } from './lib/modules'
@@ -50,6 +53,9 @@ export default function App() {
           <Route path="/rejoindre/:token" element={<RegisterNetworkPage />} />
           {/* Confirmation de présence d'un invité (RSVP public + vidéo du couple) */}
           <Route path="/confirmer/:token" element={<RsvpPage />} />
+          {/* Billetterie publique : vitrine d'achat + suivi de commande (par jeton) */}
+          <Route path="/billetterie/:id" element={<BilletteriePage />} />
+          <Route path="/billetterie/commande/:token" element={<BilletterieOrderPage />} />
 
           {/* Plateforme (super-admin) */}
           <Route path="/admin/organizations" element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
@@ -71,6 +77,7 @@ export default function App() {
           {/* Module « Invitations & événements » (URL distincte /events) */}
           <Route path="/events"     element={<ProtectedRoute module="occasions"><OccasionsPage /></ProtectedRoute>} />
           <Route path="/events/:id" element={<ProtectedRoute module="occasions"><OccasionDetailPage /></ProtectedRoute>} />
+          <Route path="/events/:id/billetterie" element={<ProtectedRoute module="occasions"><OccasionTicketingPage /></ProtectedRoute>} />
 
           {/* Fallbacks */}
           <Route path="/admin" element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />
