@@ -257,6 +257,12 @@ export default function OccasionDetailPage() {
           </div>
           {!isEventAgent && (
             <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => navigate(`/events/${id}/billetterie`)}
+                title="Gérer la billetterie en ligne (catégories, ventes)"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-xl px-4 py-2.5 transition-colors">
+                <Icon name="confirmation_number" size={18} />
+                Billetterie
+              </button>
               <button onClick={() => downloadFile(`/download/occasions/${id}/invited-guests`, 'invites-envoyes.pdf')}
                 disabled={!o.invited_count}
                 title={o.invited_count ? 'Télécharger la liste PDF des invités déjà contactés, groupés par table' : "Aucune invitation envoyée pour l'instant"}

@@ -251,6 +251,35 @@ app.post('/send-invitation', async (req, res) => {
   }
 })
 
+app.post('/send-document', async (req, res) => {
+  if (state !== 'ready') {
+    return res.status(409).json({ message: 'WhatsApp non connecté. Liez le compte depuis les Réglages.' })
+  }
+
+  const digits = String(req.body.phone || '').replace(/\D/g, '')
+  if (digits.length < 9) return res.status(422).json({ message: 'Numéro de téléphone invalide.' })
+  if (!req.body.base64) return res.status(422).json({ message: 'Document manquant.' })
+
+  try {
+    const numberId = await client.getNumberId(digits)
+    if (!numberId) return res.status(404).json({ message: "Ce numéro n'est pas sur WhatsApp." })
+
+    const media = new MessageMedia(
+      req.body.mime || 'application/pdf',
+      String(req.body.base64),
+      req.body.filename || 'document.pdf',
+    )
+    const caption = String(req.body.caption || '')
+
+    await client.sendMessage(numberId._serialized, media, { caption })
+    console.log(`[wa] document envoyé → ${digits}`)
+    res.json({ sent: true })
+  } catch (e) {
+    console.error('[wa] document:', e.message)
+    res.status(500).json({ message: "Échec de l'envoi WhatsApp." })
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`[wa] service Signiq WhatsApp sur http://127.0.0.1:${PORT}`)
   console.log('[wa] connexion à WhatsApp Web en cours (15-40 s la première fois)…')

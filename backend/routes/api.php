@@ -61,6 +61,12 @@ Route::post('/register/network/{token}', [NetworkJoinController::class, 'store']
 Route::get('/rsvp/{token}', [RsvpController::class, 'show'])->middleware('throttle:60,1');
 Route::post('/rsvp/{token}', [RsvpController::class, 'store'])->middleware('throttle:20,1');
 
+// Billetterie publique — vitrine, achat, suivi et e-billets (par jeton)
+Route::get('/public/occasions/{occasion}/tickets', [\App\Http\Controllers\Api\TicketOrderController::class, 'storefront'])->middleware('throttle:60,1');
+Route::post('/public/occasions/{occasion}/orders', [\App\Http\Controllers\Api\TicketOrderController::class, 'storePublic'])->middleware('throttle:20,1');
+Route::get('/public/orders/{token}', [\App\Http\Controllers\Api\TicketOrderController::class, 'showPublic'])->middleware('throttle:60,1');
+Route::get('/download/orders/{token}/tickets', [\App\Http\Controllers\Api\TicketExportController::class, 'orderTickets']);
+
 // Protected routes (authenticated)
 // ConfineEventAgent confine les « agents d'événement » (users.occasion_id défini)
 // à leur seul événement ; sans effet sur les utilisateurs d'organisation.
@@ -89,6 +95,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::get('/occasion-scan/occasions', [OccasionScanController::class, 'occasions']);
         Route::get('/occasion-scan/manifest', [OccasionScanController::class, 'manifest']);
         Route::post('/occasion-scan', [OccasionScanController::class, 'scan']);
+        // Contrôle des e-billets à l'entrée
+        Route::post('/occasion-scan/ticket', [\App\Http\Controllers\Api\TicketCheckinController::class, 'scan']);
     });
 
     // Paramètres de l'organisation (administrateur de l'org)
@@ -172,5 +180,16 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::post('/occasions/{occasion}/send-invitations', [OccasionInvitationController::class, 'sendAll']);
         Route::post('/occasions/{occasion}/stop-invitations', [OccasionInvitationController::class, 'stopAll']);
         Route::post('/guests/{guest}/invite', [OccasionInvitationController::class, 'sendOne']);
+
+        // ── Billetterie en ligne (organisateur) ──────────────────────────
+        Route::get('/occasions/{occasion}/ticket-types', [\App\Http\Controllers\Api\TicketTypeController::class, 'index']);
+        Route::post('/occasions/{occasion}/ticket-types', [\App\Http\Controllers\Api\TicketTypeController::class, 'store']);
+        Route::put('/ticket-types/{ticketType}', [\App\Http\Controllers\Api\TicketTypeController::class, 'update']);
+        Route::delete('/ticket-types/{ticketType}', [\App\Http\Controllers\Api\TicketTypeController::class, 'destroy']);
+        Route::get('/occasions/{occasion}/orders', [\App\Http\Controllers\Api\TicketOrderController::class, 'index']);
+        Route::post('/occasions/{occasion}/orders/manual', [\App\Http\Controllers\Api\TicketOrderController::class, 'storeManual']);
+        Route::get('/ticket-orders/{ticketOrder}', [\App\Http\Controllers\Api\TicketOrderController::class, 'show']);
+        Route::post('/ticket-orders/{ticketOrder}/mark-paid', [\App\Http\Controllers\Api\TicketOrderController::class, 'markPaid']);
+        Route::post('/ticket-orders/{ticketOrder}/cancel', [\App\Http\Controllers\Api\TicketOrderController::class, 'cancel']);
     });
 });

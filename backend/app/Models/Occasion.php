@@ -45,6 +45,21 @@ class Occasion extends Model
         return $this->hasMany(Guest::class);
     }
 
+    public function ticketTypes()
+    {
+        return $this->hasMany(TicketType::class);
+    }
+
+    public function ticketOrders()
+    {
+        return $this->hasMany(TicketOrder::class);
+    }
+
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
     /** URL publique du carton d'invitation personnalisé (ou null). */
     public function invitationBgUrl(): ?string
     {
