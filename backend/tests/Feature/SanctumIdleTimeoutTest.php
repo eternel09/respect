@@ -33,9 +33,9 @@ class SanctumIdleTimeoutTest extends TestCase
         $user = $this->admin();
         $token = $user->createToken('t')->plainTextToken;
 
-        // Simule une inactivité au-delà du délai (défaut 1 min) : dernière
-        // utilisation il y a 5 min.
-        PersonalAccessToken::query()->update(['last_used_at' => now()->subMinutes(5)]);
+        // Simule une inactivité au-delà du délai (défaut 10 min) : dernière
+        // utilisation il y a 15 min.
+        PersonalAccessToken::query()->update(['last_used_at' => now()->subMinutes(15)]);
 
         // Requête refusée → le front redirige vers la connexion.
         $this->withToken($token)->getJson('/api/admin/me')->assertUnauthorized();

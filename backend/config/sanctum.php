@@ -64,7 +64,7 @@ return [
     |
     */
 
-    'idle_timeout' => (int) env('SANCTUM_IDLE_TIMEOUT', 1),
+    'idle_timeout' => (int) env('SANCTUM_IDLE_TIMEOUT', 10),
 
     /*
     |--------------------------------------------------------------------------
