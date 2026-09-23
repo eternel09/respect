@@ -16,11 +16,13 @@ class TicketOrder extends Model
         'buyer_name', 'buyer_email', 'buyer_phone',
         'status', 'currency', 'total_cents',
         'payment_provider', 'payment_reference', 'paid_at', 'created_by',
+        'tickets_delivered_at',
     ];
 
     protected $casts = [
-        'total_cents' => 'integer',
-        'paid_at'     => 'datetime',
+        'total_cents'          => 'integer',
+        'paid_at'              => 'datetime',
+        'tickets_delivered_at' => 'datetime',
     ];
 
     protected static function booted(): void

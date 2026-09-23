@@ -10,6 +10,43 @@
 #   signiq.saas.cd  ->  service "frontend"  port 80
 # Le Nginx du frontend sert la SPA et reverse-proxy /api -> backend:8080
 # (même origine, pas de CORS, pas de sous-domaine api). Voir frontend/nginx.conf.
+#
+# Montée en charge SANS toucher au code (12-factor) : les leviers ci-dessous se
+# règlent par variables d'environnement Dokploy.
+#   - Passer en Redis (cache/sessions/queue partagés → plusieurs répliques) :
+#       CACHE_STORE=redis  SESSION_DRIVER=redis  QUEUE_CONNECTION=redis
+#       REDIS_HOST=<hôte>  REDIS_PORT=6379  REDIS_PASSWORD=<...>
+#   - Traitement asynchrone (envois, e-billets…) : QUEUE_CONNECTION=redis puis
+#       activer le service worker :  docker compose --profile worker up -d
+#   Défauts = comportement mono-instance actuel (file / sync).
+
+# Environnement backend partagé (backend + worker) — évite toute dérive.
+x-backend-env: &backend-env
+  APP_NAME: Signiq
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY}
+  APP_URL: https://signiq.saas.cd
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: error
+  DB_CONNECTION: pgsql
+  DB_HOST: prodevipga.saas.cd
+  DB_PORT: "5431"
+  DB_DATABASE: respect
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+  SESSION_DRIVER: ${SESSION_DRIVER:-file}
+  CACHE_STORE: ${CACHE_STORE:-file}
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-sync}
+  REDIS_HOST: ${REDIS_HOST:-}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+  CORS_ALLOWED_ORIGINS: https://signiq.saas.cd
+  WHATSAPP_SERVICE_URL: http://whatsapp:3001
+  WHATSAPP_SERVICE_KEY: ${WHATSAPP_SERVICE_KEY}
+  PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-manual}
+  # Jeton GitHub lecture seule (Contents: read) pour distribuer l'APK
+  GITHUB_RELEASES_TOKEN: ${GITHUB_RELEASES_TOKEN:-}
 
 services:
   backend:
@@ -17,31 +54,28 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
-      APP_NAME: Signiq
-      APP_ENV: production
-      APP_DEBUG: "false"
-      APP_KEY: ${APP_KEY}
-      APP_URL: https://signiq.saas.cd
-      LOG_CHANNEL: stderr
-      LOG_LEVEL: error
-      DB_CONNECTION: pgsql
-      DB_HOST: prodevipga.saas.cd
-      DB_PORT: "5431"
-      DB_DATABASE: respect
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      SESSION_DRIVER: file
-      CACHE_STORE: file
-      QUEUE_CONNECTION: sync
-      CORS_ALLOWED_ORIGINS: https://signiq.saas.cd
-      WHATSAPP_SERVICE_URL: http://whatsapp:3001
-      WHATSAPP_SERVICE_KEY: ${WHATSAPP_SERVICE_KEY}
-      # Jeton GitHub lecture seule (Contents: read) pour distribuer l'APK
-      GITHUB_RELEASES_TOKEN: ${GITHUB_RELEASES_TOKEN:-}
+      <<: *backend-env
     volumes:
       # Fichiers uploadés (logos d'organisation…) — DOIVENT survivre à la
       # recréation du conteneur à chaque déploiement. Sans ce volume, le logo
       # enregistré via Réglages disparaît et la carte retombe sur le logo Signiq.
+      - backend_public:/var/www/html/storage/app/public
+    networks: [dokploy-network, internal]
+
+  # Worker de file d'attente — inactif par défaut (profil). Utile uniquement
+  # avec QUEUE_CONNECTION=redis/database : traite les jobs (envoi d'e-billets,
+  # d'invitations…) hors des requêtes web. Activer : `--profile worker`.
+  # AUTORUN désactivé : seul le backend applique les migrations au démarrage.
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    profiles: ["worker"]
+    command: ["php", "artisan", "queue:work", "--tries=3", "--max-time=3600", "--sleep=3"]
+    environment:
+      <<: *backend-env
+      AUTORUN_ENABLED: "false"
+    volumes:
       - backend_public:/var/www/html/storage/app/public
     networks: [dokploy-network, internal]
 

@@ -9,6 +9,7 @@ use App\Models\TicketOrder;
 use App\Models\TicketType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /** Billetterie : catégories, achat public, quota, paiement, e-billets, scan. */
@@ -183,5 +184,41 @@ class TicketingTest extends TestCase
         $this->withToken($otherAdmin->createToken('t')->plainTextToken)
             ->putJson("/api/ticket-types/{$type->id}", ['name' => 'Pirate'])
             ->assertNotFound();
+    }
+
+    public function test_paid_order_delivers_etickets_on_whatsapp(): void
+    {
+        Http::fake(['*' => Http::response(['sent' => true], 200)]);
+
+        $type = $this->type();
+        $order = app(\App\Services\TicketOrderService::class)->create(
+            $this->occasion,
+            ['buyer_name' => 'Jean', 'buyer_phone' => '+243810000009'],
+            [['ticket_type_id' => $type->id, 'quantity' => 2]]
+        );
+
+        app(\App\Services\TicketOrderService::class)->markPaid($order);
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/send-document')
+            && $r['phone'] === '+243810000009' && ! empty($r['base64']));
+        $this->assertNotNull($order->fresh()->tickets_delivered_at);
+    }
+
+    public function test_delivery_is_idempotent_and_skipped_without_phone(): void
+    {
+        Http::fake(['*' => Http::response(['sent' => true], 200)]);
+        $svc = app(\App\Services\TicketOrderService::class);
+
+        // Sans téléphone → aucune livraison.
+        $noPhone = $svc->create($this->occasion, ['buyer_name' => 'Sans tel'], [['ticket_type_id' => $this->type()->id, 'quantity' => 1]]);
+        $svc->markPaid($noPhone);
+        Http::assertNothingSent();
+        $this->assertNull($noPhone->fresh()->tickets_delivered_at);
+
+        // Avec téléphone → une seule livraison même en re-marquant payé.
+        $order = $svc->create($this->occasion, ['buyer_name' => 'Jean', 'buyer_phone' => '+243810000009'], [['ticket_type_id' => $this->type()->id, 'quantity' => 1]]);
+        $svc->markPaid($order);
+        $svc->markPaid($order->fresh());
+        Http::assertSentCount(1);
     }
 }

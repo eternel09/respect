@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\TicketOrder;
-use App\Services\QrCodeService;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\TicketPdfService;
 use Illuminate\Http\Response;
 
 /**
@@ -14,26 +13,15 @@ use Illuminate\Http\Response;
  */
 class TicketExportController extends Controller
 {
-    public function orderTickets(string $token, QrCodeService $qr): Response
+    public function orderTickets(string $token, TicketPdfService $pdf): Response
     {
-        $order = TicketOrder::where('token', $token)->with('tickets', 'occasion.organization')->first();
+        $order = TicketOrder::where('token', $token)->first();
         abort_unless($order, 404, 'Commande introuvable.');
         abort_unless($order->status === 'paid', 403, 'Les billets seront disponibles une fois le paiement confirmé.');
 
-        $tickets = $order->tickets->where('status', '!=', 'void')->values()
-            ->map(fn ($t) => [
-                'type'      => $t->type_name,
-                'holder'    => $t->holder_name,
-                'reference' => $order->reference,
-                'qr'        => 'data:image/svg+xml;base64,' . $qr->ticket($t->token),
-            ]);
-
-        $document = Pdf::loadView('pdf.tickets', [
-            'order'    => $order,
-            'occasion' => $order->occasion,
-            'tickets'  => $tickets,
+        return response($pdf->render($order), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $pdf->filename($order) . '"',
         ]);
-
-        return $document->download("billets-{$order->reference}.pdf");
     }
 }

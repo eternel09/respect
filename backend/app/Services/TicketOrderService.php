@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\DeliverOrderTicketsJob;
 use App\Models\Occasion;
 use App\Models\Ticket;
 use App\Models\TicketOrder;
@@ -106,6 +107,9 @@ class TicketOrderService
             'payment_provider'  => $provider ?? $order->payment_provider,
             'payment_reference' => $reference ?? $order->payment_reference,
         ]);
+
+        // Livraison automatique des e-billets (async selon QUEUE_CONNECTION).
+        DeliverOrderTicketsJob::dispatch($order->id);
 
         return $order;
     }
