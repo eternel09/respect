@@ -46,7 +46,7 @@ x-backend-env: &backend-env
   WHATSAPP_SERVICE_KEY: ${WHATSAPP_SERVICE_KEY}
   PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-manual}
   # Expiration de session par inactivité (minutes) → reconnexion ensuite.
-  SANCTUM_IDLE_TIMEOUT: ${SANCTUM_IDLE_TIMEOUT:-1}
+  SANCTUM_IDLE_TIMEOUT: ${SANCTUM_IDLE_TIMEOUT:-10}
   # Jeton GitHub lecture seule (Contents: read) pour distribuer l'APK
   GITHUB_RELEASES_TOKEN: ${GITHUB_RELEASES_TOKEN:-}
 
