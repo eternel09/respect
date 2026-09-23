@@ -18,15 +18,18 @@
         .ref { color: #9ca3af; font-size: 11px; margin-top: 8px; }
         .qr { width: 120px; height: 120px; }
         .qrhint { color: #9ca3af; font-size: 10px; text-align: right; }
+        .design { width: 100%; max-height: 260px; object-fit: cover; border-radius: 8px; margin-bottom: 12px; display: block; }
     </style>
 </head>
 <body>
     @php
         $money = fn ($cents, $cur) => number_format($cents / 100, ($cents % 100 === 0 ? 0 : 2), ',', ' ') . ' ' . $cur;
+        $design = $design ?? null;
     @endphp
 
     @foreach($tickets as $t)
     <div class="ticket">
+        @if($design)<img class="design" src="{{ $design }}" alt="">@endif
         <div class="row">
             <div class="left">
                 <div class="org">{{ $occasion->organization->name }}</div>

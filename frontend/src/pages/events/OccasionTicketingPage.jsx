@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Icon from '../../components/ui/Icon'
@@ -23,6 +23,8 @@ export default function OccasionTicketingPage() {
   const [flash, setFlash] = useState(null)
   const [editType, setEditType] = useState(null) // objet en édition, ou {} pour nouveau
   const [deskSale, setDeskSale] = useState(false)
+  const [designBusy, setDesignBusy] = useState(false)
+  const designRef = useRef(null)
 
   const load = useCallback(() => {
     Promise.all([
@@ -52,6 +54,24 @@ export default function OccasionTicketingPage() {
     if (!confirm(`Annuler la commande ${o.reference} ? Les places seront libérées.`)) return
     try { const r = await api.post(`/ticket-orders/${o.id}/cancel`); setFlash({ ok: true, text: r.data.message }); load() }
     catch (e) { setFlash({ ok: false, text: apiErrorMessage(e, 'Action impossible.') }) }
+  }
+  const uploadDesign = async (file) => {
+    if (designRef.current) designRef.current.value = ''
+    if (!file) return
+    setDesignBusy(true); setFlash(null)
+    try {
+      const fd = new FormData(); fd.append('design', file)
+      const r = await api.post(`/occasions/${id}/ticket-design`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setFlash({ ok: true, text: r.data.message }); load()
+    } catch (e) { setFlash({ ok: false, text: apiErrorMessage(e, 'Téléversement impossible.') }) }
+    finally { setDesignBusy(false) }
+  }
+  const removeDesign = async () => {
+    if (!confirm('Retirer le visuel ? Les billets reprendront le design standard.')) return
+    setDesignBusy(true); setFlash(null)
+    try { const r = await api.delete(`/occasions/${id}/ticket-design`); setFlash({ ok: true, text: r.data.message }); load() }
+    catch (e) { setFlash({ ok: false, text: apiErrorMessage(e, 'Retrait impossible.') }) }
+    finally { setDesignBusy(false) }
   }
 
   const stats = useMemo(() => {
@@ -94,6 +114,30 @@ export default function OccasionTicketingPage() {
           <Stat label="Billets vendus" value={stats.sold} />
           <Stat label="Recettes (payées)" value={money(stats.revenue, stats.cur)} />
           <Stat label="Commandes" value={orders.length} />
+        </div>
+
+        {/* Design du billet */}
+        <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm mb-6 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-gray-900">Design du billet</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Téléversez un visuel (image) : il coiffe le e-billet, le QR reste apposé dessous. Sans visuel, un <b>design standard</b> est utilisé.</p>
+            </div>
+            <input ref={designRef} type="file" accept="image/*" className="hidden" onChange={e => uploadDesign(e.target.files?.[0])} />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => designRef.current?.click()} disabled={designBusy}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-3.5 py-2 disabled:opacity-60">
+                {designBusy ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Icon name="upload" size={18} />}
+                {occasion?.ticket_design_url ? 'Remplacer' : 'Téléverser'}
+              </button>
+              {occasion?.ticket_design_url && (
+                <button onClick={removeDesign} disabled={designBusy} className="p-2 text-gray-400 hover:text-red-500" title="Retirer"><Icon name="delete" size={18} /></button>
+              )}
+            </div>
+          </div>
+          {occasion?.ticket_design_url && (
+            <img src={occasion.ticket_design_url} alt="Visuel du billet" className="mt-4 w-full max-h-56 object-contain rounded-xl ring-1 ring-black/5 bg-gray-50" />
+          )}
         </div>
 
         {/* Catégories */}

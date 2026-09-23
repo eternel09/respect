@@ -124,6 +124,58 @@ class OccasionController extends Controller
     }
 
     /**
+     * Téléverse le visuel de billet personnalisé (image) : il coiffe le e-billet,
+     * le QR restant apposé sur une zone blanche en dessous. Sans lui, le e-billet
+     * garde le design standard. Une image (JPG/PNG/WEBP/HEIC) — pas de PDF, car
+     * le QR est incrusté par-dessus au rendu.
+     */
+    public function uploadTicketDesign(Request $request, Occasion $occasion, InvitationImageService $images): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $request->validate([
+            'design' => ['required', 'file', 'max:30720'],
+        ], [
+            'design.required' => 'Sélectionnez une image de billet.',
+            'design.max'      => 'Fichier trop lourd (30 Mo maximum).',
+        ]);
+
+        $file = $request->file('design');
+        if (strtolower((string) $file->getClientOriginalExtension()) === 'pdf'
+            || $file->getMimeType() === 'application/pdf') {
+            return response()->json(['message' => 'Utilisez une image (le PDF n’est pas pris en charge pour le billet).'], 422);
+        }
+
+        // Normalise en JPEG (redimensionné) ; 422 si illisible / format non géré.
+        $path = $images->process($file);
+
+        if ($occasion->ticket_design_path) {
+            Storage::disk('public')->delete($occasion->ticket_design_path);
+        }
+        $occasion->ticket_design_path = $path;
+        $occasion->save();
+
+        return response()->json([
+            'message'           => 'Visuel de billet enregistré.',
+            'ticket_design_url' => $occasion->ticketDesignUrl(),
+        ]);
+    }
+
+    /** Retire le visuel de billet (retour au design standard). */
+    public function removeTicketDesign(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        if ($occasion->ticket_design_path) {
+            Storage::disk('public')->delete($occasion->ticket_design_path);
+            $occasion->ticket_design_path = null;
+            $occasion->save();
+        }
+
+        return response()->json(['message' => 'Visuel de billet retiré.']);
+    }
+
+    /**
      * Message d'accompagnement WhatsApp : un mot personnalisé ajouté en tête de
      * la légende automatique de chaque invitation. Vide = seule la légende
      * automatique est envoyée.
