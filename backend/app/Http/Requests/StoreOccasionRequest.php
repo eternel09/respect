@@ -21,6 +21,8 @@ class StoreOccasionRequest extends FormRequest
             'ends_at'     => ['nullable', 'date', 'after_or_equal:starts_at'],
             'location'    => ['nullable', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'features'    => ['nullable', 'array'],
+            'features.*'  => ['string', 'in:' . implode(',', config('occasions.modules', []))],
         ];
     }
 

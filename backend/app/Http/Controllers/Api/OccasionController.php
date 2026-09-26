@@ -30,8 +30,12 @@ class OccasionController extends Controller
 
     public function store(StoreOccasionRequest $request): JsonResponse
     {
+        $data = $request->validated();
+        // Modules non fournis → valeurs par défaut du type (matrice).
+        $data['features'] = $data['features'] ?? Occasion::defaultFeatures($data['type']);
+
         $occasion = Occasion::create([
-            ...$request->validated(),
+            ...$data,
             'organization_id' => $request->user()->organization_id,
             'created_by'      => $request->user()->id,
         ]);

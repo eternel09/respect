@@ -15,7 +15,7 @@ class Occasion extends Model
 
     protected $fillable = [
         'organization_id', 'created_by', 'name', 'type', 'date',
-        'starts_at', 'ends_at', 'location', 'description', 'invitation_message',
+        'starts_at', 'ends_at', 'location', 'description', 'invitation_message', 'features',
     ];
 
     protected $casts = [
@@ -23,7 +23,26 @@ class Occasion extends Model
         'starts_at'          => 'datetime',
         'ends_at'            => 'datetime',
         'invites_sending_at' => 'datetime',
+        'features'           => 'array',
     ];
+
+    /** Modules activés par défaut pour un type d'événement (config/occasions.php). */
+    public static function defaultFeatures(?string $type): array
+    {
+        return config("occasions.defaults.{$type}", config('occasions.fallback', ['guests']));
+    }
+
+    /** Modules actifs : ceux enregistrés, sinon le défaut du type (rétro-compat). */
+    public function featureList(): array
+    {
+        return $this->features ?? self::defaultFeatures($this->type);
+    }
+
+    /** Le module est-il actif sur cet événement ? */
+    public function hasFeature(string $key): bool
+    {
+        return in_array($key, $this->featureList(), true);
+    }
 
     public function organization()
     {
