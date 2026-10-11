@@ -47,6 +47,9 @@ Route::get('/download/occasions/{occasion}/invited-guests', [\App\Http\Controlle
 // APK de l'app scanner (public : lien partagé au staff)
 Route::get('/download/app', [AppDistributionController::class, 'latest']);
 
+// Portail public : demande d'impression de cartes de service (prospect sans compte)
+Route::post('/public/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicStore'])->middleware('throttle:10,1');
+
 // Admin auth
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 

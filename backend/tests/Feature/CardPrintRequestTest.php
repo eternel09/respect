@@ -6,6 +6,8 @@ use App\Models\CardPrintRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -147,5 +149,90 @@ class CardPrintRequestTest extends TestCase
         $this->withToken($this->token($sec))
             ->postJson('/api/admin/card-print-requests', ['quantity' => 10])
             ->assertForbidden();
+    }
+
+    // ── Portail public (prospect sans compte) ───────────────────
+
+    public function test_public_visitor_can_submit_a_request_without_account(): void
+    {
+        $this->postJson('/api/public/card-print-requests', [
+            'contact_name'    => 'Awa Mbayo',
+            'contact_company' => 'Clinique Horizon',
+            'contact_email'   => 'awa@horizon.cd',
+            'contact_phone'   => '+243900000000',
+            'quantity'        => 80,
+            'note'            => 'Badges du personnel soignant',
+        ])->assertCreated()
+          ->assertJson(fn ($j) => $j->where('message', fn ($v) => is_string($v))->etc());
+
+        $this->assertDatabaseHas('card_print_requests', [
+            'organization_id' => null,
+            'requested_by'    => null,
+            'source'          => 'public',
+            'contact_email'   => 'awa@horizon.cd',
+            'quantity'        => 80,
+            'status'          => 'pending',
+        ]);
+    }
+
+    public function test_public_request_requires_contact_and_quantity(): void
+    {
+        $this->postJson('/api/public/card-print-requests', ['note' => 'incomplet'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['contact_name', 'contact_email', 'quantity']);
+    }
+
+    public function test_public_request_can_attach_a_design(): void
+    {
+        Storage::fake('public');
+
+        $this->postJson('/api/public/card-print-requests', [
+            'contact_name'  => 'Awa Mbayo',
+            'contact_email' => 'awa@horizon.cd',
+            'quantity'      => 50,
+            'design'        => UploadedFile::fake()->image('carte.png', 1000, 620),
+        ])->assertCreated();
+
+        $req = CardPrintRequest::withoutGlobalScopes()->firstOrFail();
+        $this->assertNotNull($req->design_path);
+        Storage::disk('public')->assertExists($req->design_path);
+    }
+
+    public function test_honeypot_silently_absorbs_bots(): void
+    {
+        $this->postJson('/api/public/card-print-requests', [
+            'contact_name'  => 'Bot',
+            'contact_email' => 'bot@spam.test',
+            'quantity'      => 10,
+            'website'       => 'http://spam.example', // champ piège
+        ])->assertCreated();
+
+        $this->assertDatabaseCount('card_print_requests', 0);
+    }
+
+    public function test_operator_sees_public_requests_and_take_self_assigns(): void
+    {
+        $req = CardPrintRequest::create([
+            'source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd',
+            'quantity' => 40, 'status' => 'pending',
+        ]);
+
+        $op = $this->superAdmin();
+        $token = $this->token($op);
+
+        // Visible dans la file opérateur, filtrable par canal.
+        $this->withToken($token)->getJson('/api/admin/print-requests?source=public')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.source', 'public');
+
+        // « Prendre en charge » → affectation automatique à l'opérateur.
+        $this->withToken($token)
+            ->patchJson("/api/admin/print-requests/{$req->id}", ['status' => 'in_progress'])
+            ->assertOk()
+            ->assertJsonPath('request.status', 'in_progress')
+            ->assertJsonPath('request.assigned_to', $op->name);
+
+        $this->assertSame($op->id, $req->fresh()->assigned_to);
     }
 }

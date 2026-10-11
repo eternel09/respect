@@ -5,6 +5,7 @@ import ConnectionToast from './components/ConnectionToast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import OnboardingPage from './pages/OnboardingPage'
 import PresencePage from './pages/PresencePage'
+import ServiceCardRequestPage from './pages/ServiceCardRequestPage'
 import AttendancePage from './pages/admin/AttendancePage'
 import DashboardPage from './pages/admin/DashboardPage'
 import OrganizationsPage from './pages/admin/OrganizationsPage'
@@ -46,6 +47,8 @@ export default function App() {
           {/* Public */}
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/presence"   element={<PresencePage />} />
+          {/* Portail public : demande de cartes de service (prospect sans compte) */}
+          <Route path="/cartes-de-service" element={<ServiceCardRequestPage />} />
 
           {/* Admin auth */}
           <Route path="/admin/login" element={<LoginPage />} />

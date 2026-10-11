@@ -11,14 +11,24 @@ class CardPrintRequestResource extends JsonResource
     {
         return [
             'id'               => $this->id,
-            'organization'     => $this->whenLoaded('organization', fn () => [
+            'source'           => $this->source,
+            'organization'     => $this->whenLoaded('organization', fn () => $this->organization ? [
                 'id' => $this->organization->id, 'name' => $this->organization->name,
-            ]),
+            ] : null),
             'requested_by'     => $this->whenLoaded('requester', fn () => $this->requester?->name),
+            // Contact porté par la demande (prospect public sans compte).
+            'contact'          => array_filter([
+                'name'    => $this->contact_name,
+                'company' => $this->contact_company,
+                'email'   => $this->contact_email,
+                'phone'   => $this->contact_phone,
+            ], fn ($v) => $v !== null) ?: null,
             'quantity'         => $this->quantity,
             'note'             => $this->note,
             'delivery_address' => $this->delivery_address,
+            'design_url'       => $this->designUrl(),
             'status'           => $this->status,
+            'assigned_to'      => $this->whenLoaded('assignee', fn () => $this->assignee?->name),
             'handled_at'       => $this->handled_at?->toIso8601String(),
             'created_at'       => $this->created_at?->toIso8601String(),
         ];

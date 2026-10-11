@@ -14,6 +14,12 @@ const STATUS = {
   cancelled:   { label: 'Annulé',        cls: 'text-gray-500 bg-gray-100' },
 }
 
+const SOURCE = {
+  in_app: { label: 'Client', icon: 'business', cls: 'text-brand bg-brand/10' },
+  public: { label: 'Portail', icon: 'public',  cls: 'text-violet-700 bg-violet-50' },
+  email:  { label: 'E-mail',  icon: 'mail',    cls: 'text-teal-700 bg-teal-50' },
+}
+
 const FILTERS = [
   { key: '',            label: 'Toutes' },
   { key: 'pending',     label: 'En attente' },
@@ -29,17 +35,18 @@ export default function PrintRequestsPage() {
   const [meta, setMeta]       = useState(null)
   const [page, setPage]       = useState(1)
   const [status, setStatus]   = useState('')
+  const [source, setSource]   = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
   const [busyId, setBusyId]   = useState(null)
 
   const load = useCallback(() => {
     setLoading(true); setError(null)
-    api.get('/admin/print-requests', { params: { page, status: status || undefined } })
+    api.get('/admin/print-requests', { params: { page, status: status || undefined, source: source || undefined } })
       .then(res => { setItems(res.data.data); setMeta(res.data.meta) })
       .catch(err => setError(apiErrorMessage(err, "Impossible de charger les demandes.")))
       .finally(() => setLoading(false))
-  }, [page, status])
+  }, [page, status, source])
 
   // Chargement initial + rechargement quand le filtre/la page changent.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -68,6 +75,19 @@ export default function PrintRequestsPage() {
             <p className="text-gray-500 text-sm mt-1">Cartes de service à imprimer et livrer pour le compte des organisations.</p>
           </div>
 
+          {/* Filtres par canal */}
+          <div className="flex flex-wrap gap-2 mb-2">
+            {[{ key: '', label: 'Tous canaux' }, { key: 'in_app', label: 'Client' }, { key: 'public', label: 'Portail' }, { key: 'email', label: 'E-mail' }].map(f => (
+              <button
+                key={f.key}
+                onClick={() => { setSource(f.key); setPage(1) }}
+                className={`text-xs px-3 py-1 rounded-full transition-colors ${source === f.key ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 ring-1 ring-black/5 hover:bg-sand'}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           {/* Filtres par statut */}
           <div className="flex flex-wrap gap-2 mb-5">
             {FILTERS.map(f => (
@@ -94,27 +114,45 @@ export default function PrintRequestsPage() {
             <div className="space-y-3">
               {items.map(item => {
                 const st = STATUS[item.status] || STATUS.pending
+                const sc = SOURCE[item.source] || SOURCE.in_app
+                // Qui demande : l'organisation cliente, ou le contact d'un prospect public.
+                const who = item.organization?.name || item.contact?.company || item.contact?.name || 'Prospect'
                 return (
                   <div key={item.id} className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-gray-900">{item.organization?.name || '—'}</span>
+                          <span className="font-semibold text-gray-900">{who}</span>
+                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sc.cls}`}><Icon name={sc.icon} size={13} />{sc.label}</span>
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
                           <span className="font-semibold text-gray-800 tabular-nums">{item.quantity}</span> carte(s)
                           {item.requested_by && <span className="text-gray-400"> · demandé par {item.requested_by}</span>}
                         </p>
+                        {/* Contact du prospect (demande publique sans compte) */}
+                        {item.contact && (
+                          <div className="text-sm text-gray-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                            {item.contact.name && <span className="flex items-center gap-1"><Icon name="person" size={15} className="text-gray-400" />{item.contact.name}</span>}
+                            {item.contact.email && <a href={`mailto:${item.contact.email}`} className="flex items-center gap-1 text-brand hover:underline"><Icon name="mail" size={15} />{item.contact.email}</a>}
+                            {item.contact.phone && <a href={`tel:${item.contact.phone}`} className="flex items-center gap-1 hover:underline"><Icon name="call" size={15} className="text-gray-400" />{item.contact.phone}</a>}
+                          </div>
+                        )}
                         {item.delivery_address && (
                           <p className="text-sm text-gray-500 mt-1 flex items-start gap-1.5">
                             <Icon name="location_on" size={16} className="text-gray-400 mt-0.5" />{item.delivery_address}
                           </p>
                         )}
                         {item.note && <p className="text-sm text-gray-500 mt-1 italic">« {item.note} »</p>}
-                        <p className="text-xs text-gray-400 mt-2">
-                          {item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
-                        </p>
+                        <div className="flex items-center gap-3 flex-wrap mt-2">
+                          <span className="text-xs text-gray-400">
+                            {item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+                          </span>
+                          {item.assigned_to && <span className="text-xs text-gray-500 flex items-center gap-1"><Icon name="assignment_ind" size={14} className="text-gray-400" />{item.assigned_to}</span>}
+                          {item.design_url && (
+                            <a href={item.design_url} target="_blank" rel="noreferrer" className="text-xs text-brand hover:underline flex items-center gap-1"><Icon name="image" size={14} />Voir le visuel</a>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap gap-2 shrink-0">
