@@ -15,6 +15,8 @@ class Member extends Model
     protected $fillable = [
         'organization_id', 'first_name', 'last_name', 'phone', 'sms_sent_at',
         'check_in_token', 'registered_at_event_id',
+        // Champs entreprise (optionnels)
+        'job_title', 'department', 'staff_id',
     ];
 
     protected $casts = ['sms_sent_at' => 'datetime'];

@@ -60,6 +60,9 @@ class MemberCardController extends Controller
                 'memberNo'  => str_pad($m->id, 4, '0', STR_PAD_LEFT),
                 'serial'    => strtoupper(substr($m->check_in_token, 0, 8)),
                 'qrDataUri' => 'data:image/svg+xml;base64,' . $this->qr->member($m->check_in_token),
+                'jobTitle'   => $m->job_title,
+                'department' => $m->department,
+                'staffId'    => $m->staff_id,
             ])->values(),
         ];
 
