@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\CardPrintRequestReceived;
 use App\Models\CardPrintRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -216,5 +218,132 @@ class CardPrintRequestTest extends TestCase
             ->assertJsonPath('request.assigned_to', $op->name);
 
         $this->assertSame($op->id, $req->fresh()->assigned_to);
+    }
+
+    // ── Notification de l'équipe ────────────────────────────────
+
+    public function test_public_request_notifies_operators(): void
+    {
+        Mail::fake();
+        $op = $this->superAdmin();
+
+        $this->postJson('/api/public/card-print-requests', [
+            'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 30,
+        ])->assertCreated();
+
+        Mail::assertSent(CardPrintRequestReceived::class, fn ($mail) => $mail->hasTo($op->email));
+    }
+
+    public function test_no_operator_means_no_notification(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/api/public/card-print-requests', [
+            'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 30,
+        ])->assertCreated();
+
+        Mail::assertNothingSent();
+    }
+
+    // ── Historique & notes ──────────────────────────────────────
+
+    public function test_creation_and_status_changes_are_logged(): void
+    {
+        $req = CardPrintRequest::create([
+            'source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd',
+            'quantity' => 40, 'status' => 'pending',
+        ]);
+        $req->logEvent('created', 'Demande reçue via le portail public.');
+
+        $op = $this->superAdmin();
+        $token = $this->token($op);
+
+        $this->withToken($token)->patchJson("/api/admin/print-requests/{$req->id}", ['status' => 'in_progress'])->assertOk();
+
+        $this->withToken($token)->getJson("/api/admin/print-requests/{$req->id}/events")
+            ->assertOk()
+            // created + status + assigned (prise en charge automatique)
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('data.0.type', 'assigned')
+            ->assertJsonPath('data.0.author', $op->name);
+    }
+
+    public function test_operator_can_add_a_note(): void
+    {
+        $req = CardPrintRequest::create([
+            'source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd',
+            'quantity' => 40, 'status' => 'pending',
+        ]);
+        $op = $this->superAdmin();
+        $token = $this->token($op);
+
+        $this->withToken($token)
+            ->postJson("/api/admin/print-requests/{$req->id}/notes", ['message' => 'Client rappelé, devis envoyé.'])
+            ->assertCreated()
+            ->assertJsonPath('event.type', 'note')
+            ->assertJsonPath('event.message', 'Client rappelé, devis envoyé.')
+            ->assertJsonPath('event.author', $op->name);
+
+        $this->assertDatabaseHas('card_print_request_events', [
+            'card_print_request_id' => $req->id, 'type' => 'note', 'user_id' => $op->id,
+        ]);
+    }
+
+    public function test_note_requires_a_message(): void
+    {
+        $req = CardPrintRequest::create([
+            'source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd',
+            'quantity' => 40, 'status' => 'pending',
+        ]);
+
+        $this->withToken($this->token($this->superAdmin()))
+            ->postJson("/api/admin/print-requests/{$req->id}/notes", ['message' => ''])
+            ->assertStatus(422);
+    }
+
+    public function test_enterprise_admin_cannot_access_history_or_notes(): void
+    {
+        $admin = $this->admin();
+        $req = CardPrintRequest::create([
+            'organization_id' => $admin->organization_id, 'source' => 'in_app',
+            'quantity' => 10, 'status' => 'pending',
+        ]);
+        $token = $this->token($admin);
+
+        $this->withToken($token)->getJson("/api/admin/print-requests/{$req->id}/events")->assertForbidden();
+        $this->withToken($token)
+            ->postJson("/api/admin/print-requests/{$req->id}/notes", ['message' => 'x'])
+            ->assertForbidden();
+    }
+
+    // ── Export CSV ──────────────────────────────────────────────
+
+    public function test_operator_exports_requests_as_csv(): void
+    {
+        $org = Organization::factory()->create();
+        CardPrintRequest::create(['organization_id' => $org->id, 'source' => 'in_app', 'quantity' => 10, 'status' => 'pending']);
+        CardPrintRequest::create(['source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 40, 'status' => 'pending']);
+
+        $res = $this->withToken($this->token($this->superAdmin()))->get('/api/admin/print-requests/export');
+
+        $res->assertOk();
+        $this->assertStringContainsString('text/csv', $res->headers->get('content-type'));
+        $body = $res->streamedContent();
+        $this->assertStringContainsString('awa@horizon.cd', $body);
+        $this->assertStringContainsString('Quantité', $body); // en-tête
+    }
+
+    public function test_export_respects_source_filter(): void
+    {
+        $org = Organization::factory()->create();
+        CardPrintRequest::create(['organization_id' => $org->id, 'source' => 'in_app', 'quantity' => 10, 'status' => 'pending']);
+        CardPrintRequest::create(['source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 40, 'status' => 'pending']);
+
+        $body = $this->withToken($this->token($this->superAdmin()))
+            ->get('/api/admin/print-requests/export?source=public')
+            ->assertOk()->streamedContent();
+
+        $this->assertStringContainsString('awa@horizon.cd', $body);
+        $this->assertStringNotContainsString('in_app', $body);
     }
 }

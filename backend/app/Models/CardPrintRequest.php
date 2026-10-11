@@ -40,4 +40,15 @@ class CardPrintRequest extends Model
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
+
+    public function events()
+    {
+        return $this->hasMany(CardPrintRequestEvent::class);
+    }
+
+    /** Journalise une entrée d'historique (statut, affectation, note…). */
+    public function logEvent(string $type, ?string $message = null, ?int $userId = null): CardPrintRequestEvent
+    {
+        return $this->events()->create(['type' => $type, 'message' => $message, 'user_id' => $userId]);
+    }
 }

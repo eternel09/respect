@@ -7,7 +7,7 @@ Statuts : 🟩 mergée · 🟦 ouverte · ⬜ brouillon
 
 | PR | Produit · Étape | Titre | Statut | Commit / SHA |
 |---|---|---|:--:|---|
-| [#66](https://github.com/eternel09/respect/pull/66) | Présence · 1.2 + 1.2b | Livraison des cartes : impression (planche A4 / 1 par page CR80), **service opéré** (portail public sans compte + file de travail multi-canal, prise en charge & affectation) | 🟦 | `feat(presence): print-ready cards`, `feat(presence): operated service — public portal + work queue` |
+| [#66](https://github.com/eternel09/respect/pull/66) | Présence · 1.2 → 1.2c | Livraison des cartes : impression (planche A4 / 1 par page CR80), **service opéré** (portail public sans compte + file multi-canal, prise en charge & affectation), **suivi** (notification e-mail équipe, historique + notes, export CSV) | 🟦 | `feat(presence): print-ready cards`, `… operated service`, `… team notification, history & CSV export` |
 | [#65](https://github.com/eternel09/respect/pull/65) | Présence · 1.1 | Carte de service : design uploadable | 🟩 | `feat(presence): uploadable service-card design` |
 
 > Note : les PR antérieures à cette initiative (billetterie, séparation par type

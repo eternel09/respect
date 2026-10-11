@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import api, { apiErrorMessage } from '../../lib/axios'
 import Pagination from '../../components/Pagination'
 import PlatformHeader from '../../components/PlatformHeader'
+import PrintRequestHistory from '../../components/PrintRequestHistory'
 import Icon from '../../components/ui/Icon'
 
 const STATUS = {
@@ -39,6 +40,8 @@ export default function PrintRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
   const [busyId, setBusyId]   = useState(null)
+  const [openId, setOpenId]   = useState(null) // demande dont l'historique est déplié
+  const [exporting, setExporting] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true); setError(null)
@@ -64,15 +67,44 @@ export default function PrintRequestsPage() {
     } finally { setBusyId(null) }
   }
 
+  // Export CSV (mêmes filtres) : endpoint authentifié → téléchargement via blob.
+  const exportCsv = async () => {
+    setExporting(true); setError(null)
+    try {
+      const res = await api.get('/admin/print-requests/export', {
+        params: { status: status || undefined, source: source || undefined },
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url; a.download = 'demandes-cartes.csv'
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(apiErrorMessage(err, "Export impossible."))
+    } finally { setExporting(false) }
+  }
+
   return (
     <div className="min-h-screen bg-sand">
       <PlatformHeader user={user} onLogout={handleLogout} />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-          <div className="mb-6">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Demandes d'impression</h1>
-            <p className="text-gray-500 text-sm mt-1">Cartes de service à imprimer et livrer pour le compte des organisations.</p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Demandes d'impression</h1>
+              <p className="text-gray-500 text-sm mt-1">Cartes de service à imprimer et livrer pour le compte des organisations.</p>
+            </div>
+            <button
+              onClick={exportCsv} disabled={exporting}
+              className="flex items-center justify-center gap-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-white transition-colors disabled:opacity-60 shrink-0"
+            >
+              {exporting
+                ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                : <Icon name="download" size={18} />}
+              Exporter CSV
+            </button>
           </div>
 
           {/* Filtres par canal */}
@@ -165,8 +197,17 @@ export default function PrintRequestsPage() {
                               className="text-sm px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-sand disabled:opacity-60">Annuler</button>
                           </>
                         )}
+                        <button
+                          onClick={() => setOpenId(id => id === item.id ? null : item.id)}
+                          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-sand"
+                        >
+                          <Icon name="history" size={16} />Suivi
+                          <Icon name="expand_more" size={16} className={`transition-transform ${openId === item.id ? 'rotate-180' : ''}`} />
+                        </button>
                       </div>
                     </div>
+
+                    {openId === item.id && <PrintRequestHistory requestId={item.id} />}
                   </div>
                 )
               })}
