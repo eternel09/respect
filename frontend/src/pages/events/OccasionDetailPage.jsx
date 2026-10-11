@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import Icon from '../../components/ui/Icon'
 import api, { apiErrorMessage, downloadFile } from '../../lib/axios'
-import { OCC_TYPES } from './OccasionsPage'
+import { OCC_TYPES, OCC_MODULES } from '../../lib/occasions'
 import { useAuth } from '../../context/AuthContext'
 
 const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -229,6 +229,15 @@ export default function OccasionDetailPage() {
 
   const { occasion: o, tables, guests } = data
   const t = OCC_TYPES[o.type] || OCC_TYPES.autre
+  // Modules actifs de l'événement → l'interface n'affiche que ce qui est activé.
+  const feat = o.features || []
+  const has = (k) => feat.includes(k)
+  const tabs = [
+    ...(has('tables') ? [['plan', 'Plan de salle']] : []),
+    ...(has('guests') ? [['guests', `Invités · ${guests.length}`]] : []),
+    ...(canManageTeam ? [['team', 'Équipe']] : []),
+  ]
+  const activeTab = tabs.some(([k]) => k === tab) ? tab : (tabs[0]?.[0] ?? null)
 
   return (
     <AdminLayout>
@@ -257,12 +266,15 @@ export default function OccasionDetailPage() {
           </div>
           {!isEventAgent && (
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => navigate(`/events/${id}/billetterie`)}
-                title="Gérer la billetterie en ligne (catégories, ventes)"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-xl px-4 py-2.5 transition-colors">
-                <Icon name="confirmation_number" size={18} />
-                Billetterie
-              </button>
+              {has('ticketing') && (
+                <button onClick={() => navigate(`/events/${id}/billetterie`)}
+                  title="Gérer la billetterie en ligne (catégories, ventes)"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-xl px-4 py-2.5 transition-colors">
+                  <Icon name="confirmation_number" size={18} />
+                  Billetterie
+                </button>
+              )}
+              {has('guests') && (<>
               <button onClick={() => downloadFile(`/download/occasions/${id}/invited-guests`, 'invites-envoyes.pdf')}
                 disabled={!o.invited_count}
                 title={o.invited_count ? 'Télécharger la liste PDF des invités déjà contactés, groupés par table' : "Aucune invitation envoyée pour l'instant"}
@@ -283,6 +295,7 @@ export default function OccasionDetailPage() {
                   {stopping ? 'Arrêt…' : 'Stopper'}
                 </button>
               )}
+              </>)}
             </div>
           )}
         </div>
@@ -293,22 +306,40 @@ export default function OccasionDetailPage() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {[['Invités', o.guests_count, `${o.tables_count} tables`, 'text-gray-900'],
-            ['Invitations envoyées', o.invited_count, `${o.guests_count - (o.invited_count || 0)} en attente`, 'text-gray-900'],
-            ['Confirmés', o.confirmed_count, 'réponses reçues', 'text-emerald-600'],
-            ['Présents (jour J)', o.is_expired || o.checked_in_count ? o.checked_in_count : '—', o.is_expired ? 'événement passé' : 'à venir', 'text-gray-900']].map(([l, v, s, c]) => (
-            <div key={l} className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
-              <p className="text-sm text-gray-500">{l}</p>
-              <p className={`text-2xl font-bold mt-1 ${c}`}>{v ?? 0}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{s}</p>
+        {/* Stats — uniquement les indicateurs pertinents pour les modules actifs */}
+        {has('guests') && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[['Invités', o.guests_count, has('tables') ? `${o.tables_count} tables` : 'nominatifs', 'text-gray-900'],
+              ['Invitations envoyées', o.invited_count, `${o.guests_count - (o.invited_count || 0)} en attente`, 'text-gray-900'],
+              ['Confirmés', o.confirmed_count, 'réponses reçues', 'text-emerald-600'],
+              ['Présents (jour J)', o.is_expired || o.checked_in_count ? o.checked_in_count : '—', o.is_expired ? 'événement passé' : 'à venir', 'text-gray-900']].map(([l, v, s, c]) => (
+              <div key={l} className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
+                <p className="text-sm text-gray-500">{l}</p>
+                <p className={`text-2xl font-bold mt-1 ${c}`}>{v ?? 0}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{s}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Événement en billetterie : accès direct à la gestion des ventes */}
+        {!isEventAgent && has('ticketing') && (
+          <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-gray-900">Billetterie</h3>
+              <p className="text-sm text-gray-500 mt-0.5">Catégories de billets, ventes, e-billets et contrôle à l'entrée.</p>
             </div>
-          ))}
-        </div>
+            <button onClick={() => navigate(`/events/${id}/billetterie`)}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 flex-shrink-0">
+              <Icon name="confirmation_number" size={18} />
+              Gérer la billetterie
+            </button>
+          </div>
+        )}
 
         {!isEventAgent && (<>
         {/* Carton d'invitation personnalisé */}
+        {has('guests') && (
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6 flex items-start gap-4">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-gray-900">Carton d'invitation</h3>
@@ -346,8 +377,10 @@ export default function OccasionDetailPage() {
                 : <img src={o.invitation_bg_url} alt="Carton d'invitation" className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 flex-shrink-0" />)
             : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucun carton</div>}
         </div>
+        )}
 
         {/* Vidéo du couple (page de confirmation) */}
+        {has('couple_video') && (
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6 flex items-start gap-4">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-gray-900">Vidéo du couple</h3>
@@ -377,8 +410,10 @@ export default function OccasionDetailPage() {
             ? <video src={o.rsvp_video_url} className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 bg-black flex-shrink-0" muted playsInline preload="metadata" />
             : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucune vidéo</div>}
         </div>
+        )}
 
         {/* Message d'accompagnement WhatsApp (ajouté à la légende automatique) */}
+        {has('guests') && (
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6">
           <h3 className="font-bold text-gray-900">Message d'accompagnement</h3>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
@@ -401,17 +436,20 @@ export default function OccasionDetailPage() {
             </button>
           </div>
         </div>
+        )}
         </>)}
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-gray-200 mb-5">
-          {[['plan', 'Plan de salle'], ['guests', `Invités · ${guests.length}`], ...(canManageTeam ? [['team', 'Équipe']] : [])].map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)} className={`pb-2.5 -mb-px text-sm font-semibold border-b-2 transition-colors ${tab === k ? 'text-brand border-accent' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>{l}</button>
-          ))}
-        </div>
+        {tabs.length > 0 && (
+          <div className="flex gap-6 border-b border-gray-200 mb-5">
+            {tabs.map(([k, l]) => (
+              <button key={k} onClick={() => setTab(k)} className={`pb-2.5 -mb-px text-sm font-semibold border-b-2 transition-colors ${activeTab === k ? 'text-brand border-accent' : 'text-gray-500 border-transparent hover:text-gray-700'}`}>{l}</button>
+            ))}
+          </div>
+        )}
 
         {/* Plan de salle */}
-        {tab === 'plan' && (
+        {activeTab === 'plan' && (
           <>
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-gray-500">{tables.length} table(s) — assignez les invités depuis l'onglet Invités.</p>
@@ -451,7 +489,7 @@ export default function OccasionDetailPage() {
         )}
 
         {/* Invités */}
-        {tab === 'guests' && (
+        {activeTab === 'guests' && (
           <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 p-4 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Liste des invités</h3>
@@ -547,7 +585,7 @@ export default function OccasionDetailPage() {
         )}
 
         {/* Équipe de l'événement */}
-        {tab === 'team' && canManageTeam && <TeamPanel occasionId={id} />}
+        {activeTab === 'team' && canManageTeam && <TeamPanel occasionId={id} />}
 
         {modal === 'table' && <AddTableModal occasionId={id} onClose={() => setModal(null)} onDone={() => { setModal(null); load() }} />}
         {editTable && <AddTableModal occasionId={id} table={editTable} onClose={() => setEditTable(null)} onDone={() => { setEditTable(null); load() }} />}
@@ -651,10 +689,15 @@ function EditOccasionModal({ occasion, onClose, onDone }) {
     starts_at: dtLocal(occasion.starts_at),
     ends_at: dtLocal(occasion.ends_at),
     location: occasion.location || '',
+    features: occasion.features || [],
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  const toggleFeature = (k) => setForm((f) => ({
+    ...f,
+    features: f.features.includes(k) ? f.features.filter((x) => x !== k) : [...f.features, k],
+  }))
 
   const submit = async (e) => {
     e.preventDefault()
@@ -689,6 +732,24 @@ function EditOccasionModal({ occasion, onClose, onDone }) {
                 className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${form.type === k ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-sand'}`}
                 style={form.type === k ? { background: t.color } : {}}>{t.emoji} {t.label}</button>
             ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Modules</label>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(OCC_MODULES).map(([k, m]) => {
+              const on = form.features.includes(k)
+              return (
+                <button type="button" key={k} onClick={() => toggleFeature(k)}
+                  className={`text-left px-3 py-2 rounded-xl border text-sm transition-colors ${on ? 'border-brand bg-brand/5' : 'border-gray-200 hover:bg-sand'}`}>
+                  <span className="flex items-center gap-1.5 font-medium text-gray-800">
+                    <span className={`inline-block w-3.5 h-3.5 rounded-[4px] border ${on ? 'bg-brand border-brand' : 'border-gray-300'}`} />
+                    {m.label}
+                  </span>
+                  <span className="block text-[11px] text-gray-400 mt-0.5 ml-5">{m.desc}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">

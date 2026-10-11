@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
 import Icon from '../../components/ui/Icon'
 import api, { apiErrorMessage } from '../../lib/axios'
-
-export const OCC_TYPES = {
-  mariage:      { label: 'Mariage',      emoji: '💍', color: '#e08a3c' },
-  gala:         { label: 'Gala',         emoji: '🥂', color: '#1e3a5f' },
-  ceremonie:    { label: 'Cérémonie',    emoji: '🎓', color: '#059669' },
-  anniversaire: { label: 'Anniversaire', emoji: '🎂', color: '#c9742b' },
-  concert:      { label: 'Concert',      emoji: '🎵', color: '#7c3aed' },
-  autre:        { label: 'Autre',        emoji: '📅', color: '#6b7280' },
-}
+import { OCC_TYPES, OCC_MODULES, defaultModules } from '../../lib/occasions'
 
 const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -33,14 +25,13 @@ export default function OccasionsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const navigate = useNavigate()
 
-  const load = () => {
-    setLoading(true)
+  const load = useCallback(() => {
     api.get('/occasions')
       .then(res => setItems(res.data.data || []))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }
-  useEffect(load, [])
+  }, [])
+  useEffect(load, [load])
 
   const totalGuests   = items.reduce((s, o) => s + (o.guests_count || 0), 0)
   const totalInvited  = items.reduce((s, o) => s + (o.invited_count || 0), 0)
@@ -108,10 +99,16 @@ export default function OccasionsPage() {
 }
 
 function CreateOccasionModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', type: 'mariage', date: '', starts_at: '', ends_at: '', location: '' })
+  const [form, setForm] = useState({ name: '', type: 'mariage', date: '', starts_at: '', ends_at: '', location: '', features: defaultModules('mariage') })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  // Changer de type ré-applique les modules par défaut de ce type.
+  const setType = (k) => setForm(f => ({ ...f, type: k, features: defaultModules(k) }))
+  const toggleFeature = (k) => setForm(f => ({
+    ...f,
+    features: f.features.includes(k) ? f.features.filter(x => x !== k) : [...f.features, k],
+  }))
 
   const submit = async (e) => {
     e.preventDefault()
@@ -147,10 +144,28 @@ function CreateOccasionModal({ onClose, onCreated }) {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
             <div className="flex flex-wrap gap-2">
               {Object.entries(OCC_TYPES).map(([k, t]) => (
-                <button type="button" key={k} onClick={() => set('type', k)}
+                <button type="button" key={k} onClick={() => setType(k)}
                   className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${form.type === k ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-sand'}`}
                   style={form.type === k ? { background: t.color } : {}}>{t.emoji} {t.label}</button>
               ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Modules <span className="text-gray-400 font-normal">(pré-cochés selon le type)</span></label>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(OCC_MODULES).map(([k, m]) => {
+                const on = form.features.includes(k)
+                return (
+                  <button type="button" key={k} onClick={() => toggleFeature(k)}
+                    className={`text-left px-3 py-2 rounded-xl border text-sm transition-colors ${on ? 'border-brand bg-brand/5' : 'border-gray-200 hover:bg-sand'}`}>
+                    <span className="flex items-center gap-1.5 font-medium text-gray-800">
+                      <span className={`inline-block w-3.5 h-3.5 rounded-[4px] border ${on ? 'bg-brand border-brand' : 'border-gray-300'}`} />
+                      {m.label}
+                    </span>
+                    <span className="block text-[11px] text-gray-400 mt-0.5 ml-5">{m.desc}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

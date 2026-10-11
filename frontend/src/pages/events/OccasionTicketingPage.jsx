@@ -85,6 +85,27 @@ export default function OccasionTicketingPage() {
 
   if (loading) return <AdminLayout><div className="p-8"><span className="inline-block animate-spin h-6 w-6 border-2 border-brand border-t-transparent rounded-full" /></div></AdminLayout>
 
+  // Module billetterie non activé pour cet événement → invite à l'activer.
+  if (occasion && !(occasion.features || []).includes('ticketing')) {
+    return (
+      <AdminLayout>
+        <div className="p-4 sm:p-6 lg:p-8 max-w-2xl">
+          <button onClick={() => navigate(`/events/${id}`)} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-4">
+            <Icon name="arrow_back" size={18} />Retour à l'événement
+          </button>
+          <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-8 text-center">
+            <div className="text-4xl mb-2">🎟️</div>
+            <h1 className="font-display text-xl font-medium text-gray-900">Billetterie non activée</h1>
+            <p className="text-gray-500 text-sm mt-2">Le module « Billetterie » n'est pas activé pour <b>{occasion.name}</b>. Activez-le depuis la fiche de l'événement (bouton ✎ Modifier → Modules).</p>
+            <button onClick={() => navigate(`/events/${id}`)} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5">
+              Aller à l'événement
+            </button>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
   return (
     <AdminLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl">
