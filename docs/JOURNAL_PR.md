@@ -7,7 +7,7 @@ Statuts : 🟩 mergée · 🟦 ouverte · ⬜ brouillon
 
 | PR | Produit · Étape | Titre | Statut | Commit / SHA |
 |---|---|---|:--:|---|
-| _à venir_ | Présence · 1.3 | Champs entreprise du membre (fonction, service, matricule) : création + modification, affichage sur la carte, export CSV + durcissement sécurité & gestion d'équipe interne (rôle opérateur) | 🟦 | `feat(presence): member enterprise fields` |
+| [#67](https://github.com/eternel09/respect/pull/67) | Présence · 1.3 | Champs entreprise du membre (fonction, service, matricule) : création + modification, affichage sur la carte, export CSV | 🟦 | `feat(presence): member enterprise fields` |
 | [#66](https://github.com/eternel09/respect/pull/66) | Présence · 1.2 → 1.2c | Livraison des cartes : impression (planche A4 / 1 par page CR80), **service opéré** (portail public sans compte + file multi-canal, prise en charge & affectation), **suivi** (notification e-mail équipe, historique + notes, export CSV) + sécurité + équipe interne | 🟩 | `feat(presence): print-ready cards` … (mergée) |
 | [#65](https://github.com/eternel09/respect/pull/65) | Présence · 1.1 | Carte de service : design uploadable | 🟩 | `feat(presence): uploadable service-card design` |
 
