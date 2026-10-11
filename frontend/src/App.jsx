@@ -8,6 +8,7 @@ import PresencePage from './pages/PresencePage'
 import AttendancePage from './pages/admin/AttendancePage'
 import DashboardPage from './pages/admin/DashboardPage'
 import OrganizationsPage from './pages/admin/OrganizationsPage'
+import PrintRequestsPage from './pages/admin/PrintRequestsPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
@@ -58,7 +59,8 @@ export default function App() {
           <Route path="/billetterie/commande/:token" element={<BilletterieOrderPage />} />
 
           {/* Plateforme (super-admin) */}
-          <Route path="/admin/organizations" element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
+          <Route path="/admin/organizations"  element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
+          <Route path="/admin/print-requests" element={<ProtectedRoute><PrintRequestsPage /></ProtectedRoute>} />
 
           {/* Suite d'applications — toujours accessible (gérer ses modules) */}
           <Route path="/admin/modules"    element={<ProtectedRoute><ModulesPage /></ProtectedRoute>} />

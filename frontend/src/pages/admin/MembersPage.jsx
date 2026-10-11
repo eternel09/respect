@@ -4,6 +4,7 @@ import PageShell from '../../components/PageShell'
 import AddMemberModal from '../../components/AddMemberModal'
 import Pagination from '../../components/Pagination'
 import MemberDetailModal from '../../components/MemberDetailModal'
+import CardServiceMenu from '../../components/CardServiceMenu'
 import Icon from '../../components/ui/Icon'
 import api, { downloadFile, apiErrorMessage } from '../../lib/axios'
 
@@ -200,22 +201,7 @@ export default function MembersPage() {
             />
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={async () => {
-                setBadgeBusy('cards'); setBadgeError(null)
-                try { await downloadFile('/download/cards', 'cartes-membres.pdf') }
-                catch (err) { setBadgeError(apiErrorMessage(err, 'Impossible de générer les cartes.')) }
-                finally { setBadgeBusy(null) }
-              }}
-              disabled={badgeBusy === 'cards'}
-              title="Imprimer les cartes de membre design (format carte de visite)"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-sand transition-colors disabled:opacity-60"
-            >
-              {badgeBusy === 'cards'
-                ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
-                : <Icon name="badge" size={18} />}
-              Cartes
-            </button>
+            <CardServiceMenu memberCount={stats.total} />
             <button
               onClick={downloadAllBadges}
               disabled={badgeBusy === 'all'}

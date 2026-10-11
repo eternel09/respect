@@ -25,7 +25,7 @@ class MemberCardController extends Controller
         $user = $this->userFromToken($request);
         abort_if(! $user || $member->organization_id !== $user->organization_id, 403, 'Accès non autorisé.');
 
-        return $this->printSheet($member->organization, collect([$member]), 'carte-' . $member->id . '.pdf');
+        return $this->printSheet($member->organization, collect([$member]), 'carte-' . $member->id . '.pdf', 'single');
     }
 
     /** Planche PDF : les cartes de TOUS les membres de l'organisation. */
@@ -39,16 +39,20 @@ class MemberCardController extends Controller
 
         abort_if($members->isEmpty(), 404, 'Aucun membre.');
 
-        return $this->printSheet($user->organization, $members, 'cartes-membres.pdf');
+        // Mise en page : 'single' = 1 carte par page (prête à découper), sinon planche.
+        $layout = $request->query('layout') === 'single' ? 'single' : 'sheet';
+
+        return $this->printSheet($user->organization, $members, 'cartes-membres.pdf', $layout);
     }
 
-    private function printSheet(\App\Models\Organization $org, $members, string $filename)
+    private function printSheet(\App\Models\Organization $org, $members, string $filename, string $layout = 'sheet')
     {
         $payload = [
             'org'     => $org->name,
             'orgLogo' => $org->logoDataUri(),
             // Visuel de carte personnalisé (org) appliqué à chaque carte, ou null.
             'cardDesign' => $org->cardDesignDataUri(),
+            'layout'  => $layout,
             'members' => $members->map(fn (Member $m) => [
                 'name'      => $m->full_name,
                 'phone'     => $m->phone,

@@ -79,6 +79,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
     Route::middleware('role:super_admin')->group(function () {
         Route::get('/admin/organizations', [OrganizationController::class, 'index']);
         Route::post('/admin/organizations', [OrganizationController::class, 'store']);
+        // Opérateur : demandes d'impression de cartes (toutes organisations)
+        Route::get('/admin/print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'adminIndex']);
+        Route::patch('/admin/print-requests/{cardPrintRequest}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'updateStatus']);
     });
 
     // Terrain — scan du QR personnel (app mobile staff)
@@ -105,6 +108,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::post('/admin/organization', [OrganizationSettingsController::class, 'update']);
         Route::post('/admin/organization/card-design', [OrganizationSettingsController::class, 'uploadCardDesign']);
         Route::delete('/admin/organization/card-design', [OrganizationSettingsController::class, 'removeCardDesign']);
+        // Entreprise : demander l'impression des cartes à l'opérateur + suivi
+        Route::get('/admin/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'index']);
+        Route::post('/admin/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'store']);
 
         // Suite d'applications (modules) de l'organisation
         Route::get('/admin/modules', [OrganizationModuleController::class, 'index']);

@@ -25,7 +25,7 @@ Repositionnement : de « pointage associatif » vers un **produit entreprise**
 | # | Étape | Détail | Statut |
 |---|---|---|:--:|
 | 1.1 | **Carte de service — design uploadable** | Une organisation téléverse le visuel de sa carte ; le QR + le nom sont apposés dessus (sinon design standard). Stockage, endpoints, réglage UI, transmission au moteur de rendu. | ✅ |
-| 1.2 | **Livraison de la carte** | Télécharger la carte (PDF/PNG) **et** l'envoyer sur WhatsApp, avec le design de l'organisation ; envoi en masse. | ⬜ |
+| 1.2 | **Livraison de la carte (impression)** | Sortie **PDF prête à imprimer** avec le design (planche A4 ou **1 carte/page CR80 + repères de coupe**, l'entreprise imprime elle-même) et **demande d'impression** adressée à l'opérateur (suivi des statuts côté plateforme). Pas d'envoi WhatsApp — hors périmètre entreprise. | ✅ |
 | 1.3 | **Champs entreprise sur le membre** | Fonction/poste, service/département, matricule — affichés sur la carte et exportables. | ⬜ |
 | 1.4 | **Image de marque** | Couleurs + logo de l'entreprise appliqués aux cartes et au back-office (une partie existe déjà). | ⬜ |
 | 1.5 | **Vocabulaire & parcours entreprise** | « Membre » → « Agent/Employé », écrans adaptés au module présence. | ⬜ |
