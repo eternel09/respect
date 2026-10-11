@@ -35,7 +35,6 @@ return new class extends Migration
             $table->unsignedInteger('quantity');                 // nb de cartes demandées
             $table->text('note')->nullable();                    // consignes
             $table->text('delivery_address')->nullable();        // où livrer
-            $table->string('design_path')->nullable();           // visuel joint (portail public)
 
             $table->string('status')->default('pending');        // pending|in_progress|done|cancelled
             // Membre de l'équipe en charge de la demande.

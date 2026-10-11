@@ -19,7 +19,6 @@ export default function ServiceCardRequestPage() {
     contact_name: '', contact_company: '', contact_email: '', contact_phone: '',
     quantity: '', delivery_address: '', note: '', website: '', // website = honeypot
   })
-  const [design, setDesign]   = useState(null)
   const [errors, setErrors]   = useState({})
   const [error, setError]     = useState(null)
   const [loading, setLoading] = useState(false)
@@ -31,10 +30,7 @@ export default function ServiceCardRequestPage() {
     e.preventDefault()
     setLoading(true); setErrors({}); setError(null)
     try {
-      const fd = new FormData()
-      Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v) })
-      if (design) fd.append('design', design)
-      await api.post('/public/card-print-requests', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      await api.post('/public/card-print-requests', form)
       setDone(true)
     } catch (err) {
       if (err.response?.status === 422) {
@@ -130,16 +126,6 @@ export default function ServiceCardRequestPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Adresse de livraison</label>
                   <input className={inputClass} placeholder="Où livrer les cartes" value={form.delivery_address} onChange={e => set('delivery_address', e.target.value)} />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Votre visuel <span className="text-gray-400 font-normal">(optionnel, image)</span></label>
-                  <input
-                    type="file" accept="image/*"
-                    onChange={e => setDesign(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20"
-                  />
-                  {errors.design && <p className="text-xs text-red-600 mt-1">{errors.design}</p>}
                 </div>
 
                 <div>

@@ -69,13 +69,7 @@ class CardPrintRequestController extends Controller
             'quantity'         => ['required', 'integer', 'min:1', 'max:100000'],
             'note'             => ['nullable', 'string', 'max:1000'],
             'delivery_address' => ['nullable', 'string', 'max:500'],
-            // Visuel optionnel (image uniquement — pas de PDF).
-            'design'           => ['nullable', 'file', 'image', 'max:30720'],
         ]);
-
-        $designPath = $request->hasFile('design')
-            ? $request->file('design')->store('card-designs', 'public')
-            : null;
 
         CardPrintRequest::create([
             'organization_id'  => null,
@@ -88,7 +82,6 @@ class CardPrintRequestController extends Controller
             'quantity'         => $data['quantity'],
             'note'             => $data['note'] ?? null,
             'delivery_address' => $data['delivery_address'] ?? null,
-            'design_path'      => $designPath,
             'status'           => 'pending',
         ]);
 

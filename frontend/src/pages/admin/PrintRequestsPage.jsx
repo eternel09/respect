@@ -149,9 +149,6 @@ export default function PrintRequestsPage() {
                             {item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
                           </span>
                           {item.assigned_to && <span className="text-xs text-gray-500 flex items-center gap-1"><Icon name="assignment_ind" size={14} className="text-gray-400" />{item.assigned_to}</span>}
-                          {item.design_url && (
-                            <a href={item.design_url} target="_blank" rel="noreferrer" className="text-xs text-brand hover:underline flex items-center gap-1"><Icon name="image" size={14} />Voir le visuel</a>
-                          )}
                         </div>
                       </div>
 

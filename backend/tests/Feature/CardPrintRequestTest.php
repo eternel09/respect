@@ -6,8 +6,6 @@ use App\Models\CardPrintRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -180,22 +178,6 @@ class CardPrintRequestTest extends TestCase
         $this->postJson('/api/public/card-print-requests', ['note' => 'incomplet'])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['contact_name', 'contact_email', 'quantity']);
-    }
-
-    public function test_public_request_can_attach_a_design(): void
-    {
-        Storage::fake('public');
-
-        $this->postJson('/api/public/card-print-requests', [
-            'contact_name'  => 'Awa Mbayo',
-            'contact_email' => 'awa@horizon.cd',
-            'quantity'      => 50,
-            'design'        => UploadedFile::fake()->image('carte.png', 1000, 620),
-        ])->assertCreated();
-
-        $req = CardPrintRequest::withoutGlobalScopes()->firstOrFail();
-        $this->assertNotNull($req->design_path);
-        Storage::disk('public')->assertExists($req->design_path);
     }
 
     public function test_honeypot_silently_absorbs_bots(): void
