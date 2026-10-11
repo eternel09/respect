@@ -1,0 +1,51 @@
+# Feuille de route — Détachement en produits autonomes
+
+But : séparer, **de façon séquentielle**, les trois produits métier de Signiq en
+produits autonomes posés sur un **socle partagé** (identité/SSO, envoi WhatsApp,
+génération QR/PDF, paiement), sans régression et par **petites PR testées**.
+
+Ordre retenu : **1) Présence (entreprise) → 2) Invitations/RSVP → 3) Billetterie.**
+
+Principes :
+- Chaque étape = une PR dédiée, testée, consignée dans `docs/JOURNAL_PR.md`.
+- Rétro-compatibilité : les données existantes continuent de fonctionner.
+- Config-driven : les bascules passent par la configuration/l'environnement.
+- On ne « casse » rien tant qu'un produit n'est pas prêt à vivre seul.
+
+Statuts : ⬜ à faire · 🟨 en cours · ✅ fait
+
+---
+
+## Produit 1 — Présence « Entreprise »
+
+Repositionnement : de « pointage associatif » vers un **produit entreprise**
+(contrôle d'accès du personnel) avec **carte de service** livrable et
+**design uploadable**.
+
+| # | Étape | Détail | Statut |
+|---|---|---|:--:|
+| 1.1 | **Carte de service — design uploadable** | Une organisation téléverse le visuel de sa carte ; le QR + le nom sont apposés dessus (sinon design standard). Stockage, endpoints, réglage UI, transmission au moteur de rendu. | ✅ |
+| 1.2 | **Livraison de la carte** | Télécharger la carte (PDF/PNG) **et** l'envoyer sur WhatsApp, avec le design de l'organisation ; envoi en masse. | ⬜ |
+| 1.3 | **Champs entreprise sur le membre** | Fonction/poste, service/département, matricule — affichés sur la carte et exportables. | ⬜ |
+| 1.4 | **Image de marque** | Couleurs + logo de l'entreprise appliqués aux cartes et au back-office (une partie existe déjà). | ⬜ |
+| 1.5 | **Vocabulaire & parcours entreprise** | « Membre » → « Agent/Employé », écrans adaptés au module présence. | ⬜ |
+| 1.6 | **Extraction technique** | Isoler le module (routing, gating, éventuel sous-domaine), brancher sur les services socles. | ⬜ |
+
+## Produit 2 — Invitations & RSVP (événementiel)
+À détailler une fois le Produit 1 bien avancé. Briques : `Occasion`, `Guest`,
+cartons, RSVP, plan de salle, envoi WhatsApp.
+
+## Produit 3 — Billetterie
+À détailler en dernier. Déjà le plus autonome (domaine `ticket_*`, paiement
+abstrait, e-billets, contrôle d'entrée). Reste : agrégateur Mobile Money réel,
+scan mobile des billets, et extraction.
+
+---
+
+## Services socles partagés (transverses, construits au fil des étapes)
+- 🔑 **Identité / multi-tenant** (`Organization`, `User`, Sanctum) — le vrai verrou.
+- 💬 **Envoi WhatsApp** — déjà un micro-service séparé.
+- 🪪 **QR / Badges / PDF** — à extraire progressivement en service « credentials ».
+- 💳 **Paiement** — interface prête ; driver réel à venir.
+
+_Mis à jour au fil des étapes._

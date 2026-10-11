@@ -103,6 +103,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
     Route::middleware('role:admin')->group(function () {
         Route::get('/admin/organization', [OrganizationSettingsController::class, 'show']);
         Route::post('/admin/organization', [OrganizationSettingsController::class, 'update']);
+        Route::post('/admin/organization/card-design', [OrganizationSettingsController::class, 'uploadCardDesign']);
+        Route::delete('/admin/organization/card-design', [OrganizationSettingsController::class, 'removeCardDesign']);
 
         // Suite d'applications (modules) de l'organisation
         Route::get('/admin/modules', [OrganizationModuleController::class, 'index']);

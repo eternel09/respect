@@ -64,7 +64,11 @@ const SHARED_CSS = `
  * pastille blanche, QR encadré, ID + téléphone. Utilisée à l'impression ET
  * pour l'envoi WhatsApp.
  */
-function cardLandscapeHtml({ org, orgLogo, name, memberNo, serial, qrDataUri, phone }) {
+function cardLandscapeHtml(data) {
+  // Visuel de carte personnalisé (produit entreprise) : l'image coiffe la carte,
+  // le QR et le nom sont apposés dessus → toujours lisible/scannable.
+  if (data && data.cardDesign) return cardDesignHtml(data)
+  const { org, orgLogo, name, memberNo, serial, qrDataUri, phone } = data
   const logo = orgLogo
     ? `<span class="logo-chip"><img src="${orgLogo}" alt=""></span>`
     : `<img class="logo-plain" src="${LOGO_WHITE}" alt="Signiq">`
@@ -114,6 +118,32 @@ function cardLandscapeHtml({ org, orgLogo, name, memberNo, serial, qrDataUri, ph
       ${phone ? `<div class="phone">${escapeHtml(phone)}</div>` : ''}
     </div>
   </div>
+</body></html>`
+}
+
+/** Carte de service à visuel personnalisé (1000×620) : image de fond + QR + nom. */
+function cardDesignHtml({ cardDesign, name, memberNo, qrDataUri }) {
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1000px; height: 620px; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; position: relative; overflow: hidden; background: #0c1a2c; }
+  .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ident { position: absolute; left: 40px; bottom: 44px; max-width: 580px; color: #ffffff;
+           background: rgba(10,18,30,0.55); padding: 16px 22px; border-radius: 16px; }
+  .label { font-size: 15px; letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.75); }
+  .name { font-size: 42px; font-weight: 800; line-height: 1.1; margin-top: 6px; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+  .no { font-size: 18px; font-weight: 700; margin-top: 8px; color: #ffd9a8; letter-spacing: 1px; }
+  .qrwrap { position: absolute; right: 40px; bottom: 40px; width: 220px; height: 220px; background: #ffffff;
+            border-radius: 22px; display: flex; align-items: center; justify-content: center; box-shadow: 0 18px 42px rgba(0,0,0,0.38); }
+  .qrwrap img { width: 190px; height: 190px; }
+</style></head><body>
+  <img class="bg" src="${cardDesign}" alt="">
+  <div class="ident">
+    <div class="label">Carte de service</div>
+    <div class="name">${escapeHtml(name)}</div>
+    <div class="no">N° ${escapeHtml(memberNo)}</div>
+  </div>
+  <div class="qrwrap"><img src="${qrDataUri}" alt="QR"></div>
 </body></html>`
 }
 
@@ -303,7 +333,7 @@ async function renderCustomInvitation(puppeteer, data) {
  * chaque carte est capturée (fidélité totale au design) puis posée sur la
  * grille en 85,6×54 mm avec repères de découpe — 8 cartes par page.
  */
-async function renderPrintPdf(puppeteer, { org, orgLogo, members }) {
+async function renderPrintPdf(puppeteer, { org, orgLogo, cardDesign, members }) {
   const b = await browser(puppeteer)
 
   // 1) Capture séquentielle des cartes — fiable même quand le Chromium de
@@ -315,7 +345,7 @@ async function renderPrintPdf(puppeteer, { org, orgLogo, members }) {
     await page.setViewport({ width: 1000, height: 620, deviceScaleFactor: 1.5 })
     page.setDefaultTimeout(120000)
     for (let i = 0; i < members.length; i++) {
-      await page.setContent(cardLandscapeHtml({ ...members[i], org, orgLogo }), { waitUntil: 'load', timeout: 60000 })
+      await page.setContent(cardLandscapeHtml({ ...members[i], org, orgLogo, cardDesign }), { waitUntil: 'load', timeout: 60000 })
       const jpg = Buffer.from(await page.screenshot({ type: 'jpeg', quality: 85 }))
       shots.push(`data:image/jpeg;base64,${jpg.toString('base64')}`)
       if ((i + 1) % 5 === 0 || i === members.length - 1) console.log(`[card] ${i + 1}/${members.length}`)

@@ -58,6 +58,50 @@ class OrganizationSettingsController extends Controller
             'plan'        => $org->plan,
             'theme_color' => $org->theme_color,
             'logo_url'    => $org->logo_path ? Storage::disk('public')->url($org->logo_path) : null,
+            'card_design_url' => $org->cardDesignUrl(),
         ];
+    }
+
+    /**
+     * Téléverse le visuel de carte de service (image) : il coiffe la carte, le
+     * QR et le nom étant apposés dessus. Sans visuel, la carte garde le design
+     * standard. PDF refusé (le QR est incrusté par-dessus l'image).
+     */
+    public function uploadCardDesign(Request $request): JsonResponse
+    {
+        $org = Organization::findOrFail($request->user()->organization_id);
+
+        $request->validate([
+            'design' => ['required', 'file', 'image', 'max:30720'],
+        ], [
+            'design.required' => 'Sélectionnez une image de carte.',
+            'design.image'    => 'Utilisez une image (le PDF n’est pas pris en charge).',
+            'design.max'      => 'Fichier trop lourd (30 Mo maximum).',
+        ]);
+
+        if ($org->card_design_path) {
+            Storage::disk('public')->delete($org->card_design_path);
+        }
+        $org->card_design_path = $request->file('design')->store('card-designs', 'public');
+        $org->save();
+
+        return response()->json([
+            'message'         => 'Visuel de carte enregistré.',
+            'card_design_url' => $org->cardDesignUrl(),
+        ]);
+    }
+
+    /** Retire le visuel de carte (retour au design standard). */
+    public function removeCardDesign(Request $request): JsonResponse
+    {
+        $org = Organization::findOrFail($request->user()->organization_id);
+
+        if ($org->card_design_path) {
+            Storage::disk('public')->delete($org->card_design_path);
+            $org->card_design_path = null;
+            $org->save();
+        }
+
+        return response()->json(['message' => 'Visuel de carte retiré.']);
     }
 }

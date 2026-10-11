@@ -57,6 +57,31 @@ class Organization extends Model
         return 'data:' . $mime . ';base64,' . base64_encode($disk->get($this->logo_path));
     }
 
+    /** URL publique du visuel de carte de service personnalisé, ou null. */
+    public function cardDesignUrl(): ?string
+    {
+        return $this->card_design_path
+            ? Storage::disk('public')->url($this->card_design_path)
+            : null;
+    }
+
+    /** Visuel de carte en data-URI (pour le moteur de rendu), ou null. */
+    public function cardDesignDataUri(): ?string
+    {
+        if (! $this->card_design_path) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+        if (! $disk->exists($this->card_design_path)) {
+            return null;
+        }
+
+        $mime = $disk->mimeType($this->card_design_path) ?: 'image/jpeg';
+
+        return 'data:' . $mime . ';base64,' . base64_encode($disk->get($this->card_design_path));
+    }
+
     /**
      * Organisation par défaut (tenant n°1) — utilisée par les flux publics
      * tant que la résolution multi-tenant complète n'est pas en place.
