@@ -81,6 +81,12 @@ class User extends Authenticatable
         return $this->role === 'super_admin';
     }
 
+    /** Utilisateur interne (équipe plateforme) : sans organisation. */
+    public function isInternal(): bool
+    {
+        return $this->organization_id === null;
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *

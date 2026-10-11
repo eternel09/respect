@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../lib/axios'
 import CreateOrganizationModal from '../../components/CreateOrganizationModal'
@@ -26,6 +26,9 @@ export default function OrganizationsPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [refreshKey, page])
+
+  // Réservé au super-admin ; un opérateur est renvoyé vers sa file de demandes.
+  if (user && user.role !== 'super_admin') return <Navigate to="/admin/print-requests" replace />
 
   const handleLogout = async () => { await logout(); navigate('/admin/login') }
   const handleCreated = result => { setShow(false); setCreated(result); setRefresh(k => k + 1) }

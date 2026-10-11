@@ -107,10 +107,12 @@ class CardPrintRequestController extends Controller
         ], 201);
     }
 
-    /** Alerte l'équipe (super-admins) ; un échec d'envoi ne bloque jamais la demande. */
+    /** Alerte l'équipe (super-admins + opérateurs) ; un échec d'envoi ne bloque jamais la demande. */
     private function notifyOperators(CardPrintRequest $req): void
     {
-        $emails = User::where('role', 'super_admin')->pluck('email')->filter()->all();
+        $emails = User::whereNull('organization_id')
+            ->whereIn('role', ['super_admin', 'operator'])
+            ->pluck('email')->filter()->all();
         if (! $emails) {
             return;
         }

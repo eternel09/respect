@@ -49,6 +49,9 @@ scan mobile des billets, et extraction.
   Durci : throttle anti-bruteforce sur `/admin/login`, tokens de téléchargement
   (`?token=`) soumis à l'expiration par inactivité, plus de mot de passe
   super-admin par défaut en production (`SUPERADMIN_PASSWORD` requis).
+  **Équipe plateforme** : deux rôles internes — `super_admin` (pleins pouvoirs)
+  et `operator` (demandes d'impression seulement, moindre privilège) — avec une
+  page de gestion (création, modification, rôle, réinitialisation de mot de passe).
 - 💬 **Envoi WhatsApp** — déjà un micro-service séparé.
 - 🪪 **QR / Badges / PDF** — à extraire progressivement en service « credentials ».
 - 💳 **Paiement** — interface prête ; driver réel à venir.

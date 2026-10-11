@@ -78,11 +78,21 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
     Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
     Route::get('/admin/me', [AdminAuthController::class, 'me']);
 
-    // Plateforme — gestion des organisations (super-admin interne)
+    // Plateforme — gestion des organisations & de l'équipe (super-admin seul)
     Route::middleware('role:super_admin')->group(function () {
         Route::get('/admin/organizations', [OrganizationController::class, 'index']);
         Route::post('/admin/organizations', [OrganizationController::class, 'store']);
-        // Opérateur : demandes d'impression de cartes (toutes organisations)
+
+        // Équipe plateforme (utilisateurs internes : super-admin + opérateurs)
+        Route::get('/admin/internal-users', [\App\Http\Controllers\Api\InternalUserController::class, 'index']);
+        Route::post('/admin/internal-users', [\App\Http\Controllers\Api\InternalUserController::class, 'store']);
+        Route::patch('/admin/internal-users/{user}', [\App\Http\Controllers\Api\InternalUserController::class, 'update']);
+        Route::post('/admin/internal-users/{user}/password', [\App\Http\Controllers\Api\InternalUserController::class, 'resetPassword']);
+        Route::delete('/admin/internal-users/{user}', [\App\Http\Controllers\Api\InternalUserController::class, 'destroy']);
+    });
+
+    // File des demandes d'impression : super-admin ET opérateurs (service opéré)
+    Route::middleware('role:super_admin,operator')->group(function () {
         Route::get('/admin/print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'adminIndex']);
         Route::get('/admin/print-requests/export', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'export']);
         Route::get('/admin/print-requests/{cardPrintRequest}/events', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'events']);

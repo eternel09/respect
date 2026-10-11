@@ -10,6 +10,7 @@ import AttendancePage from './pages/admin/AttendancePage'
 import DashboardPage from './pages/admin/DashboardPage'
 import OrganizationsPage from './pages/admin/OrganizationsPage'
 import PrintRequestsPage from './pages/admin/PrintRequestsPage'
+import InternalUsersPage from './pages/admin/InternalUsersPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
@@ -28,11 +29,12 @@ import ModulesPage from './pages/admin/ModulesPage'
 import NetworkPage from './pages/admin/NetworkPage'
 import { homeForModules } from './lib/modules'
 
-// Atterrissage : super-admin → organisations, agent d'événement → son
-// événement, sinon accueil du 1ᵉʳ module actif.
+// Atterrissage : super-admin → organisations, opérateur → file des demandes,
+// agent d'événement → son événement, sinon accueil du 1ᵉʳ module actif.
 function AdminHome() {
   const { user } = useAuth()
   if (user?.role === 'super_admin') return <Navigate to="/admin/organizations" replace />
+  if (user?.role === 'operator') return <Navigate to="/admin/print-requests" replace />
   if (user?.occasion_id) return <Navigate to={`/events/${user.occasion_id}`} replace />
   return <Navigate to={homeForModules(user?.organization?.modules || [])} replace />
 }
@@ -64,6 +66,7 @@ export default function App() {
           {/* Plateforme (super-admin) */}
           <Route path="/admin/organizations"  element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
           <Route path="/admin/print-requests" element={<ProtectedRoute><PrintRequestsPage /></ProtectedRoute>} />
+          <Route path="/admin/internal-users" element={<ProtectedRoute><InternalUsersPage /></ProtectedRoute>} />
 
           {/* Suite d'applications — toujours accessible (gérer ses modules) */}
           <Route path="/admin/modules"    element={<ProtectedRoute><ModulesPage /></ProtectedRoute>} />

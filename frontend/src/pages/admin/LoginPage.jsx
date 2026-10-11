@@ -29,9 +29,11 @@ export default function LoginPage() {
     try {
       const data = await login(form.email, form.password)
       const u = data?.user
-      // Agent d'événement → son événement ; super-admin → organisations ; sinon back-office.
+      // super-admin → organisations ; opérateur → file des demandes ;
+      // agent d'événement → son événement ; sinon back-office.
       navigate(
         u?.role === 'super_admin' ? '/admin/organizations'
+        : u?.role === 'operator' ? '/admin/print-requests'
         : u?.occasion_id ? `/events/${u.occasion_id}`
         : '/admin/dashboard'
       )

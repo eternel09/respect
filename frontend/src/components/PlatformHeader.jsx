@@ -2,15 +2,17 @@ import { NavLink } from 'react-router-dom'
 import Icon from './ui/Icon'
 
 const TABS = [
-  { to: '/admin/organizations',  label: 'Organisations',       icon: 'domain' },
-  { to: '/admin/print-requests', label: "Demandes d'impression", icon: 'print' },
+  { to: '/admin/organizations',  label: 'Organisations',        icon: 'domain', roles: ['super_admin'] },
+  { to: '/admin/print-requests', label: "Demandes d'impression", icon: 'print',  roles: ['super_admin', 'operator'] },
+  { to: '/admin/internal-users', label: 'Utilisateurs internes', icon: 'group',  roles: ['super_admin'] },
 ]
 
 /**
- * Barre de navigation de l'espace plateforme (opérateur / super-admin).
- * Partagée par les pages super-admin pour basculer entre les sections.
+ * Barre de navigation de l'espace plateforme (super-admin / opérateur).
+ * Les onglets s'adaptent au rôle : l'opérateur ne voit que la file des demandes.
  */
 export default function PlatformHeader({ user, onLogout }) {
+  const tabs = TABS.filter(t => t.roles.includes(user?.role))
   return (
     <header className="bg-white border-b border-black/5 sticky top-0 z-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -20,12 +22,12 @@ export default function PlatformHeader({ user, onLogout }) {
           </div>
           <div>
             <p className="font-bold text-sm leading-tight text-brand">Signiq</p>
-            <p className="text-gray-400 text-xs">Plateforme · Super-admin</p>
+            <p className="text-gray-400 text-xs">Plateforme · {user?.role === 'operator' ? 'Opérateur' : 'Super-admin'}</p>
           </div>
         </div>
 
         <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-          {TABS.map(t => (
+          {tabs.map(t => (
             <NavLink
               key={t.to} to={t.to}
               className={({ isActive }) =>
@@ -46,7 +48,7 @@ export default function PlatformHeader({ user, onLogout }) {
 
       {/* Nav compacte (mobile) */}
       <nav className="md:hidden flex items-center gap-1 px-4 pb-2 overflow-x-auto">
-        {TABS.map(t => (
+        {tabs.map(t => (
           <NavLink
             key={t.to} to={t.to}
             className={({ isActive }) =>
