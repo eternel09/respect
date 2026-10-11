@@ -46,6 +46,9 @@ scan mobile des billets, et extraction.
 
 ## Services socles partagés (transverses, construits au fil des étapes)
 - 🔑 **Identité / multi-tenant** (`Organization`, `User`, Sanctum) — le vrai verrou.
+  Durci : throttle anti-bruteforce sur `/admin/login`, tokens de téléchargement
+  (`?token=`) soumis à l'expiration par inactivité, plus de mot de passe
+  super-admin par défaut en production (`SUPERADMIN_PASSWORD` requis).
 - 💬 **Envoi WhatsApp** — déjà un micro-service séparé.
 - 🪪 **QR / Badges / PDF** — à extraire progressivement en service « credentials ».
 - 💳 **Paiement** — interface prête ; driver réel à venir.

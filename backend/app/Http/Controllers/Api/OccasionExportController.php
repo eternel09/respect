@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\ResolvesDownloadToken;
 use App\Http\Controllers\Controller;
 use App\Models\Occasion;
-use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\PersonalAccessToken;
 
 /** Exports PDF liés à une occasion (listes imprimables). */
 class OccasionExportController extends Controller
 {
+    use ResolvesDownloadToken;
+
     /**
      * Liste imprimable des invités ayant reçu leur invitation (statut « sent »),
      * groupés par table — les « sans table » en fin de liste. Authentifié par le
@@ -52,12 +53,5 @@ class OccasionExportController extends Controller
         $slug = Str::slug($occasion->name) ?: ('evenement-' . $occasion->id);
 
         return $document->download("invites-envoyes-{$slug}.pdf");
-    }
-
-    private function userFromToken(Request $request): ?User
-    {
-        $token = $request->query('token');
-
-        return $token ? PersonalAccessToken::findToken($token)?->tokenable : null;
     }
 }

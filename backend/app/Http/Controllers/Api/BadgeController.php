@@ -2,19 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\ResolvesDownloadToken;
 use App\Http\Controllers\Controller;
 use App\Models\Badge;
 use App\Models\Member;
-use App\Models\User;
 use App\Services\BadgeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class BadgeController extends Controller
 {
+    use ResolvesDownloadToken;
+
     /**
      * Badge d'un membre (téléchargement natif). Authentifié par le token passé
      * en query (?token=) : permet une navigation directe du navigateur sans
@@ -87,15 +88,5 @@ class BadgeController extends Controller
 
         return $badges->forBlankBatch($user->organization_id, $batch)
             ->download("badges-vierges-{$batch}.pdf");
-    }
-
-    private function userFromToken(Request $request): ?User
-    {
-        $token = $request->query('token');
-        if (! $token) {
-            return null;
-        }
-
-        return PersonalAccessToken::findToken($token)?->tokenable;
     }
 }

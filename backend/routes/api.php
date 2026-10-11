@@ -50,8 +50,8 @@ Route::get('/download/app', [AppDistributionController::class, 'latest']);
 // Portail public : demande d'impression de cartes de service (prospect sans compte)
 Route::post('/public/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicStore'])->middleware('throttle:10,1');
 
-// Admin auth
-Route::post('/admin/login', [AdminAuthController::class, 'login']);
+// Admin auth — throttle anti-bruteforce (6 tentatives / minute / IP)
+Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:6,1');
 
 // Auto-inscription publique d'un organisateur (crée son espace + admin)
 Route::post('/register', [PublicRegistrationController::class, 'store'])->middleware('throttle:6,1');

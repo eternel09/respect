@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useAuth } from '../../context/AuthContext'
+import { apiErrorMessage } from '../../lib/axios'
 import Icon from '../../components/ui/Icon'
 import logoWhite from '../../assets/logo-white.png'
 import logoFull from '../../assets/logo-full.png'
@@ -35,7 +36,10 @@ export default function LoginPage() {
         : '/admin/dashboard'
       )
     } catch (err) {
-      setError(err.response?.data?.message || 'Identifiants incorrects.')
+      // 401 → identifiants ; 429 → trop de tentatives (anti-bruteforce) ; etc.
+      setError(err.response?.status === 401
+        ? 'Email ou mot de passe incorrect.'
+        : apiErrorMessage(err, 'Identifiants incorrects.'))
     } finally {
       setLoading(false)
     }

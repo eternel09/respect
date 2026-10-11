@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\ResolvesDownloadToken;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
-use App\Models\User;
 use App\Services\QrCodeService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * Impression des cartes de membre design (glassmorphism), format carte de
@@ -17,6 +16,8 @@ use Laravel\Sanctum\PersonalAccessToken;
  */
 class MemberCardController extends Controller
 {
+    use ResolvesDownloadToken;
+
     public function __construct(private QrCodeService $qr) {}
 
     /** Planche PDF : la carte d'UN membre. */
@@ -79,10 +80,4 @@ class MemberCardController extends Controller
         ]);
     }
 
-    private function userFromToken(Request $request): ?User
-    {
-        $token = $request->query('token');
-
-        return $token ? PersonalAccessToken::findToken($token)?->tokenable : null;
-    }
 }
