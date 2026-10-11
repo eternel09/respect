@@ -54,6 +54,8 @@ function WhatsAppSection() {
   }
 
   useEffect(() => {
+    // fetchStatus est asynchrone (setState après await) : pas de setState synchrone.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStatus()
     // Polling léger : le QR de liaison tourne, et l'état passe à "ready" après scan
     timer.current = setInterval(fetchStatus, 5000)
@@ -219,11 +221,59 @@ export default function SettingsPage() {
 
         {!loading && (
           <div className="max-w-xl">
+            <CardDesignSection url={org?.card_design_url} onChange={(u) => setOrg(o => ({ ...o, card_design_url: u }))} />
             <MobileAppSection />
             <WhatsAppSection />
           </div>
         )}
       </PageShell>
     </AdminLayout>
+  )
+}
+
+/** Visuel de carte de service uploadable (produit Présence entreprise). */
+function CardDesignSection({ url, onChange }) {
+  const ref = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  const upload = async (file) => {
+    if (ref.current) ref.current.value = ''
+    if (!file) return
+    setBusy(true); setMsg(null)
+    try {
+      const fd = new FormData(); fd.append('design', file)
+      const res = await api.post('/admin/organization/card-design', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      onChange(res.data.card_design_url); setMsg({ ok: true, text: res.data.message })
+    } catch (e) { setMsg({ ok: false, text: apiErrorMessage(e, 'Téléversement impossible.') }) }
+    finally { setBusy(false) }
+  }
+  const remove = async () => {
+    if (!confirm('Retirer le visuel ? Les cartes reprendront le design standard.')) return
+    setBusy(true); setMsg(null)
+    try { const res = await api.delete('/admin/organization/card-design'); onChange(null); setMsg({ ok: true, text: res.data.message }) }
+    catch (e) { setMsg({ ok: false, text: apiErrorMessage(e, 'Retrait impossible.') }) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-6 mb-6">
+      <h3 className="font-semibold text-gray-900">Carte de service</h3>
+      <p className="text-sm text-gray-500 mt-1">Téléversez le visuel de la carte de vos agents : le QR et le nom sont apposés dessus. Sans visuel, un design standard est utilisé.</p>
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={e => upload(e.target.files?.[0])} />
+      <div className="flex flex-wrap items-center gap-3 mt-3">
+        <button onClick={() => ref.current?.click()} disabled={busy}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-xl px-4 py-2.5 disabled:opacity-60">
+          {busy ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Icon name="upload" size={18} />}
+          {url ? 'Remplacer' : 'Téléverser'}
+        </button>
+        {url && (
+          <button onClick={remove} disabled={busy} className="text-sm font-medium text-gray-600 border border-gray-200 rounded-xl px-4 py-2.5 hover:bg-sand disabled:opacity-60">Retirer</button>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mt-2">PNG, JPG ou WEBP · max 30 Mo · format paysage recommandé (QR en bas à droite).</p>
+      {msg && <p className={`text-sm mt-2 ${msg.ok ? 'text-emerald-700' : 'text-red-600'}`}>{msg.text}</p>}
+      {url && <img src={url} alt="Visuel de carte" className="mt-4 w-full max-w-sm rounded-xl ring-1 ring-black/5 bg-gray-50" />}
+    </div>
   )
 }

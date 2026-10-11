@@ -47,6 +47,8 @@ class MemberCardController extends Controller
         $payload = [
             'org'     => $org->name,
             'orgLogo' => $org->logoDataUri(),
+            // Visuel de carte personnalisé (org) appliqué à chaque carte, ou null.
+            'cardDesign' => $org->cardDesignDataUri(),
             'members' => $members->map(fn (Member $m) => [
                 'name'      => $m->full_name,
                 'phone'     => $m->phone,
