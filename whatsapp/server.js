@@ -175,7 +175,7 @@ app.post('/preview-invitation', async (req, res) => {
 
 // Planche A4 de cartes (format carte de visite) — impression au même design
 app.post('/print-cards', async (req, res) => {
-  const { org, orgLogo, members } = req.body
+  const { org, orgLogo, cardDesign, layout, members } = req.body
   if (!Array.isArray(members) || members.length === 0) {
     return res.status(422).json({ message: 'Aucun membre à imprimer.' })
   }
@@ -183,7 +183,7 @@ app.post('/print-cards', async (req, res) => {
     return res.status(422).json({ message: '100 cartes maximum par planche.' })
   }
   try {
-    const pdf = await renderPrintPdf(puppeteer, { org, orgLogo, members })
+    const pdf = await renderPrintPdf(puppeteer, { org, orgLogo, cardDesign, layout, members })
     res.type('application/pdf').send(pdf)
   } catch (e) {
     console.error('[card] planche:', e.message)

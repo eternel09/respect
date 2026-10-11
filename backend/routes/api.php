@@ -47,8 +47,11 @@ Route::get('/download/occasions/{occasion}/invited-guests', [\App\Http\Controlle
 // APK de l'app scanner (public : lien partagé au staff)
 Route::get('/download/app', [AppDistributionController::class, 'latest']);
 
-// Admin auth
-Route::post('/admin/login', [AdminAuthController::class, 'login']);
+// Portail public : demande d'impression de cartes de service (prospect sans compte)
+Route::post('/public/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicStore'])->middleware('throttle:10,1');
+
+// Admin auth — throttle anti-bruteforce (6 tentatives / minute / IP)
+Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:6,1');
 
 // Auto-inscription publique d'un organisateur (crée son espace + admin)
 Route::post('/register', [PublicRegistrationController::class, 'store'])->middleware('throttle:6,1');
@@ -75,10 +78,26 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
     Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
     Route::get('/admin/me', [AdminAuthController::class, 'me']);
 
-    // Plateforme — gestion des organisations (super-admin interne)
+    // Plateforme — gestion des organisations & de l'équipe (super-admin seul)
     Route::middleware('role:super_admin')->group(function () {
         Route::get('/admin/organizations', [OrganizationController::class, 'index']);
         Route::post('/admin/organizations', [OrganizationController::class, 'store']);
+
+        // Équipe plateforme (utilisateurs internes : super-admin + opérateurs)
+        Route::get('/admin/internal-users', [\App\Http\Controllers\Api\InternalUserController::class, 'index']);
+        Route::post('/admin/internal-users', [\App\Http\Controllers\Api\InternalUserController::class, 'store']);
+        Route::patch('/admin/internal-users/{user}', [\App\Http\Controllers\Api\InternalUserController::class, 'update']);
+        Route::post('/admin/internal-users/{user}/password', [\App\Http\Controllers\Api\InternalUserController::class, 'resetPassword']);
+        Route::delete('/admin/internal-users/{user}', [\App\Http\Controllers\Api\InternalUserController::class, 'destroy']);
+    });
+
+    // File des demandes d'impression : super-admin ET opérateurs (service opéré)
+    Route::middleware('role:super_admin,operator')->group(function () {
+        Route::get('/admin/print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'adminIndex']);
+        Route::get('/admin/print-requests/export', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'export']);
+        Route::get('/admin/print-requests/{cardPrintRequest}/events', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'events']);
+        Route::post('/admin/print-requests/{cardPrintRequest}/notes', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'addNote']);
+        Route::patch('/admin/print-requests/{cardPrintRequest}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'updateStatus']);
     });
 
     // Terrain — scan du QR personnel (app mobile staff)
@@ -105,6 +124,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::post('/admin/organization', [OrganizationSettingsController::class, 'update']);
         Route::post('/admin/organization/card-design', [OrganizationSettingsController::class, 'uploadCardDesign']);
         Route::delete('/admin/organization/card-design', [OrganizationSettingsController::class, 'removeCardDesign']);
+        // Entreprise : demander l'impression des cartes à l'opérateur + suivi
+        Route::get('/admin/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'index']);
+        Route::post('/admin/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'store']);
 
         // Suite d'applications (modules) de l'organisation
         Route::get('/admin/modules', [OrganizationModuleController::class, 'index']);

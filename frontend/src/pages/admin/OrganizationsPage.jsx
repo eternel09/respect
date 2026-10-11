@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../lib/axios'
 import CreateOrganizationModal from '../../components/CreateOrganizationModal'
 import Pagination from '../../components/Pagination'
+import PlatformHeader from '../../components/PlatformHeader'
 import Icon from '../../components/ui/Icon'
 
 export default function OrganizationsPage() {
@@ -26,29 +27,15 @@ export default function OrganizationsPage() {
       .finally(() => setLoading(false))
   }, [refreshKey, page])
 
+  // Réservé au super-admin ; un opérateur est renvoyé vers sa file de demandes.
+  if (user && user.role !== 'super_admin') return <Navigate to="/admin/print-requests" replace />
+
   const handleLogout = async () => { await logout(); navigate('/admin/login') }
   const handleCreated = result => { setShow(false); setCreated(result); setRefresh(k => k + 1) }
 
   return (
     <div className="min-h-screen bg-sand">
-      {/* Barre plateforme */}
-      <header className="bg-white border-b border-black/5 sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-brand">
-              <Icon name="domain" size={20} className="text-white" />
-            </div>
-            <div>
-              <p className="font-bold text-sm leading-tight text-brand">Signiq</p>
-              <p className="text-gray-400 text-xs">Plateforme · Super-admin</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-xs text-gray-500">{user?.email}</span>
-            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">Déconnexion</button>
-          </div>
-        </div>
-      </header>
+      <PlatformHeader user={user} onLogout={handleLogout} />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>

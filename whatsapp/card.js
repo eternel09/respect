@@ -333,7 +333,7 @@ async function renderCustomInvitation(puppeteer, data) {
  * chaque carte est capturée (fidélité totale au design) puis posée sur la
  * grille en 85,6×54 mm avec repères de découpe — 8 cartes par page.
  */
-async function renderPrintPdf(puppeteer, { org, orgLogo, cardDesign, members }) {
+async function renderPrintPdf(puppeteer, { org, orgLogo, cardDesign, layout, members }) {
   const b = await browser(puppeteer)
 
   // 1) Capture séquentielle des cartes — fiable même quand le Chromium de
@@ -354,18 +354,27 @@ async function renderPrintPdf(puppeteer, { org, orgLogo, cardDesign, members }) 
     await page.close().catch(() => {})
   }
 
-  // 2) Assemblage en planche A4 (format d'impression carte de visite CR80)
+  // 2) Assemblage imprimable (CR80 85,6×54 mm) avec repères de découpe.
+  //    layout='single' → une carte par page (imprimante à cartes) ; sinon
+  //    planche A4 multi-cartes.
+  const single = layout === 'single'
   const sheet = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    @page { size: A4; margin: 10mm; }
+    @page { size: A4; margin: ${single ? '0' : '12mm'}; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: sans-serif; }
-    .grid { display: flex; flex-wrap: wrap; gap: 6mm 8mm; }
-    .cell { width: 85.6mm; height: 54mm; outline: 0.2mm dashed #c9ced6; border-radius: 2.5mm;
-            overflow: hidden; page-break-inside: avoid; }
+    .grid { display: flex; flex-wrap: wrap; ${single ? 'align-items: center; justify-content: center;' : 'gap: 10mm 9mm;'} }
+    .cell { position: relative; width: 85.6mm; height: 54mm; border-radius: 2.5mm; overflow: hidden;
+            page-break-inside: avoid; ${single ? 'margin: auto; page-break-after: always;' : ''} }
     .cell img { width: 100%; height: 100%; display: block; }
+    /* Repères de découpe aux 4 coins */
+    .m { position: absolute; width: 3mm; height: 3mm; pointer-events: none; }
+    .m-tl { top: -1mm; left: -1mm; border-top: 0.2mm solid #111; border-left: 0.2mm solid #111; }
+    .m-tr { top: -1mm; right: -1mm; border-top: 0.2mm solid #111; border-right: 0.2mm solid #111; }
+    .m-bl { bottom: -1mm; left: -1mm; border-bottom: 0.2mm solid #111; border-left: 0.2mm solid #111; }
+    .m-br { bottom: -1mm; right: -1mm; border-bottom: 0.2mm solid #111; border-right: 0.2mm solid #111; }
   </style></head><body>
     <div class="grid">
-      ${shots.map((src) => `<div class="cell"><img src="${src}"></div>`).join('')}
+      ${shots.map((src) => `<div class="cell"><img src="${src}"><span class="m m-tl"></span><span class="m m-tr"></span><span class="m m-bl"></span><span class="m m-br"></span></div>`).join('')}
     </div>
   </body></html>`
 
