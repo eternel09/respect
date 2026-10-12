@@ -3,6 +3,7 @@ import AdminLayout from '../../components/AdminLayout'
 import PageShell from '../../components/PageShell'
 import api, { apiErrorMessage } from '../../lib/axios'
 import { useAuth } from '../../context/AuthContext'
+import { MEMBER_TERM_OPTIONS } from '../../lib/memberTerm'
 import Icon from '../../components/ui/Icon'
 
 // Lien de téléchargement de l'app scanner (Android). L'APK est publié en asset
@@ -106,6 +107,7 @@ export default function SettingsPage() {
   const [org, setOrg]           = useState(null)
   const [name, setName]         = useState('')
   const [color, setColor]       = useState('#1e3a5f')
+  const [memberTermVal, setMemberTermVal] = useState('membre')
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setPreview] = useState(null)
   const [loading, setLoading]   = useState(true)
@@ -115,7 +117,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     api.get('/admin/organization')
-      .then(res => { setOrg(res.data); setName(res.data.name); setColor(res.data.theme_color || '#1e3a5f') })
+      .then(res => { setOrg(res.data); setName(res.data.name); setColor(res.data.theme_color || '#1e3a5f'); setMemberTermVal(res.data.member_term || 'membre') })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -135,6 +137,7 @@ export default function SettingsPage() {
       const fd = new FormData()
       fd.append('name', name)
       if (color) fd.append('theme_color', color)
+      fd.append('member_term', memberTermVal)
       if (logoFile) fd.append('logo', logoFile)
       const res = await api.post('/admin/organization', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       setOrg(res.data.organization)
@@ -206,6 +209,24 @@ export default function SettingsPage() {
                     className={`w-32 px-3 py-2 border rounded-xl text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand ${errors.theme_color ? 'border-red-300' : 'border-gray-200'}`} />
                 </div>
                 {errors.theme_color && <p className="text-xs text-red-600 mt-1">{errors.theme_color}</p>}
+              </div>
+
+              {/* Vocabulaire du membre (module présence) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Comment appelez-vous vos membres ?</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {MEMBER_TERM_OPTIONS.map(opt => (
+                    <button
+                      type="button" key={opt.key}
+                      onClick={() => setMemberTermVal(opt.key)}
+                      className={`text-left p-3 rounded-xl border transition-colors ${memberTermVal === opt.key ? 'border-brand bg-brand/5' : 'border-gray-200 hover:bg-sand'}`}
+                    >
+                      <span className="block text-sm font-semibold text-gray-800">{opt.label}</span>
+                      <span className="block text-xs text-gray-500">{opt.hint}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">Ce terme remplace « Membre » dans votre espace (menu, listes, fiches).</p>
               </div>
             </div>
 

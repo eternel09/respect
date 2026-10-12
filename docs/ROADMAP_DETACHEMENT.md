@@ -31,7 +31,7 @@ Repositionnement : de « pointage associatif » vers un **produit entreprise**
 | 1.2d | **Numéro de ticket & suivi public** | À l'envoi, le client reçoit un **numéro de ticket** (réf. lisible `CP-XXXXXX`) à l'écran **et par e-mail** (accusé de réception) avec un **lien de suivi**. Page publique `/suivi/{token}` (jeton non devinable) affichant l'état et l'historique public (création → statut), sans exposer les notes internes. Référence visible aussi dans la file opérateur. | ✅ |
 | 1.3 | **Champs entreprise sur le membre** | Fonction/poste, service/département, matricule — saisis à la création et **modifiables** (fiche membre), **affichés sur la carte** de service (fonction · service en sous-titre, matricule en n°) et **exportables** (CSV). | ✅ |
 | 1.4 | ~~**Image de marque (back-office)**~~ | **Sans objet pour ce produit** : le client n'a pas de back-office — il dépose sa demande via le lien public et suit via son ticket. La marque du client vit sur **les cartes** (logo client uniquement, fait). L'espace plateforme reste en marque Signiq. | ✖ |
-| 1.5 | **Vocabulaire & parcours entreprise** | « Membre » → « Agent/Employé », écrans adaptés au module présence. | ⬜ |
+| 1.5 | **Vocabulaire & parcours entreprise** | Terme du membre **configurable par organisation** (`member_term` : membre / agent / employé), appliqué au back-office présence : menu latéral, titres, boutons, listes et fiches. Réglage dans Paramètres. | ✅ |
 | 1.6 | **Extraction technique** | Isoler le module (routing, gating, éventuel sous-domaine), brancher sur les services socles. | ⬜ |
 
 ## Produit 2 — Invitations & RSVP (événementiel)

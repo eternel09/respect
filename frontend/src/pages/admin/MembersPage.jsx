@@ -6,6 +6,7 @@ import Pagination from '../../components/Pagination'
 import MemberDetailModal from '../../components/MemberDetailModal'
 import CardServiceMenu from '../../components/CardServiceMenu'
 import Icon from '../../components/ui/Icon'
+import { useMemberTerm } from '../../lib/memberTerm'
 import api, { downloadFile, apiErrorMessage } from '../../lib/axios'
 
 function Avatar({ name }) {
@@ -48,6 +49,7 @@ function AttendanceBar({ count = 0, total = 0 }) {
 }
 
 export default function MembersPage() {
+  const term = useMemberTerm()
   const [members, setMembers] = useState([])
   const [meta, setMeta]       = useState(null)
   const [search, setSearch]   = useState('')
@@ -148,7 +150,7 @@ export default function MembersPage() {
 
   return (
     <AdminLayout>
-      <PageShell title="Membres" subtitle="Gérez les membres de votre organisation.">
+      <PageShell title={term.many} subtitle={`Gérez les ${term.lowerMany} de votre organisation.`}>
 
         {badgeError && (
           <div className="mb-5 px-4 py-3 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">
@@ -178,7 +180,7 @@ export default function MembersPage() {
         {/* Stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
           <StatCard
-            label="Total des membres"
+            label={`Total des ${term.lowerMany}`}
             value={stats.total.toLocaleString('fr-FR')}
             icon="groups"
           />
@@ -192,7 +194,7 @@ export default function MembersPage() {
           <StatCard
             label="Sur cette page"
             value={members.length}
-            sub="Membres affichés"
+            sub={`${term.many} affichés`}
             iconWrap="bg-accent-soft text-accent-dark"
             icon="visibility"
           />
@@ -201,7 +203,7 @@ export default function MembersPage() {
             <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center mb-3 transition-transform group-hover:scale-110">
               <Icon name="person_add" size={22} />
             </div>
-            <span className="font-semibold flex items-center gap-1">Ajouter un membre <Icon name="arrow_forward" size={18} className="transition-transform group-hover:translate-x-0.5" /></span>
+            <span className="font-semibold flex items-center gap-1">Ajouter un {term.lowerOne} <Icon name="arrow_forward" size={18} className="transition-transform group-hover:translate-x-0.5" /></span>
           </button>
         </div>
 
@@ -262,7 +264,7 @@ export default function MembersPage() {
             <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr className="border-b border-black/5">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Membre</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">{term.one}</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Téléphone</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Assiduité</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Inscrit le</th>
@@ -275,7 +277,7 @@ export default function MembersPage() {
                     <div className="inline-block animate-spin h-6 w-6 border-2 border-brand border-t-transparent rounded-full" />
                   </td></tr>
                 ) : members.length === 0 ? (
-                  <tr><td colSpan={5} className="px-5 py-12 text-center text-gray-400">Aucun membre trouvé.</td></tr>
+                  <tr><td colSpan={5} className="px-5 py-12 text-center text-gray-400">Aucun {term.lowerOne} trouvé.</td></tr>
                 ) : members.map(m => (
                   <tr key={m.id} className="border-b border-gray-50 last:border-0 hover:bg-sand/60 transition-colors">
                     <td className="px-5 py-4">
@@ -322,7 +324,7 @@ export default function MembersPage() {
             </table>
           </div>
 
-          <Pagination meta={meta} page={page} onChange={setPage} count={members.length} label="membre(s)" />
+          <Pagination meta={meta} page={page} onChange={setPage} count={members.length} label={`${term.lowerOne}(s)`} />
         </div>
 
         <AddMemberModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={handleCreated} />
