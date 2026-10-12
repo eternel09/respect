@@ -35,9 +35,32 @@ Repositionnement : de « pointage associatif » vers un **produit entreprise**
 | 1.5 | **Vocabulaire & parcours entreprise** | Terme du membre **configurable par organisation** (`member_term` : membre / agent / employé), appliqué au back-office présence : menu latéral, titres, boutons, listes et fiches. Réglage dans Paramètres. | ✅ |
 | 1.6 | **Extraction technique** | **Reporté.** En clair : aujourd'hui tout tourne dans **une seule application** (un seul code, un seul déploiement). « Extraire » = faire du produit présence/cartes une application **séparée** (son propre déploiement, éventuellement sa propre adresse web type `cartes.signiq…`), qui réutiliserait les briques communes (connexion, envoi d'e-mails/WhatsApp, PDF). Intérêt : faire évoluer/vendre le produit indépendamment. Coût : plusieurs semaines d'infra, peu de bénéfice visible tant qu'on a un seul produit actif. À rediscuter quand le besoin commercial existe. | ⏳ |
 
-## Produit 2 — Invitations & RSVP (événementiel)
-À détailler une fois le Produit 1 bien avancé. Briques : `Occasion`, `Guest`,
-cartons, RSVP, plan de salle, envoi WhatsApp.
+## Produit 2 — Invitations & RSVP (mariages, événements)
+
+Repositionnement : **service opéré**, comme les cartes. Le couple (ou
+l'organisateur) n'a **ni compte ni back-office** : il soumet sa demande via un
+portail public, reçoit un ticket et suit l'avancement par un lien. **L'équipe
+plateforme** monte le carton, envoie les invitations depuis **ses propres
+numéros WhatsApp** et suit les confirmations.
+
+Déjà en place (réutilisé tel quel) : événements typés à modules, invités
+(import, tables), plan de salle, carton personnalisé (QR + nom), message,
+envoi WhatsApp espacé (anti-blocage, verrou, arrêt), page RSVP + vidéo du
+couple, accueil le jour J (agents, scan QR, app mobile), export PDF.
+
+Principe d'architecture (à valider) : les événements des clients vivent dans
+**une organisation interne « de production »** exploitée par l'équipe → tout
+l'outillage existant sert sans réécriture ; le portail et le suivi publics
+s'y branchent.
+
+| # | Étape | Détail | Statut |
+|---|---|---|:--:|
+| 2.1 | **Numéro WhatsApp réservé à l'équipe** | Une seule session WhatsApp sert toute la plateforme ; jusqu'ici **n'importe quelle organisation** voyait le QR de liaison (la première à le scanner devenait l'expéditeur de tous). → Le QR n'est remis **qu'au super-admin**, quel que soit l'écran ; page **WhatsApp** dans l'espace plateforme (liaison, état, **changement de numéro**) ; les organisations ne voient plus que l'état (« géré par l'équipe Signiq »). | ✅ |
+| 2.2 | **Envoi en arrière-plan** | L'envoi en masse tourne dans la requête web (≈ 1 h pour 300 invités). → File d'attente (job) avec suivi de progression ; nécessite le worker en prod. | ⬜ |
+| 2.3 | **Portail public « demande d'invitations »** | Le couple décrit son événement (type, date, lieu, nombre d'invités, contact) → ticket + accusé + page de suivi, comme les cartes. | ⬜ |
+| 2.4 | **Demande → événement** | L'opérateur transforme la demande en événement pré-rempli dans l'organisation de production. | ⬜ |
+| 2.5 | **Suivi du couple** | Lien public : invitations envoyées, confirmés / déclinés / en attente, sans compte. | ⬜ |
+| 2.6 | **Relances** | Invités sans réponse relancés ; couple informé des étapes. | ⬜ |
 
 ## Produit 3 — Billetterie
 À détailler en dernier. Déjà le plus autonome (domaine `ticket_*`, paiement

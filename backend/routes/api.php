@@ -85,6 +85,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::get('/admin/organizations', [OrganizationController::class, 'index']);
         Route::post('/admin/organizations', [OrganizationController::class, 'store']);
 
+        // Numéro WhatsApp d'envoi de la plateforme : liaison réservée au super-admin
+        Route::post('/admin/platform/whatsapp/logout', [WhatsAppController::class, 'logout']);
+
         // Équipe plateforme (utilisateurs internes : super-admin + opérateurs)
         Route::get('/admin/internal-users', [\App\Http\Controllers\Api\InternalUserController::class, 'index']);
         Route::post('/admin/internal-users', [\App\Http\Controllers\Api\InternalUserController::class, 'store']);
@@ -95,6 +98,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
 
     // File des demandes d'impression : super-admin ET opérateurs (service opéré)
     Route::middleware('role:super_admin,operator')->group(function () {
+        // État du numéro WhatsApp (QR remis au seul super-admin, cf. contrôleur)
+        Route::get('/admin/platform/whatsapp', [WhatsAppController::class, 'status']);
         Route::get('/admin/print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'adminIndex']);
         Route::get('/admin/print-requests/export', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'export']);
         Route::get('/admin/print-requests/stats', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'stats']);
