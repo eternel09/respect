@@ -72,9 +72,11 @@ function cardLandscapeHtml(data) {
   // Sous-titre « fonction · service » et numéro = matricule si fourni, sinon n° membre.
   const roleLine = [jobTitle, department].filter(Boolean).map(escapeHtml).join(' · ')
   const badge = staffId ? `MATRICULE ${escapeHtml(staffId)}` : `MEMBRE N° ${escapeHtml(memberNo)}`
+  // Carte de service : seul le logo du client s'affiche. Sans logo d'organisation,
+  // on n'appose aucun logo (jamais celui de la plateforme) — le nom suffit.
   const logo = orgLogo
     ? `<span class="logo-chip"><img src="${orgLogo}" alt=""></span>`
-    : `<img class="logo-plain" src="${LOGO_WHITE}" alt="Signiq">`
+    : ''
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1000px; height: 620px; }
@@ -88,7 +90,6 @@ function cardLandscapeHtml(data) {
   .logo-chip { width: 84px; height: 84px; background: #ffffff; border-radius: 18px; flex-shrink: 0;
                display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0,0,0,0.30); }
   .logo-chip img { max-width: 64px; max-height: 64px; width: auto; height: auto; display: block; }
-  .logo-plain { height: 60px; width: auto; opacity: 0.95; }
   .org { font-size: 30px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; }
   .body { flex: 1; display: flex; align-items: center; gap: 34px; }
   .identity { flex: 1; min-width: 0; }
