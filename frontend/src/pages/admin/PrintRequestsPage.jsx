@@ -42,6 +42,8 @@ export default function PrintRequestsPage() {
   const [busyId, setBusyId]   = useState(null)
   const [openId, setOpenId]   = useState(null) // demande dont l'historique est déplié
   const [exporting, setExporting] = useState(false)
+  const [stats, setStats]     = useState(null)
+  const [noteBusy, setNoteBusy] = useState(null) // id de la demande dont le bon est en génération
 
   const load = useCallback(() => {
     setLoading(true); setError(null)
@@ -55,6 +57,12 @@ export default function PrintRequestsPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
+  // Tableau de bord (compteurs globaux, indépendants des filtres).
+  const loadStats = useCallback(() => {
+    api.get('/admin/print-requests/stats').then(res => setStats(res.data)).catch(() => {})
+  }, [])
+  useEffect(() => { loadStats() }, [loadStats])
+
   const handleLogout = async () => { await logout(); navigate('/admin/login') }
 
   const setItemStatus = async (item, next) => {
@@ -62,6 +70,7 @@ export default function PrintRequestsPage() {
     try {
       const res = await api.patch(`/admin/print-requests/${item.id}`, { status: next })
       setItems(list => list.map(i => (i.id === item.id ? res.data.request : i)))
+      loadStats()
     } catch (err) {
       setError(apiErrorMessage(err, "Mise à jour impossible."))
     } finally { setBusyId(null) }
@@ -75,14 +84,21 @@ export default function PrintRequestsPage() {
         params: { status: status || undefined, source: source || undefined },
         responseType: 'blob',
       })
-      const url = URL.createObjectURL(res.data)
-      const a = document.createElement('a')
-      a.href = url; a.download = 'demandes-cartes.csv'
-      document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(url)
+      saveBlob(res.data, 'demandes-cartes.csv')
     } catch (err) {
       setError(apiErrorMessage(err, "Export impossible."))
     } finally { setExporting(false) }
+  }
+
+  // Bon de livraison PDF d'une demande (endpoint authentifié → blob).
+  const downloadDeliveryNote = async item => {
+    setNoteBusy(item.id); setError(null)
+    try {
+      const res = await api.get(`/admin/print-requests/${item.id}/delivery-note`, { responseType: 'blob' })
+      saveBlob(res.data, `bon-livraison-${item.reference || item.id}.pdf`)
+    } catch (err) {
+      setError(apiErrorMessage(err, "Impossible de générer le bon de livraison."))
+    } finally { setNoteBusy(null) }
   }
 
   return (
@@ -106,6 +122,8 @@ export default function PrintRequestsPage() {
               Exporter CSV
             </button>
           </div>
+
+          {stats && <StatsRow stats={stats} />}
 
           {/* Filtres par canal */}
           <div className="flex flex-wrap gap-2 mb-2">
@@ -151,7 +169,8 @@ export default function PrintRequestsPage() {
                 const who = item.organization?.name || item.contact?.company || item.contact?.name || 'Prospect'
                 return (
                   <div key={item.id} className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    {/* Détails en haut, actions en pied de carte : les détails gardent toute la largeur. */}
+                    <div className="flex flex-col gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-gray-900">{who}</span>
@@ -185,7 +204,7 @@ export default function PrintRequestsPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 shrink-0">
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-black/5">
                         {item.status === 'pending' && (
                           <button disabled={busyId === item.id} onClick={() => setItemStatus(item, 'in_progress')}
                             className="text-sm px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">Prendre en charge</button>
@@ -198,6 +217,16 @@ export default function PrintRequestsPage() {
                               className="text-sm px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-sand disabled:opacity-60">Annuler</button>
                           </>
                         )}
+                        <button
+                          onClick={() => downloadDeliveryNote(item)} disabled={noteBusy === item.id}
+                          title="Bon de livraison (PDF)"
+                          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-sand disabled:opacity-60"
+                        >
+                          {noteBusy === item.id
+                            ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                            : <Icon name="local_shipping" size={16} />}
+                          Bon
+                        </button>
                         <button
                           onClick={() => setOpenId(id => id === item.id ? null : item.id)}
                           className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-sand"
@@ -222,6 +251,56 @@ export default function PrintRequestsPage() {
           )}
         </motion.div>
       </main>
+    </div>
+  )
+}
+
+/** Enregistre un Blob (réponse authentifiée) comme fichier téléchargé. */
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click(); a.remove()
+  URL.revokeObjectURL(url)
+}
+
+const fmtNum = n => (n ?? 0).toLocaleString('fr-FR')
+
+/**
+ * Tableau de bord de la file : rangée de tuiles chiffrées. Texte en encre
+ * neutre ; seule la tuile « en souffrance » prend la couleur d'alerte, et
+ * toujours avec une icône + un libellé (jamais la couleur seule).
+ */
+function StatsRow({ stats }) {
+  const s = stats.by_status || {}
+  const open = (s.pending || 0) + (s.in_progress || 0)
+  const alert = stats.stale > 0
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <StatTile label="Demandes ouvertes" value={fmtNum(open)}
+        sub={`${fmtNum(s.pending)} en attente · ${fmtNum(s.in_progress)} en cours`} />
+      <StatTile label="Cartes à produire" value={fmtNum(stats.open_cards)} sub="sur les demandes ouvertes" />
+      <StatTile label="Terminées" value={fmtNum(s.done)} sub={`${fmtNum(s.cancelled)} annulée(s)`} />
+      <StatTile
+        label="En souffrance" value={fmtNum(stats.stale)}
+        sub={`sans avancement depuis ${stats.stale_hours} h`}
+        icon={alert ? 'warning' : 'check_circle'}
+        tone={alert ? 'warning' : 'neutral'}
+      />
+    </div>
+  )
+}
+
+function StatTile({ label, value, sub, icon, tone = 'neutral' }) {
+  const warning = tone === 'warning'
+  return (
+    <div className={`rounded-2xl p-4 ring-1 shadow-sm ${warning ? 'bg-amber-50 ring-amber-200' : 'bg-white ring-black/5'}`}>
+      <div className="flex items-center gap-1.5">
+        {icon && <Icon name={icon} size={16} className={warning ? 'text-amber-600' : 'text-gray-400'} />}
+        <p className={`text-sm ${warning ? 'text-amber-800 font-medium' : 'text-gray-500'}`}>{label}</p>
+      </div>
+      <p className="text-[1.75rem] leading-none font-semibold text-gray-900 mt-2 tracking-tight">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-1.5">{sub}</p>}
     </div>
   )
 }

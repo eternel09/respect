@@ -63,4 +63,10 @@ return [
         'releases_token' => env('GITHUB_RELEASES_TOKEN'),
     ],
 
+    // Service de cartes : au-delà de ce délai sans avancement, une demande
+    // ouverte est « en souffrance » (tableau de bord + relance quotidienne).
+    'cards' => [
+        'stale_hours' => (int) env('CARD_REQUEST_STALE_HOURS', 48),
+    ],
+
 ];
