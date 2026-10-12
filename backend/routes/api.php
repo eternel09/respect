@@ -153,8 +153,10 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::get('/admin/notifications', [DashboardController::class, 'notifications']);
 
         Route::get('/admin/members', [MemberController::class, 'index']);
+        Route::get('/admin/members/export', [MemberController::class, 'export']);
         Route::post('/admin/members', [MemberController::class, 'store']);
         Route::get('/admin/members/{member}', [MemberController::class, 'show']);
+        Route::patch('/admin/members/{member}', [MemberController::class, 'update']);
         Route::get('/admin/members/{member}/qr', [MemberController::class, 'qr']);
         Route::post('/admin/badges/blank', [BadgeController::class, 'createBlankBatch']);
 

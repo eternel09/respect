@@ -17,6 +17,10 @@ class StoreMemberRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'],
             'last_name'  => ['required', 'string', 'max:100'],
             'phone'      => ['required', 'string', 'regex:/^\+?[0-9]{9,15}$/', 'unique:members,phone'],
+            // Champs entreprise (optionnels)
+            'job_title'  => ['nullable', 'string', 'max:120'],
+            'department' => ['nullable', 'string', 'max:120'],
+            'staff_id'   => ['nullable', 'string', 'max:60'],
         ];
     }
 

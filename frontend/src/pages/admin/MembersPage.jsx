@@ -78,6 +78,23 @@ export default function MembersPage() {
     } finally { setBadgeBusy(null) }
   }
 
+  // Export CSV des membres (respecte la recherche), via blob authentifié.
+  const exportCsv = async () => {
+    setBadgeBusy('csv'); setBadgeError(null)
+    try {
+      const res = await api.get('/admin/members/export', {
+        params: { search: search || undefined }, responseType: 'blob',
+      })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url; a.download = 'membres.csv'
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setBadgeError(apiErrorMessage(err, "Export impossible."))
+    } finally { setBadgeBusy(null) }
+  }
+
   const downloadAllBadges = async () => {
     setBadgeBusy('all'); setBadgeError(null)
     try {
@@ -203,6 +220,17 @@ export default function MembersPage() {
           <div className="flex items-center gap-3">
             <CardServiceMenu memberCount={stats.total} />
             <button
+              onClick={exportCsv}
+              disabled={badgeBusy === 'csv'}
+              title="Exporter la liste des membres (CSV, champs entreprise inclus)"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-xl px-3 py-2 hover:bg-sand transition-colors disabled:opacity-60"
+            >
+              {badgeBusy === 'csv'
+                ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                : <Icon name="table_view" size={18} />}
+              Exporter
+            </button>
+            <button
               onClick={downloadAllBadges}
               disabled={badgeBusy === 'all'}
               title="Télécharger les badges nominatifs des membres existants"
@@ -253,9 +281,14 @@ export default function MembersPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar name={m.full_name} />
-                        <button onClick={() => setDetailId(m.id)} className="font-medium text-gray-900 hover:text-brand transition-colors text-left">
-                          {m.full_name}
-                        </button>
+                        <div className="min-w-0">
+                          <button onClick={() => setDetailId(m.id)} className="font-medium text-gray-900 hover:text-brand transition-colors text-left block">
+                            {m.full_name}
+                          </button>
+                          {(m.job_title || m.department) && (
+                            <span className="text-xs text-gray-400 truncate">{[m.job_title, m.department].filter(Boolean).join(' · ')}</span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-gray-700">{m.phone || '—'}</td>
@@ -293,7 +326,7 @@ export default function MembersPage() {
         </div>
 
         <AddMemberModal open={showAdd} onClose={() => setShowAdd(false)} onCreated={handleCreated} />
-        <MemberDetailModal memberId={detailId} onClose={() => setDetailId(null)} onDownloadBadge={downloadBadge} badgeBusy={badgeBusy} />
+        <MemberDetailModal memberId={detailId} onClose={() => setDetailId(null)} onDownloadBadge={downloadBadge} badgeBusy={badgeBusy} onUpdated={() => setRefreshKey(k => k + 1)} />
       </PageShell>
     </AdminLayout>
   )

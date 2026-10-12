@@ -8,13 +8,39 @@ function initials(name) {
   return name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'
 }
 
-export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, badgeBusy }) {
+export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, badgeBusy, onUpdated }) {
   const open = !!memberId
   const [data, setData]       = useState(null) // { member, attendances }
   const [qr, setQr]           = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(null)
   const [wa, setWa]           = useState({ busy: false, message: null, ok: false })
+  const [editing, setEditing] = useState(false)
+  const [edit, setEdit]       = useState(null)
+  const [saving, setSaving]   = useState(false)
+  const [saveErr, setSaveErr] = useState(null)
+
+  const startEdit = () => {
+    setSaveErr(null)
+    setEdit({
+      first_name: m.first_name, last_name: m.last_name, phone: m.phone || '',
+      job_title: m.job_title || '', department: m.department || '', staff_id: m.staff_id || '',
+    })
+    setEditing(true)
+  }
+
+  const saveEdit = async e => {
+    e.preventDefault()
+    setSaving(true); setSaveErr(null)
+    try {
+      const res = await api.patch(`/admin/members/${memberId}`, edit)
+      setData(d => ({ ...d, member: { ...d.member, ...res.data.member } }))
+      setEditing(false)
+      onUpdated?.()
+    } catch (err) {
+      setSaveErr(apiErrorMessage(err, 'Enregistrement impossible.'))
+    } finally { setSaving(false) }
+  }
 
   const sendWhatsApp = async () => {
     setWa({ busy: true, message: null, ok: false })
@@ -28,7 +54,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
 
   useEffect(() => {
     if (!memberId) return
-    setLoading(true); setError(null); setData(null); setQr(null)
+    setLoading(true); setError(null); setData(null); setQr(null); setEditing(false)
     Promise.all([
       api.get(`/admin/members/${memberId}`),
       api.get(`/admin/members/${memberId}/qr`),
@@ -124,10 +150,41 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
                       )}
                     </div>
 
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <Info label="Téléphone" value={m.phone} />
-                      <Info label="Inscrit le" value={m.created_at?.slice(0, 10)} />
-                      <Info label="Présences" value={`${m.attendance_count ?? attendances.length} enregistrée(s)`} />
+                    <div className="flex-1 min-w-0">
+                      {editing ? (
+                        <form onSubmit={saveEdit} className="space-y-3">
+                          <div className="flex gap-3">
+                            <EditField label="Prénom" value={edit.first_name} onChange={v => setEdit(s => ({ ...s, first_name: v }))} />
+                            <EditField label="Nom" value={edit.last_name} onChange={v => setEdit(s => ({ ...s, last_name: v }))} />
+                          </div>
+                          <EditField label="Téléphone" value={edit.phone} onChange={v => setEdit(s => ({ ...s, phone: v }))} />
+                          <div className="flex gap-3">
+                            <EditField label="Fonction" value={edit.job_title} onChange={v => setEdit(s => ({ ...s, job_title: v }))} />
+                            <EditField label="Service" value={edit.department} onChange={v => setEdit(s => ({ ...s, department: v }))} />
+                          </div>
+                          <EditField label="Matricule" value={edit.staff_id} onChange={v => setEdit(s => ({ ...s, staff_id: v }))} />
+                          {saveErr && <p className="text-xs text-red-600">{saveErr}</p>}
+                          <div className="flex gap-2 pt-1">
+                            <button type="button" onClick={() => setEditing(false)} className="flex-1 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200">Annuler</button>
+                            <button type="submit" disabled={saving} className="flex-1 py-2 rounded-xl text-sm font-semibold text-white bg-brand hover:bg-brand-dark disabled:opacity-60 flex items-center justify-center gap-2">
+                              {saving && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />}Enregistrer
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="space-y-3">
+                          <Info label="Téléphone" value={m.phone} />
+                          {m.job_title && <Info label="Fonction" value={m.job_title} />}
+                          {m.department && <Info label="Service" value={m.department} />}
+                          {m.staff_id && <Info label="Matricule" value={m.staff_id} />}
+                          <Info label="Inscrit le" value={m.created_at?.slice(0, 10)} />
+                          <Info label="Présences" value={`${m.attendance_count ?? attendances.length} enregistrée(s)`} />
+                          <button onClick={startEdit} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:bg-brand/5 rounded-lg px-2 py-1 -ml-2">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+                            Modifier
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -166,5 +223,17 @@ function Info({ label, value }) {
       <span className="text-sm text-gray-400 whitespace-nowrap">{label}</span>
       <span className="text-sm font-medium text-gray-800 text-right break-words min-w-0">{value}</span>
     </div>
+  )
+}
+
+function EditField({ label, value, onChange }) {
+  return (
+    <label className="flex-1 block">
+      <span className="block text-xs font-medium text-gray-500 mb-1">{label}</span>
+      <input
+        value={value} onChange={e => onChange(e.target.value)}
+        className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand"
+      />
+    </label>
   )
 }

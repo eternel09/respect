@@ -49,6 +49,10 @@ class WhatsAppController extends Controller
             'memberNo'  => str_pad($member->id, 4, '0', STR_PAD_LEFT),
             'serial'    => strtoupper(substr($member->check_in_token, 0, 8)),
             'qrDataUri' => 'data:image/svg+xml;base64,' . $qr->member($member->check_in_token),
+            // Champs entreprise affichés sur la carte de service (optionnels).
+            'jobTitle'   => $member->job_title,
+            'department' => $member->department,
+            'staffId'    => $member->staff_id,
             // Visuel de carte de service personnalisé (produit entreprise), ou null.
             'cardDesign' => $member->organization->cardDesignDataUri(),
         ];

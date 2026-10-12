@@ -7,12 +7,12 @@ const inputBase =
   'focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand'
 
 export default function AddMemberModal({ open, onClose, onCreated }) {
-  const [form, setForm]       = useState({ first_name: '', last_name: '', phone: '' })
+  const [form, setForm]       = useState({ first_name: '', last_name: '', phone: '', job_title: '', department: '', staff_id: '' })
   const [errors, setErrors]   = useState({})
   const [error, setError]     = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const reset = () => { setForm({ first_name: '', last_name: '', phone: '' }); setErrors({}); setError(null) }
+  const reset = () => { setForm({ first_name: '', last_name: '', phone: '', job_title: '', department: '', staff_id: '' }); setErrors({}); setError(null) }
   const close = () => { if (!loading) { reset(); onClose() } }
 
   const handleChange = e => {
@@ -87,6 +87,28 @@ export default function AddMemberModal({ open, onClose, onCreated }) {
                 <input name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="+243 81 000 00 00"
                   className={`${inputBase} ${errors.phone ? 'border-red-300' : 'border-gray-200'}`} />
                 {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone}</p>}
+              </div>
+
+              {/* Informations entreprise (optionnelles) — carte de service */}
+              <div className="pt-1 border-t border-black/5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-2">Informations entreprise <span className="font-normal normal-case">(optionnel)</span></p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Fonction</label>
+                    <input name="job_title" value={form.job_title} onChange={handleChange} placeholder="Ex. Infirmière"
+                      className={`${inputBase} border-gray-200`} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Service</label>
+                    <input name="department" value={form.department} onChange={handleChange} placeholder="Ex. Pédiatrie"
+                      className={`${inputBase} border-gray-200`} />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Matricule</label>
+                  <input name="staff_id" value={form.staff_id} onChange={handleChange} placeholder="Ex. MAT-0423"
+                    className={`${inputBase} border-gray-200`} />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">

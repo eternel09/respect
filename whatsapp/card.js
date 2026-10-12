@@ -68,10 +68,15 @@ function cardLandscapeHtml(data) {
   // Visuel de carte personnalisé (produit entreprise) : l'image coiffe la carte,
   // le QR et le nom sont apposés dessus → toujours lisible/scannable.
   if (data && data.cardDesign) return cardDesignHtml(data)
-  const { org, orgLogo, name, memberNo, serial, qrDataUri, phone } = data
+  const { org, orgLogo, name, memberNo, serial, qrDataUri, phone, jobTitle, department, staffId } = data
+  // Sous-titre « fonction · service » et numéro = matricule si fourni, sinon n° membre.
+  const roleLine = [jobTitle, department].filter(Boolean).map(escapeHtml).join(' · ')
+  const badge = staffId ? `MATRICULE ${escapeHtml(staffId)}` : `MEMBRE N° ${escapeHtml(memberNo)}`
+  // Carte de service : seul le logo du client s'affiche. Sans logo d'organisation,
+  // on n'appose aucun logo (jamais celui de la plateforme) — le nom suffit.
   const logo = orgLogo
     ? `<span class="logo-chip"><img src="${orgLogo}" alt=""></span>`
-    : `<img class="logo-plain" src="${LOGO_WHITE}" alt="Signiq">`
+    : ''
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1000px; height: 620px; }
@@ -85,12 +90,12 @@ function cardLandscapeHtml(data) {
   .logo-chip { width: 84px; height: 84px; background: #ffffff; border-radius: 18px; flex-shrink: 0;
                display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0,0,0,0.30); }
   .logo-chip img { max-width: 64px; max-height: 64px; width: auto; height: auto; display: block; }
-  .logo-plain { height: 60px; width: auto; opacity: 0.95; }
   .org { font-size: 30px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; }
   .body { flex: 1; display: flex; align-items: center; gap: 34px; }
   .identity { flex: 1; min-width: 0; }
   .label { font-size: 16px; letter-spacing: 5px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
   .name { font-size: 54px; font-weight: 800; line-height: 1.08; margin-top: 10px; text-shadow: 0 2px 14px rgba(0,0,0,0.3); }
+  .role { font-size: 24px; font-weight: 600; color: rgba(255,255,255,0.78); margin-top: 10px; }
   .no { display: inline-block; margin-top: 22px; padding: 12px 30px; border-radius: 999px;
         font-size: 23px; font-weight: 700; letter-spacing: 2px; color: #2a1a08;
         background: linear-gradient(90deg, #d8944a, #c9742b); border: 1px solid rgba(255,220,180,0.45);
@@ -107,9 +112,10 @@ function cardLandscapeHtml(data) {
     <div class="head">${logo}<div class="org">${escapeHtml(org)}</div></div>
     <div class="body">
       <div class="identity">
-        <div class="label">Carte de membre</div>
+        <div class="label">${roleLine ? 'Carte de service' : 'Carte de membre'}</div>
         <div class="name">${escapeHtml(name)}</div>
-        <div><span class="no">MEMBRE N° ${escapeHtml(memberNo)}</span></div>
+        ${roleLine ? `<div class="role">${roleLine}</div>` : ''}
+        <div><span class="no">${badge}</span></div>
       </div>
       <div class="qrwrap"><img src="${qrDataUri}" alt="QR"></div>
     </div>
@@ -122,7 +128,9 @@ function cardLandscapeHtml(data) {
 }
 
 /** Carte de service à visuel personnalisé (1000×620) : image de fond + QR + nom. */
-function cardDesignHtml({ cardDesign, name, memberNo, qrDataUri }) {
+function cardDesignHtml({ cardDesign, name, memberNo, qrDataUri, jobTitle, department, staffId }) {
+  const roleLine = [jobTitle, department].filter(Boolean).map(escapeHtml).join(' · ')
+  const num = staffId ? `MATRICULE ${escapeHtml(staffId)}` : `N° ${escapeHtml(memberNo)}`
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 1000px; height: 620px; }
@@ -132,6 +140,7 @@ function cardDesignHtml({ cardDesign, name, memberNo, qrDataUri }) {
            background: rgba(10,18,30,0.55); padding: 16px 22px; border-radius: 16px; }
   .label { font-size: 15px; letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.75); }
   .name { font-size: 42px; font-weight: 800; line-height: 1.1; margin-top: 6px; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+  .role { font-size: 20px; font-weight: 600; color: rgba(255,255,255,0.85); margin-top: 4px; }
   .no { font-size: 18px; font-weight: 700; margin-top: 8px; color: #ffd9a8; letter-spacing: 1px; }
   .qrwrap { position: absolute; right: 40px; bottom: 40px; width: 220px; height: 220px; background: #ffffff;
             border-radius: 22px; display: flex; align-items: center; justify-content: center; box-shadow: 0 18px 42px rgba(0,0,0,0.38); }
@@ -141,7 +150,8 @@ function cardDesignHtml({ cardDesign, name, memberNo, qrDataUri }) {
   <div class="ident">
     <div class="label">Carte de service</div>
     <div class="name">${escapeHtml(name)}</div>
-    <div class="no">N° ${escapeHtml(memberNo)}</div>
+    ${roleLine ? `<div class="role">${roleLine}</div>` : ''}
+    <div class="no">${num}</div>
   </div>
   <div class="qrwrap"><img src="${qrDataUri}" alt="QR"></div>
 </body></html>`
