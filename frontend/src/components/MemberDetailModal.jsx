@@ -114,8 +114,8 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
 
                   {/* QR + infos */}
                   <div className="flex flex-col sm:flex-row gap-5 mb-6">
-                    <div className="flex-shrink-0 mx-auto sm:mx-0">
-                      <div className="w-44 h-44 rounded-2xl ring-1 ring-black/5 p-2 bg-white">
+                    <div className="w-full max-w-56 sm:w-56 flex-shrink-0 mx-auto sm:mx-0">
+                      <div className="w-44 h-44 mx-auto rounded-2xl ring-1 ring-black/5 p-2 bg-white">
                         {qr && <img src={`data:image/svg+xml;base64,${qr}`} alt="QR" className="w-full h-full" />}
                       </div>
                       <button

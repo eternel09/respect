@@ -7,7 +7,8 @@ Statuts : 🟩 mergée · 🟦 ouverte · ⬜ brouillon
 
 | PR | Produit · Étape | Titre | Statut | Commit / SHA |
 |---|---|---|:--:|---|
-| [#70](https://github.com/eternel09/respect/pull/70) | Présence · 1.2e | Consolidation du service de cartes : notification client à chaque avancement, tableau de bord, bon de livraison PDF, relance quotidienne | 🟦 | `feat(cards): consolidate the card service` |
+| _à venir_ | Présence · tests E2E | Correctifs issus du test de bout en bout du Produit 1 : limiteurs de débit isolés (connexion bloquée par le trafic public), n° de ticket dans l'export CSV, bon de livraison allégé, équipe prévenue des demandes in-app, fiche agent lisible | 🟦 | `fix(cards): e2e test findings` |
+| [#70](https://github.com/eternel09/respect/pull/70) | Présence · 1.2e | Consolidation du service de cartes : notification client à chaque avancement, tableau de bord, bon de livraison PDF, relance quotidienne | 🟩 | (mergée) |
 | [#69](https://github.com/eternel09/respect/pull/69) | Présence · 1.5 | Vocabulaire du membre configurable (membre / agent / employé) appliqué au back-office | 🟩 | (mergée) |
 | [#68](https://github.com/eternel09/respect/pull/68) | Présence · 1.2d | Numéro de ticket + suivi public (accusé e-mail, page `/suivi/{token}`) | 🟩 | (mergée) |
 | [#67](https://github.com/eternel09/respect/pull/67) | Présence · 1.3 | Champs entreprise du membre (fonction, service, matricule) + logo client uniquement sur les cartes | 🟩 | (mergée) |

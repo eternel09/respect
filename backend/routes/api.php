@@ -48,12 +48,12 @@ Route::get('/download/occasions/{occasion}/invited-guests', [\App\Http\Controlle
 Route::get('/download/app', [AppDistributionController::class, 'latest']);
 
 // Portail public : demande d'impression de cartes de service (prospect sans compte)
-Route::post('/public/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicStore'])->middleware('throttle:10,1');
+Route::post('/public/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicStore'])->middleware('throttle:card-portal');
 // Suivi public d'une demande par son numéro de ticket (jeton non devinable)
-Route::get('/public/card-print-requests/{token}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicShow'])->middleware('throttle:60,1');
+Route::get('/public/card-print-requests/{token}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicShow'])->middleware('throttle:card-tracking');
 
-// Admin auth — throttle anti-bruteforce (6 tentatives / minute / IP)
-Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:6,1');
+// Admin auth — anti-bruteforce : limiteur nommé « login » (AppServiceProvider)
+Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:login');
 
 // Auto-inscription publique d'un organisateur (crée son espace + admin)
 Route::post('/register', [PublicRegistrationController::class, 'store'])->middleware('throttle:6,1');

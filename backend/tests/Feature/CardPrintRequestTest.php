@@ -377,7 +377,7 @@ class CardPrintRequestTest extends TestCase
     {
         $org = Organization::factory()->create();
         CardPrintRequest::create(['organization_id' => $org->id, 'source' => 'in_app', 'quantity' => 10, 'status' => 'pending']);
-        CardPrintRequest::create(['source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 40, 'status' => 'pending']);
+        $pub = CardPrintRequest::create(['source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 40, 'status' => 'pending']);
 
         $res = $this->withToken($this->token($this->superAdmin()))->get('/api/admin/print-requests/export');
 
@@ -386,6 +386,8 @@ class CardPrintRequestTest extends TestCase
         $body = $res->streamedContent();
         $this->assertStringContainsString('awa@horizon.cd', $body);
         $this->assertStringContainsString('Quantité', $body); // en-tête
+        $this->assertStringContainsString('Ticket', $body);
+        $this->assertStringContainsString($pub->reference, $body); // n° de ticket exporté
     }
 
     public function test_export_respects_source_filter(): void

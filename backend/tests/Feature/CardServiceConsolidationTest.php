@@ -83,6 +83,19 @@ class CardServiceConsolidationTest extends TestCase
         Mail::assertSent(CardPrintRequestStatusChanged::class, fn ($m) => $m->hasTo($admin->email));
     }
 
+    public function test_in_app_request_notifies_the_team(): void
+    {
+        Mail::fake();
+        $op = $this->internal('operator');
+        $admin = $this->orgAdmin();
+
+        $this->withToken($admin->createToken('t')->plainTextToken)
+            ->postJson('/api/admin/card-print-requests', ['quantity' => 25])
+            ->assertCreated();
+
+        Mail::assertSent(\App\Mail\CardPrintRequestReceived::class, fn ($m) => $m->hasTo($op->email));
+    }
+
     // ── Tableau de bord ─────────────────────────────────────────
 
     public function test_stats_count_by_status_source_and_stale(): void

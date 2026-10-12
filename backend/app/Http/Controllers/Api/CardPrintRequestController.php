@@ -56,6 +56,7 @@ class CardPrintRequestController extends Controller
         ]);
 
         $req->logEvent('created', 'Demande créée depuis l\'espace client.', $request->user()->id);
+        $this->notifyOperators($req); // l'équipe est prévenue, comme pour le portail public
 
         return response()->json([
             'message' => "Demande d'impression envoyée à l'opérateur.",
@@ -249,7 +250,10 @@ class CardPrintRequestController extends Controller
     {
         $cardPrintRequest->loadMissing('organization');
 
+        // Sous-ensemble de police : n'embarque que les glyphes utilisés (sinon
+        // DejaVu complète → ~1 Mo pour une page).
         return Pdf::loadView('pdf.delivery-note', ['request' => $cardPrintRequest])
+            ->setOption('isFontSubsettingEnabled', true)
             ->download("bon-livraison-{$cardPrintRequest->reference}.pdf");
     }
 
@@ -289,12 +293,13 @@ class CardPrintRequestController extends Controller
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 pour Excel
-            fputcsv($out, ['ID', 'Date', 'Canal', 'Statut', 'Organisation', 'Contact', 'Société', 'Email', 'Téléphone', 'Quantité', 'Livraison', 'Note', 'Assigné', 'Traité le']);
+            fputcsv($out, ['ID', 'Ticket', 'Date', 'Canal', 'Statut', 'Organisation', 'Contact', 'Société', 'Email', 'Téléphone', 'Quantité', 'Livraison', 'Note', 'Assigné', 'Traité le']);
 
             $query->chunk(200, function ($rows) use ($out) {
                 foreach ($rows as $r) {
                     fputcsv($out, [
                         $r->id,
+                        $r->reference,
                         $r->created_at?->toDateTimeString(),
                         $r->source,
                         self::STATUS_LABELS[$r->status] ?? $r->status,
