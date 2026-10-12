@@ -16,6 +16,7 @@ class UpdateOrganizationRequest extends FormRequest
         return [
             'name'        => ['required', 'string', 'max:150'],
             'theme_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'member_term' => ['nullable', 'in:membre,agent,employe'],
             'logo'        => ['nullable', 'image', 'max:2048'], // 2 Mo
         ];
     }

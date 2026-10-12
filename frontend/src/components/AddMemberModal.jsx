@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import api, { apiErrorMessage } from '../lib/axios'
+import { useMemberTerm } from '../lib/memberTerm'
 
 const inputBase =
   'w-full px-4 py-2.5 border rounded-xl text-sm bg-white transition-colors ' +
   'focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand'
 
 export default function AddMemberModal({ open, onClose, onCreated }) {
+  const term = useMemberTerm()
   const [form, setForm]       = useState({ first_name: '', last_name: '', phone: '', job_title: '', department: '', staff_id: '' })
   const [errors, setErrors]   = useState({})
   const [error, setError]     = useState(null)
@@ -55,7 +57,7 @@ export default function AddMemberModal({ open, onClose, onCreated }) {
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="flex items-start justify-between mb-1">
-              <h2 className="text-lg font-bold text-gray-900">Ajouter un membre</h2>
+              <h2 className="text-lg font-bold text-gray-900">Ajouter un {term.lowerOne}</h2>
               <button onClick={close} className="w-8 h-8 -mr-1 rounded-lg flex items-center justify-center text-gray-400 hover:bg-sand">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
               </button>

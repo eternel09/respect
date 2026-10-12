@@ -1,19 +1,22 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { navForModules } from '../lib/modules'
+import { useMemberTerm } from '../lib/memberTerm'
 import Icon from './ui/Icon'
 import brandIconWhite from '../assets/icon-white.png'
 
 export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const term = useMemberTerm()
 
   const modules = user?.organization?.modules || []
 
   // Navigation = entrées des modules activés + « Réglages ». Le lanceur
   // « Applications » vit dans la topbar (à côté des notifications).
   const links = [
-    ...navForModules(modules),
+    // Le libellé « Membres » suit le vocabulaire de l'organisation (Agents / Employés).
+    ...navForModules(modules).map(l => l.to === '/admin/members' ? { ...l, label: term.many } : l),
     // Réseau : organisation de 1er niveau (peut créer des sous-organisations et
     // en consulter le consolidé). Affiché même avant la 1re sous-organisation.
     ...(user?.organization?.can_manage_network

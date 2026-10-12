@@ -34,6 +34,10 @@ class OrganizationSettingsController extends Controller
             $org->theme_color = $request->theme_color;
         }
 
+        if ($request->filled('member_term')) {
+            $org->member_term = $request->member_term;
+        }
+
         if ($request->hasFile('logo')) {
             if ($org->logo_path) {
                 Storage::disk('public')->delete($org->logo_path);
@@ -57,6 +61,7 @@ class OrganizationSettingsController extends Controller
             'slug'        => $org->slug,
             'plan'        => $org->plan,
             'theme_color' => $org->theme_color,
+            'member_term' => $org->member_term,
             'logo_url'    => $org->logo_path ? Storage::disk('public')->url($org->logo_path) : null,
             'card_design_url' => $org->cardDesignUrl(),
         ];

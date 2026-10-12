@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import api, { apiErrorMessage, downloadFile } from '../lib/axios'
+import { useMemberTerm } from '../lib/memberTerm'
 
 const TYPE_LABELS = { reunion: 'Réunion', priere: 'Prière', autre: 'Autre' }
 
@@ -9,6 +10,7 @@ function initials(name) {
 }
 
 export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, badgeBusy, onUpdated }) {
+  const term = useMemberTerm()
   const open = !!memberId
   const [data, setData]       = useState(null) // { member, attendances }
   const [qr, setQr]           = useState(null)
@@ -87,7 +89,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
 
             <div className="p-6 sm:p-8 max-h-[90vh] overflow-y-auto overflow-x-hidden">
               <div className="flex items-start justify-between mb-5">
-                <h2 className="text-lg font-bold text-gray-900">Fiche membre</h2>
+                <h2 className="text-lg font-bold text-gray-900">Fiche {term.lowerOne}</h2>
                 <button onClick={onClose} className="w-8 h-8 -mr-1 rounded-lg flex items-center justify-center text-gray-400 hover:bg-sand">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
                 </button>
@@ -106,7 +108,7 @@ export default function MemberDetailModal({ memberId, onClose, onDownloadBadge, 
                     </div>
                     <div className="min-w-0">
                       <p className="text-xl font-bold text-gray-900 truncate">{m.full_name}</p>
-                      <p className="text-sm text-gray-400">Membre N° {String(m.id).padStart(4, '0')}</p>
+                      <p className="text-sm text-gray-400">{term.one} N° {String(m.id).padStart(4, '0')}</p>
                     </div>
                   </div>
 

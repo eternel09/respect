@@ -57,6 +57,7 @@ class AdminAuthController extends Controller
                 ? [
                     'id'      => $user->organization->id,
                     'name'    => $user->organization->name,
+                    'member_term' => $user->organization->member_term,
                     'modules' => $user->organization->enabledModules(),
                     // Chapeaute déjà des sous-organisations → la vue réseau a des données
                     'is_network_parent' => $user->organization->isNetworkParent(),
