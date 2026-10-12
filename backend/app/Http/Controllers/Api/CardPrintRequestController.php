@@ -8,8 +8,10 @@ use App\Http\Resources\CardPrintRequestResource;
 use App\Http\Resources\PublicCardPrintRequestResource;
 use App\Mail\CardPrintRequestConfirmation;
 use App\Mail\CardPrintRequestReceived;
+use App\Mail\CardPrintRequestStatusChanged;
 use App\Models\CardPrintRequest;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -173,6 +175,8 @@ class CardPrintRequestController extends Controller
             'status' => ['required', 'in:' . implode(',', self::STATUSES)],
         ]);
 
+        $previous = $cardPrintRequest->status;
+
         $attrs = [
             'status'     => $data['status'],
             'handled_by' => $request->user()->id,
@@ -194,10 +198,59 @@ class CardPrintRequestController extends Controller
             $cardPrintRequest->logEvent('assigned', "Pris en charge par {$request->user()->name}.", $request->user()->id);
         }
 
+        // Le client est prévenu de chaque avancement réel (pas de doublon si le
+        // statut ne change pas, rien pour un retour « en attente »).
+        if ($data['status'] !== $previous && $data['status'] !== 'pending') {
+            $this->notifyRequester($cardPrintRequest);
+        }
+
         return response()->json([
             'message' => 'Statut mis à jour.',
             'request' => new CardPrintRequestResource($cardPrintRequest->load('organization', 'requester', 'assignee')),
         ]);
+    }
+
+    /** Prévient le demandeur d'un changement de statut ; non bloquant. */
+    private function notifyRequester(CardPrintRequest $req): void
+    {
+        $email = $req->contact_email ?: $req->requester?->email;
+        if (! $email) {
+            return;
+        }
+
+        try {
+            Mail::to($email)->send(new CardPrintRequestStatusChanged($req));
+        } catch (\Throwable) {
+            // L'avancement est enregistré même si l'e-mail échoue.
+        }
+    }
+
+    /** Tableau de bord de la file : volumes par statut et canal, demandes en souffrance. */
+    public function stats(): JsonResponse
+    {
+        $staleHours = (int) config('services.cards.stale_hours', 48);
+
+        $byStatus = CardPrintRequest::selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
+        $bySource = CardPrintRequest::selectRaw('source, count(*) as n')->groupBy('source')->pluck('n', 'source');
+
+        $open = CardPrintRequest::whereIn('status', ['pending', 'in_progress']);
+
+        return response()->json([
+            'by_status'   => collect(self::STATUSES)->mapWithKeys(fn ($s) => [$s => (int) ($byStatus[$s] ?? 0)]),
+            'by_source'   => collect(['in_app', 'public', 'email'])->mapWithKeys(fn ($s) => [$s => (int) ($bySource[$s] ?? 0)]),
+            'open_cards'  => (int) (clone $open)->sum('quantity'),
+            'stale'       => (clone $open)->where('updated_at', '<', now()->subHours($staleHours))->count(),
+            'stale_hours' => $staleHours,
+        ]);
+    }
+
+    /** Bon de livraison PDF d'une demande. */
+    public function deliveryNote(CardPrintRequest $cardPrintRequest)
+    {
+        $cardPrintRequest->loadMissing('organization');
+
+        return Pdf::loadView('pdf.delivery-note', ['request' => $cardPrintRequest])
+            ->download("bon-livraison-{$cardPrintRequest->reference}.pdf");
     }
 
     /** Historique d'une demande (statuts, affectations, notes). */

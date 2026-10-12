@@ -18,6 +18,8 @@
 #       REDIS_HOST=<hôte>  REDIS_PORT=6379  REDIS_PASSWORD=<...>
 #   - Traitement asynchrone (envois, e-billets…) : QUEUE_CONNECTION=redis puis
 #       activer le service worker :  docker compose --profile worker up -d
+#   - Tâches planifiées (relance quotidienne des demandes de cartes) :
+#       activer le service scheduler :  docker compose --profile scheduler up -d
 #   Défauts = comportement mono-instance actuel (file / sync).
 
 # Environnement backend partagé (backend + worker) — évite toute dérive.
@@ -74,6 +76,22 @@ services:
     restart: unless-stopped
     profiles: ["worker"]
     command: ["php", "artisan", "queue:work", "--tries=3", "--max-time=3600", "--sleep=3"]
+    environment:
+      <<: *backend-env
+      AUTORUN_ENABLED: "false"
+    volumes:
+      - backend_public:/var/www/html/storage/app/public
+    networks: [dokploy-network, internal]
+
+  # Planificateur Laravel — inactif par défaut (profil). Exécute les tâches
+  # planifiées (routes/console.php), dont la relance quotidienne de l'équipe sur
+  # les demandes de cartes qui stagnent. Activer : `--profile scheduler`.
+  scheduler:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    profiles: ["scheduler"]
+    command: ["php", "artisan", "schedule:work"]
     environment:
       <<: *backend-env
       AUTORUN_ENABLED: "false"

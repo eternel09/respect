@@ -97,6 +97,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
     Route::middleware('role:super_admin,operator')->group(function () {
         Route::get('/admin/print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'adminIndex']);
         Route::get('/admin/print-requests/export', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'export']);
+        Route::get('/admin/print-requests/stats', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'stats']);
+        Route::get('/admin/print-requests/{cardPrintRequest}/delivery-note', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'deliveryNote']);
         Route::get('/admin/print-requests/{cardPrintRequest}/events', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'events']);
         Route::post('/admin/print-requests/{cardPrintRequest}/notes', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'addNote']);
         Route::patch('/admin/print-requests/{cardPrintRequest}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'updateStatus']);
