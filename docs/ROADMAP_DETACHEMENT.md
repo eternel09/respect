@@ -12,7 +12,7 @@ Principes :
 - Config-driven : les bascules passent par la configuration/l'environnement.
 - On ne « casse » rien tant qu'un produit n'est pas prêt à vivre seul.
 
-Statuts : ⬜ à faire · 🟨 en cours · ✅ fait
+Statuts : ⬜ à faire · 🟨 en cours · ✅ fait · ✖ sans objet
 
 ---
 
@@ -28,8 +28,9 @@ Repositionnement : de « pointage associatif » vers un **produit entreprise**
 | 1.2 | **Livraison de la carte (impression)** | Sortie **PDF prête à imprimer** avec le design (planche A4 ou **1 carte/page CR80 + repères de coupe**, l'entreprise imprime elle-même) et **demande d'impression** adressée à l'opérateur (suivi des statuts côté plateforme). Pas d'envoi WhatsApp — hors périmètre entreprise. | ✅ |
 | 1.2b | **Service opéré — portail public + file de travail** | La carte de service devient un **service géré** : les demandes arrivent par plusieurs **canaux** (client connecté, **portail public** `/cartes-de-service` ouvert aux prospects **sans compte**, e-mail à venir) et alimentent une **file de travail unique**. L'opérateur filtre par canal/statut, voit le **contact** du prospect, **prend en charge** (auto-affectation) et fait avancer le statut. Pas de création d'organisation : une demande reste un bon de travail autonome. | ✅ |
 | 1.2c | **Suivi opérationnel** | **Notification e-mail** de l'équipe à chaque demande publique ; **historique** horodaté par demande (création, statuts, affectations) + **notes internes** ; **export CSV** filtrable de la file. | ✅ |
+| 1.2d | **Numéro de ticket & suivi public** | À l'envoi, le client reçoit un **numéro de ticket** (réf. lisible `CP-XXXXXX`) à l'écran **et par e-mail** (accusé de réception) avec un **lien de suivi**. Page publique `/suivi/{token}` (jeton non devinable) affichant l'état et l'historique public (création → statut), sans exposer les notes internes. Référence visible aussi dans la file opérateur. | ✅ |
 | 1.3 | **Champs entreprise sur le membre** | Fonction/poste, service/département, matricule — saisis à la création et **modifiables** (fiche membre), **affichés sur la carte** de service (fonction · service en sous-titre, matricule en n°) et **exportables** (CSV). | ✅ |
-| 1.4 | **Image de marque** | Couleurs + logo de l'entreprise appliqués aux cartes et au back-office (une partie existe déjà). | ⬜ |
+| 1.4 | ~~**Image de marque (back-office)**~~ | **Sans objet pour ce produit** : le client n'a pas de back-office — il dépose sa demande via le lien public et suit via son ticket. La marque du client vit sur **les cartes** (logo client uniquement, fait). L'espace plateforme reste en marque Signiq. | ✖ |
 | 1.5 | **Vocabulaire & parcours entreprise** | « Membre » → « Agent/Employé », écrans adaptés au module présence. | ⬜ |
 | 1.6 | **Extraction technique** | Isoler le module (routing, gating, éventuel sous-domaine), brancher sur les services socles. | ⬜ |
 

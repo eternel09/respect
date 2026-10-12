@@ -155,6 +155,7 @@ export default function PrintRequestsPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-gray-900">{who}</span>
+                          {item.reference && <span className="text-xs font-mono font-semibold text-gray-500 bg-sand px-2 py-0.5 rounded">{item.reference}</span>}
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sc.cls}`}><Icon name={sc.icon} size={13} />{sc.label}</span>
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                         </div>

@@ -49,6 +49,8 @@ Route::get('/download/app', [AppDistributionController::class, 'latest']);
 
 // Portail public : demande d'impression de cartes de service (prospect sans compte)
 Route::post('/public/card-print-requests', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicStore'])->middleware('throttle:10,1');
+// Suivi public d'une demande par son numéro de ticket (jeton non devinable)
+Route::get('/public/card-print-requests/{token}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'publicShow'])->middleware('throttle:60,1');
 
 // Admin auth — throttle anti-bruteforce (6 tentatives / minute / IP)
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:6,1');
