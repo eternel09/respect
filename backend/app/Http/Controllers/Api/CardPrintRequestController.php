@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CardPrintRequestEventResource;
 use App\Http\Resources\CardPrintRequestResource;
+use App\Http\Resources\PublicCardPrintRequestResource;
+use App\Mail\CardPrintRequestConfirmation;
 use App\Mail\CardPrintRequestReceived;
 use App\Models\CardPrintRequest;
 use App\Models\User;
@@ -101,10 +103,40 @@ class CardPrintRequestController extends Controller
 
         $req->logEvent('created', 'Demande reçue via le portail public.');
         $this->notifyOperators($req);
+        $this->sendConfirmation($req);
 
         return response()->json([
-            'message' => 'Votre demande a bien été reçue. Notre équipe vous recontactera rapidement.',
+            'message'   => 'Votre demande a bien été reçue. Notre équipe vous recontactera rapidement.',
+            'reference' => $req->reference,
+            'token'     => $req->public_token, // clé du lien de suivi
         ], 201);
+    }
+
+    /** Accusé de réception au demandeur (numéro de ticket + lien de suivi) ; non bloquant. */
+    private function sendConfirmation(CardPrintRequest $req): void
+    {
+        if (! $req->contact_email) {
+            return;
+        }
+
+        try {
+            Mail::to($req->contact_email)->send(new CardPrintRequestConfirmation($req));
+        } catch (\Throwable) {
+            // La demande reste enregistrée même si l'e-mail de confirmation échoue.
+        }
+    }
+
+    /** Page de suivi publique : état d'une demande par son jeton non devinable. */
+    public function publicShow(string $token): JsonResponse
+    {
+        $req = CardPrintRequest::withoutGlobalScopes()
+            ->with(['events' => fn ($q) => $q->orderBy('id')])
+            ->where('public_token', $token)
+            ->first();
+
+        abort_unless($req, 404, 'Demande introuvable.');
+
+        return response()->json(['data' => new PublicCardPrintRequestResource($req)]);
     }
 
     /** Alerte l'équipe (super-admins + opérateurs) ; un échec d'envoi ne bloque jamais la demande. */

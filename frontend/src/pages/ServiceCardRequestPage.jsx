@@ -22,7 +22,7 @@ export default function ServiceCardRequestPage() {
   const [errors, setErrors]   = useState({})
   const [error, setError]     = useState(null)
   const [loading, setLoading] = useState(false)
-  const [done, setDone]       = useState(false)
+  const [ticket, setTicket]   = useState(null) // { reference, token } après envoi
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(er => ({ ...er, [k]: undefined })) }
 
@@ -30,8 +30,8 @@ export default function ServiceCardRequestPage() {
     e.preventDefault()
     setLoading(true); setErrors({}); setError(null)
     try {
-      await api.post('/public/card-print-requests', form)
-      setDone(true)
+      const res = await api.post('/public/card-print-requests', form)
+      setTicket({ reference: res.data.reference, token: res.data.token })
     } catch (err) {
       if (err.response?.status === 422) {
         setErrors(Object.fromEntries(Object.entries(err.response.data.errors).map(([k, v]) => [k, v[0]])))
@@ -70,13 +70,24 @@ export default function ServiceCardRequestPage() {
         >
           <div className="lg:hidden mb-8"><img src={logoFull} alt="Signiq" className="h-10 w-auto" /></div>
 
-          {done ? (
+          {ticket ? (
             <div className="text-center py-10">
               <div className="w-16 h-16 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
                 <Icon name="check_circle" size={36} />
               </div>
               <h1 className="text-gray-900 text-2xl font-bold mb-2 tracking-tight">Demande reçue</h1>
-              <p className="text-gray-500 text-sm">Merci ! Notre équipe examine votre demande et vous recontacte rapidement par e-mail.</p>
+              <p className="text-gray-500 text-sm mb-5">Merci ! Notre équipe examine votre demande et vous recontacte par e-mail.</p>
+
+              <div className="bg-sand rounded-2xl p-5 mb-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Votre numéro de ticket</p>
+                <p className="text-2xl font-bold text-brand font-mono tracking-wider">{ticket.reference}</p>
+                <p className="text-xs text-gray-400 mt-2">Conservez-le pour suivre votre demande.</p>
+              </div>
+
+              <a href={`/suivi/${ticket.token}`}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-xl bg-brand hover:bg-brand-dark shadow-lg shadow-brand/20">
+                <Icon name="search" size={18} />Suivre ma demande
+              </a>
             </div>
           ) : (
             <>

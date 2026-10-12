@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import OnboardingPage from './pages/OnboardingPage'
 import PresencePage from './pages/PresencePage'
 import ServiceCardRequestPage from './pages/ServiceCardRequestPage'
+import ServiceCardTrackPage from './pages/ServiceCardTrackPage'
 import AttendancePage from './pages/admin/AttendancePage'
 import DashboardPage from './pages/admin/DashboardPage'
 import OrganizationsPage from './pages/admin/OrganizationsPage'
@@ -51,6 +52,8 @@ export default function App() {
           <Route path="/presence"   element={<PresencePage />} />
           {/* Portail public : demande de cartes de service (prospect sans compte) */}
           <Route path="/cartes-de-service" element={<ServiceCardRequestPage />} />
+          {/* Suivi public d'une demande par son ticket */}
+          <Route path="/suivi/:token" element={<ServiceCardTrackPage />} />
 
           {/* Admin auth */}
           <Route path="/admin/login" element={<LoginPage />} />

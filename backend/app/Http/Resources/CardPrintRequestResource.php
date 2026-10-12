@@ -11,6 +11,7 @@ class CardPrintRequestResource extends JsonResource
     {
         return [
             'id'               => $this->id,
+            'reference'        => $this->reference,
             'source'           => $this->source,
             'organization'     => $this->whenLoaded('organization', fn () => $this->organization ? [
                 'id' => $this->organization->id, 'name' => $this->organization->name,

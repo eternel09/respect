@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\CardPrintRequestConfirmation;
 use App\Mail\CardPrintRequestReceived;
 use App\Models\CardPrintRequest;
 use App\Models\Organization;
@@ -234,7 +235,7 @@ class CardPrintRequestTest extends TestCase
         Mail::assertSent(CardPrintRequestReceived::class, fn ($mail) => $mail->hasTo($op->email));
     }
 
-    public function test_no_operator_means_no_notification(): void
+    public function test_no_operator_means_no_operator_notification(): void
     {
         Mail::fake();
 
@@ -242,7 +243,61 @@ class CardPrintRequestTest extends TestCase
             'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 30,
         ])->assertCreated();
 
-        Mail::assertNothingSent();
+        // Aucune équipe → pas de notification opérateur (mais l'accusé au client, lui, part).
+        Mail::assertNotSent(CardPrintRequestReceived::class);
+    }
+
+    // ── Numéro de ticket & suivi public ─────────────────────────
+
+    public function test_public_request_returns_ticket_and_confirms_by_email(): void
+    {
+        Mail::fake();
+
+        $res = $this->postJson('/api/public/card-print-requests', [
+            'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd', 'quantity' => 30,
+        ])->assertCreated()
+          ->assertJson(fn ($j) => $j
+              ->where('reference', fn ($v) => is_string($v) && str_starts_with($v, 'CP-'))
+              ->where('token', fn ($v) => is_string($v) && strlen($v) >= 32)
+              ->etc());
+
+        Mail::assertSent(CardPrintRequestConfirmation::class, fn ($m) => $m->hasTo('awa@horizon.cd'));
+
+        $this->assertDatabaseHas('card_print_requests', ['reference' => $res->json('reference')]);
+    }
+
+    public function test_public_can_track_request_by_token(): void
+    {
+        $req = CardPrintRequest::create([
+            'source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd',
+            'quantity' => 40, 'status' => 'pending',
+        ]);
+        $req->logEvent('created', 'Demande reçue via le portail public.');
+
+        $this->getJson("/api/public/card-print-requests/{$req->public_token}")
+            ->assertOk()
+            ->assertJsonPath('data.reference', $req->reference)
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.quantity', 40);
+    }
+
+    public function test_tracking_hides_internal_notes_and_unknown_token_is_404(): void
+    {
+        $req = CardPrintRequest::create([
+            'source' => 'public', 'contact_name' => 'Awa', 'contact_email' => 'awa@horizon.cd',
+            'quantity' => 40, 'status' => 'in_progress',
+        ]);
+        $req->logEvent('status', 'Statut : En cours.');
+        $req->logEvent('note', 'Marge à négocier avec le fournisseur.'); // interne
+
+        $body = $this->getJson("/api/public/card-print-requests/{$req->public_token}")
+            ->assertOk()->json();
+
+        $messages = collect($body['data']['timeline'])->pluck('message')->all();
+        $this->assertContains('Statut : En cours.', $messages);
+        $this->assertNotContains('Marge à négocier avec le fournisseur.', $messages);
+
+        $this->getJson('/api/public/card-print-requests/unknown-token')->assertNotFound();
     }
 
     // ── Historique & notes ──────────────────────────────────────
