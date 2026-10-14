@@ -21,6 +21,8 @@ class InternalUserTest extends TestCase
 
     private function token(User $u): string
     {
+        $this->app['auth']->forgetGuards(); // chaque appel teste bien SON rôle
+
         return $u->createToken('t')->plainTextToken;
     }
 

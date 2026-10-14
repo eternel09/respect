@@ -16,12 +16,21 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Pages ouvertes sans compte (portail de cartes, suivi, RSVP, billetterie…).
+// Un jeton périmé resté dans le navigateur ne doit pas les renvoyer vers la connexion.
+const PUBLIC_PATHS = ['/admin/login', '/cartes-de-service', '/suivi', '/onboarding', '/presence', '/register', '/rejoindre', '/confirmer', '/billetterie']
+
+function onPublicPage() {
+  const path = window.location.pathname
+  return PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`))
+}
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/admin/login'
+      if (!onPublicPage()) window.location.href = '/admin/login'
     } else if (!err.response && err.code !== 'ERR_CANCELED' && typeof window !== 'undefined') {
       // Pas de réponse HTTP = problème réseau (serveur injoignable / connexion instable)
       window.dispatchEvent(new CustomEvent('connection-issue'))

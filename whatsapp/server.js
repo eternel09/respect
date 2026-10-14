@@ -148,6 +148,34 @@ app.use((req, res, next) => {
 
 app.get('/status', (req, res) => res.json({ state, qr: qrDataUri }))
 
+// Déliaison (changement du numéro d'envoi) : déconnecte la session, purge le
+// profil local et relance un client neuf → nouveau QR de liaison. Les écouteurs
+// de l'ancien client sont retirés AVANT : sinon son « disconnected » relancerait
+// un second client en parallèle sur le même profil (déconnexions en boucle).
+let loggingOut = false
+app.post('/logout', async (req, res) => {
+  if (loggingOut) return res.status(409).json({ message: 'Déliaison déjà en cours.' })
+  loggingOut = true
+  try {
+    const old = client
+    if (old) {
+      old.removeAllListeners()
+      if (state === 'ready') {
+        try { await old.logout() } catch (e) { console.warn('[wa] logout:', e.message) }
+      }
+      try { await old.destroy() } catch { /* déjà fermée */ }
+    }
+    try { fs.rmSync('./.wwebjs_auth', { recursive: true, force: true }) } catch { /* rien */ }
+    state = 'starting'
+    qrDataUri = null
+    console.log('[wa] numéro délié — nouvelle liaison…')
+    startClient()
+    res.json({ ok: true, state })
+  } finally {
+    loggingOut = false
+  }
+})
+
 app.post('/preview-card', async (req, res) => {
   try {
     const png = await renderCard(puppeteer, req.body)

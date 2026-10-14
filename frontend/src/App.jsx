@@ -12,6 +12,7 @@ import DashboardPage from './pages/admin/DashboardPage'
 import OrganizationsPage from './pages/admin/OrganizationsPage'
 import PrintRequestsPage from './pages/admin/PrintRequestsPage'
 import InternalUsersPage from './pages/admin/InternalUsersPage'
+import PlatformWhatsAppPage from './pages/admin/PlatformWhatsAppPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="/admin/organizations"  element={<ProtectedRoute><OrganizationsPage /></ProtectedRoute>} />
           <Route path="/admin/print-requests" element={<ProtectedRoute><PrintRequestsPage /></ProtectedRoute>} />
           <Route path="/admin/internal-users" element={<ProtectedRoute><InternalUsersPage /></ProtectedRoute>} />
+          <Route path="/admin/platform/whatsapp" element={<ProtectedRoute><PlatformWhatsAppPage /></ProtectedRoute>} />
 
           {/* Suite d'applications — toujours accessible (gérer ses modules) */}
           <Route path="/admin/modules"    element={<ProtectedRoute><ModulesPage /></ProtectedRoute>} />

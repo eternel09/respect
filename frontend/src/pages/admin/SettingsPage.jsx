@@ -40,9 +40,13 @@ function MobileAppSection() {
   )
 }
 
-/** Liaison WhatsApp (service whatsapp-web.js) : statut + QR à scanner. */
+/**
+ * WhatsApp : état du numéro d'envoi. Ce numéro appartient à l'équipe Signiq
+ * (une seule session pour toute la plateforme) : sa liaison se fait depuis
+ * l'espace plateforme, jamais depuis une organisation.
+ */
 function WhatsAppSection() {
-  const [status, setStatus] = useState({ state: 'loading', qr: null, message: null })
+  const [status, setStatus] = useState({ state: 'loading' })
   const timer = useRef(null)
 
   const fetchStatus = async () => {
@@ -50,7 +54,7 @@ function WhatsAppSection() {
       const res = await api.get('/admin/whatsapp/status')
       setStatus(res.data)
     } catch (err) {
-      setStatus(err.response?.data || { state: 'offline', qr: null })
+      setStatus(err.response?.data || { state: 'offline' })
     }
   }
 
@@ -58,17 +62,16 @@ function WhatsAppSection() {
     // fetchStatus est asynchrone (setState après await) : pas de setState synchrone.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStatus()
-    // Polling léger : le QR de liaison tourne, et l'état passe à "ready" après scan
-    timer.current = setInterval(fetchStatus, 5000)
+    timer.current = setInterval(fetchStatus, 15000)
     return () => clearInterval(timer.current)
   }, [])
 
   const STATES = {
-    ready:        { dot: 'bg-emerald-500', label: 'Connecté — les cartes de membre peuvent être envoyées.' },
-    qr:           { dot: 'bg-amber-500', label: 'En attente de liaison — scannez le QR ci-dessous.' },
-    offline:      { dot: 'bg-gray-400', label: 'Service éteint.' },
-    disconnected: { dot: 'bg-red-500', label: 'Déconnecté — reconnexion en cours…' },
+    ready:        { dot: 'bg-emerald-500', label: 'Connecté — les envois WhatsApp sont disponibles.' },
+    qr:           { dot: 'bg-amber-500', label: "Numéro d'envoi en cours de liaison par l'équipe Signiq." },
     starting:     { dot: 'bg-amber-400', label: 'Démarrage du service…' },
+    disconnected: { dot: 'bg-red-500', label: 'Déconnecté — reconnexion en cours…' },
+    offline:      { dot: 'bg-gray-400', label: 'Service momentanément indisponible.' },
     loading:      { dot: 'bg-gray-300', label: 'Vérification…' },
   }
   const st = STATES[status.state] || STATES.offline
@@ -80,24 +83,8 @@ function WhatsAppSection() {
         <h2 className="font-bold text-gray-900">WhatsApp</h2>
         <span className={`w-2.5 h-2.5 rounded-full ${st.dot}`} />
       </div>
-      <p className="text-sm text-gray-500 mb-4">{st.label}</p>
-
-      {status.state === 'qr' && status.qr && (
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-sand rounded-xl p-4">
-          <img src={status.qr} alt="QR de liaison WhatsApp" className="w-40 h-40 rounded-lg bg-white p-2" />
-          <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
-            <li>Ouvrez WhatsApp sur le téléphone de l'organisation</li>
-            <li>Réglages → <b>Appareils connectés</b> → <b>Connecter un appareil</b></li>
-            <li>Scannez ce QR code</li>
-          </ol>
-        </div>
-      )}
-
-      {status.state === 'offline' && (
-        <div className="bg-sand rounded-xl p-4 text-sm text-gray-600">
-          Démarrez le service : <code className="bg-white px-2 py-0.5 rounded font-mono text-xs">cd whatsapp && npm start</code>
-        </div>
-      )}
+      <p className="text-sm text-gray-500">{st.label}</p>
+      <p className="text-xs text-gray-400 mt-2">Le numéro d'envoi est géré par l'équipe Signiq.</p>
     </div>
   )
 }

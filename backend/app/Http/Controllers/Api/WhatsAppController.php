@@ -13,21 +13,51 @@ use Illuminate\Support\Facades\Http;
 class WhatsAppController extends Controller
 {
     /**
-     * État de la liaison WhatsApp (+ QR de liaison à scanner si nécessaire).
+     * État de la liaison WhatsApp. Le numéro d'envoi est celui de l'équipe
+     * plateforme : une seule session sert toutes les organisations. Le QR de
+     * liaison n'est donc remis qu'au super-admin — sinon la première
+     * organisation à le scanner deviendrait l'expéditeur de tous les clients.
      */
-    public function status(): JsonResponse
+    public function status(Request $request): JsonResponse
     {
-        try {
-            $res = $this->service()->get('/status');
+        $canLink = $request->user()?->isSuperAdmin() ?? false;
 
-            return response()->json($res->json(), $res->status());
+        try {
+            $res  = $this->service()->get('/status');
+            $data = $res->json() ?? [];
         } catch (ConnectionException) {
             return response()->json([
                 'state'   => 'offline',
                 'qr'      => null,
-                'message' => 'Service WhatsApp injoignable. Démarrez-le : `npm start` dans le dossier whatsapp/.',
+                'message' => 'Service WhatsApp injoignable.',
             ], 503);
         }
+
+        if (! $canLink) {
+            $data['qr'] = null;
+            $data['managed_by_platform'] = true;
+        }
+
+        return response()->json($data, $res->status());
+    }
+
+    /**
+     * Déconnecte le numéro lié (super-admin) : la session est purgée et un
+     * nouveau QR est proposé — pour changer de numéro d'envoi.
+     */
+    public function logout(): JsonResponse
+    {
+        try {
+            $res = $this->service()->timeout(60)->post('/logout');
+        } catch (ConnectionException) {
+            return response()->json(['message' => 'Service WhatsApp injoignable.'], 503);
+        }
+
+        return response()->json([
+            'message' => $res->successful()
+                ? 'Numéro délié. Un nouveau QR de liaison va s\'afficher.'
+                : ($res->json('message') ?? 'Déconnexion impossible.'),
+        ], $res->successful() ? 200 : 502);
     }
 
     /**
