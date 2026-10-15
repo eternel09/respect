@@ -45,6 +45,13 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Changer son mot de passe : met à jour l'utilisateur (le drapeau « à changer » tombe).
+  const changePassword = async (payload) => {
+    const res = await api.post('/admin/me/password', payload)
+    setUser(res.data.user)
+    return res.data.user
+  }
+
   const refreshUser = async () => {
     const res = await api.get('/admin/me')
     setUser(res.data)
@@ -52,7 +59,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, joinNetwork, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, joinNetwork, logout, refreshUser, changePassword }}>
       {children}
     </AuthContext.Provider>
   )

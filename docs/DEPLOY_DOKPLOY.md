@@ -41,6 +41,14 @@ Déjà provisionnée. Récupère : host, port (5432), database, user, password.
   - `CORS_ALLOWED_ORIGINS=https://app.tondomaine.cd`
   - `WHATSAPP_SERVICE_URL=http://whatsapp:3001` (nom de service de l'étape 2)
   - `WHATSAPP_SERVICE_KEY=<même valeur que API_KEY du service whatsapp>`
+  - `FRONTEND_URL=https://app.tondomaine.cd` — adresse du front, utilisée dans les liens des
+    e-mails (suivi de demande, connexion, **mot de passe oublié**). Sans elle, les liens pointent
+    vers `localhost`.
+  - **E-mails (SMTP)** — sans ces variables, aucun e-mail ne part (ils sont seulement journalisés) :
+    `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT` (587), `MAIL_USERNAME`, `MAIL_PASSWORD`,
+    `MAIL_SCHEME` (vide pour STARTTLS sur 587, `smtps` pour 465), `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
+  - `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD` — premier super-admin (créé par le seed). À la
+    première connexion, chacun choisit ensuite son mot de passe depuis l'application.
 - **Domaine** : `api.tondomaine.cd`, **port conteneur = 8080**, HTTPS/Let's Encrypt activé.
 - **Deploy**. La migration s'exécute automatiquement au démarrage (`AUTORUN_LARAVEL_MIGRATION`).
 - **Seed initial** (une seule fois) via le terminal Dokploy du conteneur :

@@ -54,6 +54,9 @@ Route::get('/public/card-print-requests/{token}', [\App\Http\Controllers\Api\Car
 
 // Admin auth — anti-bruteforce : limiteur nommé « login » (AppServiceProvider)
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('throttle:login');
+// Mot de passe oublié : lien de réinitialisation par e-mail (public, limité)
+Route::post('/admin/forgot-password', [AdminAuthController::class, 'forgotPassword'])->middleware('throttle:password-reset');
+Route::post('/admin/reset-password', [AdminAuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
 
 // Auto-inscription publique d'un organisateur (crée son espace + admin)
 Route::post('/register', [PublicRegistrationController::class, 'store'])->middleware('throttle:6,1');
@@ -79,6 +82,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
     // Accessible à tout utilisateur authentifié (tous rôles)
     Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
     Route::get('/admin/me', [AdminAuthController::class, 'me']);
+    // Changer son propre mot de passe (tous rôles)
+    Route::post('/admin/me/password', [AdminAuthController::class, 'changePassword']);
 
     // Plateforme — gestion des organisations & de l'équipe (super-admin seul)
     Route::middleware('role:super_admin')->group(function () {
@@ -95,6 +100,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::post('/admin/internal-users', [\App\Http\Controllers\Api\InternalUserController::class, 'store']);
         Route::patch('/admin/internal-users/{user}', [\App\Http\Controllers\Api\InternalUserController::class, 'update']);
         Route::post('/admin/internal-users/{user}/password', [\App\Http\Controllers\Api\InternalUserController::class, 'resetPassword']);
+        Route::patch('/admin/internal-users/{user}/active', [\App\Http\Controllers\Api\InternalUserController::class, 'setActive']);
         Route::delete('/admin/internal-users/{user}', [\App\Http\Controllers\Api\InternalUserController::class, 'destroy']);
     });
 
@@ -109,6 +115,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::get('/admin/print-requests/{cardPrintRequest}/events', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'events']);
         Route::post('/admin/print-requests/{cardPrintRequest}/notes', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'addNote']);
         Route::patch('/admin/print-requests/{cardPrintRequest}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'updateStatus']);
+        // Attribution à un collègue + équipe attribuable
+        Route::patch('/admin/print-requests/{cardPrintRequest}/assign', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'assign']);
+        Route::get('/admin/platform/team', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'team']);
         Route::get('/admin/print-requests/{cardPrintRequest}/staff', [\App\Http\Controllers\Api\CardPrintRequestConversionController::class, 'staff']);
         Route::get('/admin/print-requests/{cardPrintRequest}/cards', [MemberCardController::class, 'forPrintRequest']);
     });
