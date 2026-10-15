@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import AdminLayout from '../../components/AdminLayout'
 import Icon from '../../components/ui/Icon'
 import api from '../../lib/axios'
+import { useMemberTerm } from '../../lib/memberTerm'
 
 // Recharts attend des couleurs littérales (pas de classes Tailwind)
 const BRAND = '#1e3a5f'
@@ -49,6 +50,7 @@ function StatCard({ icon, iconWrap, label, value, sub, trend, children }) {
 }
 
 export default function DashboardPage() {
+  const term = useMemberTerm() // Membres / Agents / Employés selon l'organisation
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -97,7 +99,7 @@ export default function DashboardPage() {
             <StatCard
               icon="groups"
               iconWrap="bg-gradient-to-br from-brand to-brand-light text-white"
-              label="Membres"
+              label={term.many}
               value={(stats.total_members ?? 0).toLocaleString('fr-FR')}
               sub={`${newThisMonth} nouveau(x) ce mois-ci`}
               trend={newThisMonth > 0 ? `+${newThisMonth}` : null}
@@ -110,7 +112,7 @@ export default function DashboardPage() {
               iconWrap="bg-brand/10 text-brand"
               label="Taux de participation"
               value={stats.participation_rate != null ? `${stats.participation_rate} %` : '—'}
-              sub="Présences ÷ (événements × membres), 30 j"
+              sub={`Présences ÷ (événements × ${term.lowerMany}), 30 j`}
             >
               <div className="flex items-end gap-1 mt-4 h-9" title="Présences des 7 derniers jours">
                 {last7.map((v, i) => (
@@ -216,20 +218,20 @@ export default function DashboardPage() {
           </motion.div>
         </div>
 
-        {/* Derniers membres inscrits */}
+        {/* Dernières personnes inscrites */}
         <motion.div variants={item} className="mt-5 bg-white rounded-2xl ring-1 ring-black/5 shadow-sm">
           <div className="px-5 py-4 border-b border-black/5 flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center"><Icon name="person_add" size={18} /></span>
-            <h2 className="font-semibold text-gray-900">Derniers membres inscrits</h2>
+            <h2 className="font-semibold text-gray-900">Derniers {term.lowerMany} inscrits</h2>
             <Link to="/admin/members" className="ml-auto inline-flex items-center gap-1 text-xs text-brand hover:text-brand-dark font-semibold">
-              Tous les membres <Icon name="arrow_forward" size={15} />
+              Tous les {term.lowerMany} <Icon name="arrow_forward" size={15} />
             </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b border-black/5">
-                  <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wide">Membre</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wide">{term.one}</th>
                   <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wide">Téléphone</th>
                   <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wide">Inscrit le</th>
                 </tr>
@@ -238,7 +240,7 @@ export default function DashboardPage() {
                 {loading ? (
                   <tr><td colSpan={3} className="px-5 py-8 text-center text-gray-400">Chargement…</td></tr>
                 ) : recent.length === 0 ? (
-                  <tr><td colSpan={3} className="px-5 py-8 text-center text-gray-400">Aucun membre.</td></tr>
+                  <tr><td colSpan={3} className="px-5 py-8 text-center text-gray-400">Aucun {term.lowerOne}.</td></tr>
                 ) : (
                   recent.map(m => (
                     <tr key={m.id} className="border-b border-gray-50 last:border-0 hover:bg-sand/60 transition-colors">

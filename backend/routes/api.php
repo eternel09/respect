@@ -84,6 +84,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
     Route::middleware('role:super_admin')->group(function () {
         Route::get('/admin/organizations', [OrganizationController::class, 'index']);
         Route::post('/admin/organizations', [OrganizationController::class, 'store']);
+        // Demande de cartes → organisation cliente (personnel joint importé)
+        Route::post('/admin/print-requests/{cardPrintRequest}/convert', [\App\Http\Controllers\Api\CardPrintRequestConversionController::class, 'convert']);
 
         // Numéro WhatsApp d'envoi de la plateforme : liaison réservée au super-admin
         Route::post('/admin/platform/whatsapp/logout', [WhatsAppController::class, 'logout']);
@@ -107,6 +109,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::get('/admin/print-requests/{cardPrintRequest}/events', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'events']);
         Route::post('/admin/print-requests/{cardPrintRequest}/notes', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'addNote']);
         Route::patch('/admin/print-requests/{cardPrintRequest}', [\App\Http\Controllers\Api\CardPrintRequestController::class, 'updateStatus']);
+        Route::get('/admin/print-requests/{cardPrintRequest}/staff', [\App\Http\Controllers\Api\CardPrintRequestConversionController::class, 'staff']);
+        Route::get('/admin/print-requests/{cardPrintRequest}/cards', [MemberCardController::class, 'forPrintRequest']);
     });
 
     // Terrain — scan du QR personnel (app mobile staff)

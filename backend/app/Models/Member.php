@@ -45,6 +45,7 @@ class Member extends Model
 
     public function getFullNameAttribute(): string
     {
-        return "{$this->first_name} {$this->last_name}";
+        // trim : une liste importée peut ne porter que le nom complet (prénom vide).
+        return trim("{$this->first_name} {$this->last_name}");
     }
 }

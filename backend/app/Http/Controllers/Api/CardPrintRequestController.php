@@ -15,6 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -28,6 +29,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class CardPrintRequestController extends Controller
 {
     private const STATUSES = ['pending', 'in_progress', 'done', 'cancelled'];
+
+    // Taille maximale de la liste du personnel jointe à une demande publique.
+    private const MAX_STAFF = 5000;
 
     private const STATUS_LABELS = [
         'pending'     => 'En attente',
@@ -85,10 +89,17 @@ class CardPrintRequestController extends Controller
             'contact_company'  => ['nullable', 'string', 'max:150'],
             'contact_email'    => ['required', 'email', 'max:150'],
             'contact_phone'    => ['nullable', 'string', 'max:40'],
-            'quantity'         => ['required', 'integer', 'min:1', 'max:100000'],
+            // Sans liste jointe, la quantité est obligatoire ; avec, elle en découle.
+            'quantity'         => ['required_without:staff', 'nullable', 'integer', 'min:1', 'max:100000'],
             'note'             => ['nullable', 'string', 'max:1000'],
             'delivery_address' => ['nullable', 'string', 'max:500'],
+            // Liste du personnel (fichier Excel/CSV lu dans le navigateur)
+            'staff'            => ['nullable', 'array', 'max:' . self::MAX_STAFF],
+            'member_term'      => ['nullable', 'in:agent,employe,membre'],
         ]);
+
+        $this->validateStaffRows($data['staff'] ?? []);
+        $staff = $this->normalizeStaff($data['staff'] ?? []);
 
         $req = CardPrintRequest::create([
             'organization_id'  => null,
@@ -98,13 +109,17 @@ class CardPrintRequestController extends Controller
             'contact_company'  => $data['contact_company'] ?? null,
             'contact_email'    => $data['contact_email'],
             'contact_phone'    => $data['contact_phone'] ?? null,
-            'quantity'         => $data['quantity'],
+            'quantity'         => $data['quantity'] ?? count($staff),
             'note'             => $data['note'] ?? null,
             'delivery_address' => $data['delivery_address'] ?? null,
+            'staff'            => $staff ?: null,
+            'member_term'      => $data['member_term'] ?? null,
             'status'           => 'pending',
         ]);
 
-        $req->logEvent('created', 'Demande reçue via le portail public.');
+        $req->logEvent('created', $staff
+            ? 'Demande reçue via le portail public, avec la liste de ' . count($staff) . ' personne(s).'
+            : 'Demande reçue via le portail public.');
         $this->notifyOperators($req);
         $this->sendConfirmation($req);
 
@@ -113,6 +128,68 @@ class CardPrintRequestController extends Controller
             'reference' => $req->reference,
             'token'     => $req->public_token, // clé du lien de suivi
         ], 201);
+    }
+
+    // Champs d'une ligne du personnel et leur longueur maximale.
+    private const STAFF_FIELDS = [
+        'first_name' => 100, 'last_name' => 100, 'phone' => 40,
+        'job_title' => 120, 'department' => 120, 'staff_id' => 60,
+    ];
+
+    /**
+     * Contrôle ligne à ligne de la liste jointe. Équivaut à des règles `staff.*.x`
+     * mais en temps linéaire : les règles joker mettent ~10 s sur 5 000 lignes.
+     */
+    private function validateStaffRows(array $rows): void
+    {
+        $errors = [];
+        foreach ($rows as $i => $row) {
+            if (! is_array($row)) {
+                $errors["staff.$i"] = ["La ligne " . ($i + 1) . " est invalide."];
+                continue;
+            }
+            foreach (self::STAFF_FIELDS as $field => $max) {
+                $v = $row[$field] ?? null;
+                if ($v !== null && ! is_scalar($v)) {
+                    $errors["staff.$i.$field"] = ["Ligne " . ($i + 1) . " : valeur invalide."];
+                } elseif (mb_strlen((string) $v) > $max) {
+                    $errors["staff.$i.$field"] = ["Ligne " . ($i + 1) . " : {$max} caractères maximum."];
+                }
+            }
+            $last = $row['last_name'] ?? null;
+            if (! isset($errors["staff.$i.last_name"]) && (! is_scalar($last) || trim((string) $last) === '')) {
+                $errors["staff.$i.last_name"] = ["Ligne " . ($i + 1) . " : le nom est obligatoire."];
+            }
+            if (count($errors) >= 20) {
+                break; // assez pour corriger le fichier
+            }
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * Nettoie la liste jointe : espaces superflus, lignes sans nom écartées,
+     * téléphone ramené à chiffres (+ indicatif) et gardé seulement s'il est valide.
+     */
+    private function normalizeStaff(array $rows): array
+    {
+        $clean = fn ($v) => ($v = trim(preg_replace('/\s+/', ' ', (string) ($v ?? '')))) === '' ? null : $v;
+
+        return collect($rows)->map(function (array $r) use ($clean) {
+            $phone = preg_replace('/[^\d+]/', '', (string) ($r['phone'] ?? ''));
+
+            return [
+                'first_name' => $clean($r['first_name'] ?? null) ?? '',
+                'last_name'  => $clean($r['last_name'] ?? null),
+                'phone'      => preg_match('/^\+?[0-9]{9,15}$/', $phone) ? $phone : null,
+                'job_title'  => $clean($r['job_title'] ?? null),
+                'department' => $clean($r['department'] ?? null),
+                'staff_id'   => $clean($r['staff_id'] ?? null),
+            ];
+        })->filter(fn ($r) => $r['last_name'] !== null)->values()->all();
     }
 
     /** Accusé de réception au demandeur (numéro de ticket + lien de suivi) ; non bloquant. */

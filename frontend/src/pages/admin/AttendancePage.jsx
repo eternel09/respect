@@ -4,6 +4,7 @@ import PageShell from '../../components/PageShell'
 import Pagination from '../../components/Pagination'
 import Icon from '../../components/ui/Icon'
 import api from '../../lib/axios'
+import { useMemberTerm } from '../../lib/memberTerm'
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
@@ -30,6 +31,7 @@ function StatCard({ icon, iconWrap = 'bg-brand/10 text-brand', label, value, sub
 }
 
 export default function AttendancePage() {
+  const term = useMemberTerm()
   const [rows, setRows]       = useState([])
   const [meta, setMeta]       = useState(null)
   const [events, setEvents]   = useState([])
@@ -69,7 +71,7 @@ export default function AttendancePage() {
 
   return (
     <AdminLayout>
-      <PageShell title="Présences" subtitle="Suivez les pointages des membres par date et par événement.">
+      <PageShell title="Présences" subtitle={`Suivez les pointages des ${term.lowerMany} par date et par événement.`}>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6">
@@ -134,7 +136,7 @@ export default function AttendancePage() {
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="border-b border-black/5">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Membre</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">{term.one}</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Événement</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Heure</th>
