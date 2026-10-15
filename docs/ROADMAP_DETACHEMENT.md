@@ -78,6 +78,12 @@ scan mobile des billets, et extraction.
   **Équipe plateforme** : deux rôles internes — `super_admin` (pleins pouvoirs)
   et `operator` (demandes d'impression seulement, moindre privilège) — avec une
   page de gestion (création, modification, rôle, réinitialisation de mot de passe).
+  **Comptes « équipe »** : tout utilisateur (équipe et clients) **change son mot de passe**, et
+  doit le faire à la **première connexion** après un mot de passe temporaire ; **mot de passe
+  oublié** par e-mail (lien 60 min, réponse neutre, limité) ; comptes **désactivables** (sessions
+  coupées aussitôt) ; **dernière connexion** affichée. File des demandes : **recherche**, filtres
+  **« Mes demandes » / « Non attribuées »**, **attribution à un collègue** (historisée).
+  Déploiement : `FRONTEND_URL` et variables **SMTP** désormais transmises au backend.
 - 💬 **Envoi WhatsApp** — déjà un micro-service séparé.
 - 🪪 **QR / Badges / PDF** — à extraire progressivement en service « credentials ».
 - 💳 **Paiement** — interface prête ; driver réel à venir.
