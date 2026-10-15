@@ -1,45 +1,42 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import Icon from './ui/Icon'
-import { MAX_STAFF, STAFF_FIELDS, buildStaff, detectColumns, downloadStaffTemplate, readSheet } from '../lib/staffSheet'
-
-const selectCls =
-  'w-full px-3 py-2 rounded-xl text-sm bg-white border border-gray-200 ' +
-  'focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand'
+import { MAX_STAFF, buildStaff, downloadStaffTemplate, readSheet, recognizedFields } from '../lib/staffSheet'
 
 /**
  * Dépôt de la liste du personnel (Excel / CSV) sur le portail public.
- * Lecture dans le navigateur, colonnes devinées puis ajustables, aperçu.
+ * Lecture dans le navigateur, colonnes reconnues automatiquement, aperçu.
  * `onChange(staff | null)` remonte les lignes prêtes à envoyer.
  */
 export default function StaffListUpload({ onChange, serverError }) {
-  const [sheet, setSheet] = useState(null) // { name, headers, rows }
-  const [map, setMap] = useState({})
+  const [sheet, setSheet] = useState(null) // { name, staff, fields }
   const [error, setError] = useState(null)
   const [parsing, setParsing] = useState(false)
   const fileRef = useRef(null)
 
-  const staff = useMemo(() => (sheet ? buildStaff(sheet.rows, map) : []), [sheet, map])
-
-  const apply = (nextSheet, nextMap) => {
-    setSheet(nextSheet); setMap(nextMap)
-    onChange(nextSheet ? buildStaff(nextSheet.rows, nextMap) : null)
-  }
+  const apply = next => { setSheet(next); onChange(next ? next.staff : null) }
+  const staff = sheet?.staff || []
 
   const onFile = async file => {
     if (fileRef.current) fileRef.current.value = ''
     if (!file) return
     setError(null); setParsing(true)
     try {
-      const { headers, rows } = await readSheet(file)
-      if (rows.length > MAX_STAFF) {
-        setError(`Le fichier compte ${rows.length} lignes : ${MAX_STAFF} au maximum par demande.`)
+      const { headers, rows, map } = await readSheet(file)
+      const list = buildStaff(rows, map, headers)
+      if (list.length > MAX_STAFF) {
+        setError(`Le fichier compte ${list.length} personnes : ${MAX_STAFF} au maximum par demande.`)
         return
       }
-      apply({ name: file.name, headers, rows }, detectColumns(headers))
+      if (list.length === 0) {
+        setError('Aucune personne trouvée sous la colonne des noms. Vérifiez le fichier ou partez du modèle.')
+        return
+      }
+      apply({ name: file.name, staff: list, fields: recognizedFields(map) })
     } catch (e) {
-      setError(e.message === 'empty'
-        ? 'Le fichier semble vide : une ligne d’entêtes puis une ligne par personne.'
-        : 'Impossible de lire ce fichier. Utilisez un .xlsx, .xls ou .csv.')
+      setError({
+        empty: 'Le fichier semble vide : une ligne d’entêtes puis une ligne par personne.',
+        'no-name-column': 'Colonne des noms introuvable : ajoutez une ligne d’entêtes (Nom, Prénom, Fonction…) ou partez du modèle.',
+      }[e.message] || 'Impossible de lire ce fichier. Utilisez un .xlsx, .xls ou .csv.')
     } finally { setParsing(false) }
   }
 
@@ -74,28 +71,16 @@ export default function StaffListUpload({ onChange, serverError }) {
           </p>
           <p className="text-xs text-gray-400 truncate">{sheet.name}</p>
         </div>
-        <button type="button" onClick={() => { apply(null, {}); setError(null) }}
+        <button type="button" onClick={() => { apply(null); setError(null) }}
           className="text-xs font-medium text-gray-500 hover:text-gray-800 shrink-0">Retirer</button>
       </div>
 
-      <details className="mt-3 group">
-        <summary className="text-xs font-medium text-brand cursor-pointer select-none">Vérifier les colonnes</summary>
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          {STAFF_FIELDS.map(f => (
-            <label key={f.key} className="block">
-              <span className="block text-xs font-medium text-gray-600 mb-1">{f.label}{f.optional ? '' : ' *'}</span>
-              <select className={selectCls} value={map[f.key] ?? -1}
-                onChange={e => apply(sheet, { ...map, [f.key]: Number(e.target.value) })}>
-                {f.optional && <option value={-1}>— aucune</option>}
-                {sheet.headers.map((h, i) => <option key={i} value={i}>{h || `Colonne ${i + 1}`}</option>)}
-              </select>
-            </label>
-          ))}
-        </div>
-      </details>
+      <p className="mt-2 text-xs text-gray-500">
+        Colonnes reconnues : <span className="text-gray-700 font-medium">{sheet.fields.join(', ')}</span>
+      </p>
 
       {staff.length > 0 && (
-        <div className="mt-3 rounded-xl border border-gray-100 overflow-x-auto">
+        <div className="mt-2 rounded-xl border border-gray-100 overflow-x-auto">
           <table className="w-full text-xs">
             <thead><tr className="bg-cream text-gray-400 uppercase">
               <th className="text-left px-2.5 py-1.5 font-semibold">Nom</th>
@@ -115,7 +100,6 @@ export default function StaffListUpload({ onChange, serverError }) {
           {staff.length > 4 && <p className="px-2.5 py-1.5 text-xs text-gray-400">…et {staff.length - 4} autre(s)</p>}
         </div>
       )}
-      {staff.length === 0 && <p className="text-xs text-red-600 mt-2">Aucune ligne avec un nom : vérifiez la colonne « Nom ».</p>}
       {serverError && <p className="text-xs text-red-600 mt-2">{serverError}</p>}
     </div>
   )
