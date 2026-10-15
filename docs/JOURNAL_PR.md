@@ -7,6 +7,7 @@ Statuts : 🟩 mergée · 🟦 ouverte · ⬜ brouillon
 
 | PR | Produit · Étape | Titre | Statut | Commit / SHA |
 |---|---|---|:--:|---|
+| [#75](https://github.com/eternel09/respect/pull/75) | Présence · 1.7 (retouche) | Liste du personnel : colonnes **reconnues automatiquement** (plus de choix manuel) ; détection renforcée (titre au-dessus, Nom/Postnom/Prénom, nom complet, anglais, CSV « ; » / Windows-1252, entêtes répétées) | 🟦 | `feat(portal): detect staff-list columns automatically` |
 | [#74](https://github.com/eternel09/respect/pull/74) | Présence · 1.7 (retouche) | Portail : retrait du champ « Votre personnel s'appelle » ; libellés neutres (« personnel ») ; terme fixé par l'équipe à la conversion (« Agents » par défaut) | 🟩 | (mergée) |
 | [#73](https://github.com/eternel09/respect/pull/73) | Présence · 1.7 | Liste du personnel sur le portail public (Excel/CSV, vocabulaire agents/employés) + **conversion de la demande en client** : organisation + admin créés, personnel importé, cartes PDF depuis la demande ; vocabulaire appliqué au tableau de bord, aux présences et au réseau | 🟩 | (mergée) |
 | [#72](https://github.com/eternel09/respect/pull/72) | Invitations · 2.1 | Numéro WhatsApp réservé à l'équipe : QR au seul super-admin, page WhatsApp plateforme, changement de numéro ; feuille de route du Produit 2 ; **correctif** : un jeton expiré ne renvoie plus les pages publiques (portail cartes, suivi…) vers la connexion | 🟩 | (mergée) |
