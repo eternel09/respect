@@ -5,7 +5,6 @@ import logoWhite from '../assets/logo-white.png'
 import logoFull from '../assets/logo-full.png'
 import Icon from '../components/ui/Icon'
 import StaffListUpload from '../components/StaffListUpload'
-import { memberTerm } from '../lib/memberTerm'
 
 const inputClass =
   'w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-gray-200 ' +
@@ -16,13 +15,13 @@ const inputClass =
  * Un prospect décrit son besoin ; la demande alimente la file de travail que
  * l'équipe plateforme traite. Service opéré — pas de self-service requis.
  * La liste du personnel peut être jointe (Excel/CSV) : à l'ouverture de l'espace
- * client, elle devient ses agents/employés, sans ressaisie.
+ * client, elle devient son personnel (agents/employés : terme choisi par
+ * l'équipe à la conversion), sans ressaisie.
  */
 export default function ServiceCardRequestPage() {
   const [form, setForm] = useState({
     contact_name: '', contact_company: '', contact_email: '', contact_phone: '',
     quantity: '', delivery_address: '', note: '', website: '', // website = honeypot
-    member_term: 'agent',
   })
   const [staff, setStaff]     = useState(null) // lignes lues dans le fichier joint
   const [errors, setErrors]   = useState({})
@@ -30,7 +29,6 @@ export default function ServiceCardRequestPage() {
   const [loading, setLoading] = useState(false)
   const [ticket, setTicket]   = useState(null) // { reference, token } après envoi
 
-  const term = memberTerm(form.member_term)
   // Erreur serveur sur la liste (ex. « staff.12.last_name ») : la première suffit.
   const staffError = Object.entries(errors).find(([k, v]) => k.startsWith('staff') && v)?.[1]
 
@@ -140,25 +138,11 @@ export default function ServiceCardRequestPage() {
                   </div>
                 </div>
 
-                <fieldset>
-                  <legend className="block text-sm font-medium text-gray-700 mb-1.5">Votre personnel s'appelle</legend>
-                  <div className="flex gap-2">
-                    {['agent', 'employe'].map(k => (
-                      <label key={k} className={`flex-1 text-center text-sm px-3 py-2 rounded-xl border cursor-pointer transition-colors ${
-                        form.member_term === k ? 'border-brand bg-brand/5 text-brand font-semibold' : 'border-gray-200 bg-white text-gray-600 hover:bg-sand'}`}>
-                        <input type="radio" name="member_term" value={k} checked={form.member_term === k}
-                          onChange={() => set('member_term', k)} className="sr-only" />
-                        {memberTerm(k).many}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-
                 <div>
                   <p className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Liste des {term.lowerMany} <span className="text-gray-400 font-normal">(recommandé)</span>
+                    Liste du personnel <span className="text-gray-400 font-normal">(recommandé)</span>
                   </p>
-                  <StaffListUpload term={term} onChange={setStaff} serverError={staffError} />
+                  <StaffListUpload onChange={setStaff} serverError={staffError} />
                   <p className="text-xs text-gray-400 mt-1.5">Chaque personne aura sa carte et son QR de pointage ; vous les retrouverez dans votre espace dès son ouverture.</p>
                 </div>
 

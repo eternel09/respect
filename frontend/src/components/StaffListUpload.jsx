@@ -11,7 +11,7 @@ const selectCls =
  * Lecture dans le navigateur, colonnes devinées puis ajustables, aperçu.
  * `onChange(staff | null)` remonte les lignes prêtes à envoyer.
  */
-export default function StaffListUpload({ term, onChange, serverError }) {
+export default function StaffListUpload({ onChange, serverError }) {
   const [sheet, setSheet] = useState(null) // { name, headers, rows }
   const [map, setMap] = useState({})
   const [error, setError] = useState(null)
@@ -53,7 +53,7 @@ export default function StaffListUpload({ term, onChange, serverError }) {
           {parsing
             ? <span className="animate-spin h-6 w-6 border-2 border-brand border-t-transparent rounded-full" />
             : <Icon name="upload_file" size={26} className="text-gray-400" />}
-          <span className="text-sm font-medium text-gray-700">{parsing ? 'Lecture…' : `Joindre la liste des ${term.lowerMany}`}</span>
+          <span className="text-sm font-medium text-gray-700">{parsing ? 'Lecture…' : 'Joindre la liste du personnel'}</span>
           <span className="text-xs text-gray-400">Excel ou CSV · nom, fonction, service, matricule…</span>
         </button>
         <button type="button" onClick={() => downloadStaffTemplate()} className="mt-2 text-xs text-brand font-medium hover:underline">
@@ -70,7 +70,7 @@ export default function StaffListUpload({ term, onChange, serverError }) {
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
             <Icon name="group" size={18} className="text-brand" />
-            {staff.length} {staff.length > 1 ? term.lowerMany : term.lowerOne} détecté{staff.length > 1 ? 's' : ''}
+            {staff.length} personne{staff.length > 1 ? 's' : ''} détectée{staff.length > 1 ? 's' : ''}
           </p>
           <p className="text-xs text-gray-400 truncate">{sheet.name}</p>
         </div>
