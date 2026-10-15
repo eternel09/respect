@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 import { exportNetworkExcel, exportNetworkPptx } from '../../lib/networkExport'
 import api, { apiErrorMessage } from '../../lib/axios'
 import Icon from '../../components/ui/Icon'
+import { useMemberTerm } from '../../lib/memberTerm'
 
 /** Rafraîchissement automatique — perçu comme « temps réel », sans WebSocket. */
 const REFRESH_MS = 20000
@@ -63,6 +64,7 @@ function Spinner() {
 
 export default function NetworkPage() {
   const { user, refreshUser } = useAuth()
+  const term = useMemberTerm() // vocabulaire de l'organisation mère
   const [subOrgs, setSubOrgs] = useState(null) // null = chargement
   const [data, setData] = useState(null)         // analytics (si des enfants existent)
   const [unit, setUnit] = useState('month')
@@ -193,7 +195,7 @@ export default function NetworkPage() {
             </div>
             <h3 className="text-lg font-bold text-gray-900">Créez votre première sous-organisation</h3>
             <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
-              Chaque sous-organisation a son propre administrateur, qui gère ses membres et sa présence en toute indépendance.
+              Chaque sous-organisation a son propre administrateur, qui gère ses {term.lowerMany} et sa présence en toute indépendance.
               Vous, vous verrez ici les chiffres consolidés de l'ensemble.
             </p>
             <button onClick={() => setShowCreate(true)} className={`${addBtnClass} mt-6`}>
@@ -206,7 +208,7 @@ export default function NetworkPage() {
             {h && (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-5">
                 <Kpi label="Sous-organisations" value={nf(h.organizations)} sub="rattachées au réseau" />
-                <Kpi label="Membres (réseau)" value={nf(h.total_members)} sub="toutes organisations confondues" />
+                <Kpi label={`${term.many} (réseau)`} value={nf(h.total_members)} sub="toutes organisations confondues" />
                 <Kpi label="Nouveaux ce mois" value={nf(h.new_this_month)}
                   tone={h.growth_pct > 0 ? 'text-emerald-600' : h.growth_pct < 0 ? 'text-red-600' : 'text-gray-900'}
                   sub={h.growth_pct === null ? `vs ${nf(h.new_prev_month)} le mois dernier` : `${h.growth_pct > 0 ? '+' : ''}${h.growth_pct} % vs ${nf(h.new_prev_month)} le mois dernier`} />
@@ -217,7 +219,7 @@ export default function NetworkPage() {
             {/* Courbes d'évolution */}
             {data && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 mb-5">
-                <Card title="Évolution de l'effectif" subtitle={`Membres cumulés · ${unit === 'week' ? '12 dernières semaines' : '12 derniers mois'}`}>
+                <Card title="Évolution de l'effectif" subtitle={`${term.many} cumulés · ${unit === 'week' ? '12 dernières semaines' : '12 derniers mois'}`}>
                   <ResponsiveContainer width="100%" height={240}>
                     <AreaChart data={data.growth} margin={{ top: 5, right: 5, left: -18, bottom: 0 }}>
                       <defs>
@@ -235,7 +237,7 @@ export default function NetworkPage() {
                   </ResponsiveContainer>
                 </Card>
 
-                <Card title="Nouveaux membres" subtitle={`Par ${unit === 'week' ? 'semaine' : 'mois'}`}>
+                <Card title={`Nouveaux ${term.lowerMany}`} subtitle={`Par ${unit === 'week' ? 'semaine' : 'mois'}`}>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={data.growth} margin={{ top: 5, right: 5, left: -18, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -264,7 +266,7 @@ export default function NetworkPage() {
                         <div className="flex items-baseline justify-between gap-3 mb-1">
                           <p className="text-sm font-medium text-gray-800 truncate">{o.name}</p>
                           <p className="text-sm text-gray-500 whitespace-nowrap">
-                            <span className="font-semibold text-gray-900">{nf(o.members_count)}</span> membres
+                            <span className="font-semibold text-gray-900">{nf(o.members_count)}</span> {term.lowerMany}
                             {m?.new_this_month > 0 && <span className="text-emerald-600 font-medium"> · +{nf(m.new_this_month)}</span>}
                           </p>
                         </div>
@@ -281,8 +283,8 @@ export default function NetworkPage() {
                 </div>
               </Card>
 
-              {/* Nouveaux membres par événement */}
-              <Card title="Nouveaux membres par événement" subtitle="Derniers événements du réseau">
+              {/* Nouvelles inscriptions par événement */}
+              <Card title={`Nouveaux ${term.lowerMany} par événement`} subtitle="Derniers événements du réseau">
                 {(!data || !data.by_event || data.by_event.length === 0) ? (
                   <p className="py-8 text-center text-sm text-gray-400">Aucun événement récent.</p>
                 ) : (
@@ -292,7 +294,7 @@ export default function NetworkPage() {
                       <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} allowDecimals={false} />
                       <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} interval={0}
                         tickFormatter={(v) => (v.length > 16 ? `${v.slice(0, 15)}…` : v)} />
-                      <Tooltip cursor={{ fill: '#f6f2ea' }} formatter={(v) => [nf(v), 'Nouveaux membres']} contentStyle={tooltipStyle} />
+                      <Tooltip cursor={{ fill: '#f6f2ea' }} formatter={(v) => [nf(v), `Nouveaux ${term.lowerMany}`]} contentStyle={tooltipStyle} />
                       <Bar dataKey="new" radius={[0, 4, 4, 0]} maxBarSize={18}>
                         {data.by_event.map((e) => <Cell key={e.id} fill={ACCENT} />)}
                       </Bar>

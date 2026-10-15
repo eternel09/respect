@@ -24,14 +24,19 @@ class CardPrintRequest extends Model
     protected $fillable = [
         'organization_id', 'requested_by', 'source',
         'contact_name', 'contact_company', 'contact_email', 'contact_phone',
-        'quantity', 'note', 'delivery_address',
+        'quantity', 'note', 'delivery_address', 'staff', 'member_term',
         'status', 'assigned_to', 'handled_by', 'handled_at',
     ];
 
     protected $casts = [
         'quantity'   => 'integer',
         'handled_at' => 'datetime',
+        // Personnel joint par le client : [{first_name, last_name, phone, job_title, department, staff_id}]
+        'staff'      => 'array',
     ];
+
+    // La liste du personnel (données personnelles) ne sort que par l'endpoint dédié.
+    protected $hidden = ['staff'];
 
     protected static function booted(): void
     {

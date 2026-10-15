@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\ResolvesDownloadToken;
 use App\Http\Controllers\Controller;
+use App\Models\CardPrintRequest;
 use App\Models\Member;
 use App\Services\QrCodeService;
 use Illuminate\Http\Client\ConnectionException;
@@ -44,6 +45,25 @@ class MemberCardController extends Controller
         $layout = $request->query('layout') === 'single' ? 'single' : 'sheet';
 
         return $this->printSheet($user->organization, $members, 'cartes-membres.pdf', $layout);
+    }
+
+    /**
+     * Équipe plateforme : les cartes de l'organisation rattachée à une demande
+     * (service opéré — l'opérateur imprime pour le client).
+     */
+    public function forPrintRequest(CardPrintRequest $cardPrintRequest, Request $request)
+    {
+        $org = $cardPrintRequest->organization;
+        abort_unless($org, 422, "Cette demande n'est rattachée à aucune organisation : convertissez-la d'abord en client.");
+
+        $members = Member::withoutGlobalScopes()->where('organization_id', $org->id)
+            ->orderBy('last_name')->orderBy('first_name')->get();
+
+        abort_if($members->isEmpty(), 404, "Aucune personne enregistrée dans l'organisation.");
+
+        $layout = $request->query('layout') === 'single' ? 'single' : 'sheet';
+
+        return $this->printSheet($org, $members, "cartes-{$cardPrintRequest->reference}.pdf", $layout);
     }
 
     private function printSheet(\App\Models\Organization $org, $members, string $filename, string $layout = 'sheet')

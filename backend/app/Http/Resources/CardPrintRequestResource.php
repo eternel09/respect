@@ -25,6 +25,9 @@ class CardPrintRequestResource extends JsonResource
                 'phone'   => $this->contact_phone,
             ], fn ($v) => $v !== null) ?: null,
             'quantity'         => $this->quantity,
+            // Liste du personnel jointe (le détail : endpoint dédié) et vocabulaire choisi.
+            'staff_count'      => count($this->staff ?? []),
+            'member_term'      => $this->member_term,
             'note'             => $this->note,
             'delivery_address' => $this->delivery_address,
             'status'           => $this->status,

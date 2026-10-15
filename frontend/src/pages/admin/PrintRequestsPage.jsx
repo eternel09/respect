@@ -6,6 +6,8 @@ import api, { apiErrorMessage } from '../../lib/axios'
 import Pagination from '../../components/Pagination'
 import PlatformHeader from '../../components/PlatformHeader'
 import PrintRequestHistory from '../../components/PrintRequestHistory'
+import PrintRequestStaff from '../../components/PrintRequestStaff'
+import ConvertRequestModal from '../../components/ConvertRequestModal'
 import Icon from '../../components/ui/Icon'
 
 const STATUS = {
@@ -44,6 +46,10 @@ export default function PrintRequestsPage() {
   const [exporting, setExporting] = useState(false)
   const [stats, setStats]     = useState(null)
   const [noteBusy, setNoteBusy] = useState(null) // id de la demande dont le bon est en génération
+  const [staffOpenId, setStaffOpenId] = useState(null) // demande dont la liste du personnel est dépliée
+  const [converting, setConverting] = useState(null) // demande en cours de conversion en client
+  const [cardsBusy, setCardsBusy] = useState(null)   // `${id}-${layout}` en génération
+  const isSuperAdmin = user?.role === 'super_admin'
 
   const load = useCallback(() => {
     setLoading(true); setError(null)
@@ -99,6 +105,17 @@ export default function PrintRequestsPage() {
     } catch (err) {
       setError(apiErrorMessage(err, "Impossible de générer le bon de livraison."))
     } finally { setNoteBusy(null) }
+  }
+
+  // Cartes de l'organisation rattachée (service opéré : l'équipe imprime pour le client).
+  const downloadCards = async (item, layout) => {
+    setCardsBusy(`${item.id}-${layout}`); setError(null)
+    try {
+      const res = await api.get(`/admin/print-requests/${item.id}/cards`, { params: { layout }, responseType: 'blob' })
+      saveBlob(res.data, `cartes-${item.reference || item.id}${layout === 'single' ? '-a-decouper' : ''}.pdf`)
+    } catch (err) {
+      setError(await blobErrorMessage(err, "Impossible de générer les cartes."))
+    } finally { setCardsBusy(null) }
   }
 
   return (
@@ -181,6 +198,13 @@ export default function PrintRequestsPage() {
                         <p className="text-sm text-gray-600 mt-1">
                           <span className="font-semibold text-gray-800 tabular-nums">{item.quantity}</span> carte(s)
                           {item.requested_by && <span className="text-gray-400"> · demandé par {item.requested_by}</span>}
+                          {item.staff_count > 0 && (
+                            <button onClick={() => setStaffOpenId(id => id === item.id ? null : item.id)}
+                              className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-brand bg-brand/10 px-2 py-0.5 rounded-full hover:bg-brand/15">
+                              <Icon name="group" size={14} />Liste de {item.staff_count} personne(s)
+                              <Icon name="expand_more" size={14} className={`transition-transform ${staffOpenId === item.id ? 'rotate-180' : ''}`} />
+                            </button>
+                          )}
                         </p>
                         {/* Contact du prospect (demande publique sans compte) */}
                         {item.contact && (
@@ -204,7 +228,36 @@ export default function PrintRequestsPage() {
                         </div>
                       </div>
 
+                      {staffOpenId === item.id && <PrintRequestStaff requestId={item.id} />}
+
                       <div className="flex flex-wrap gap-2 pt-3 border-t border-black/5">
+                        {/* Prospect signé → espace client (super-admin : crée une organisation) */}
+                        {isSuperAdmin && !item.organization && item.source === 'public' && item.status !== 'cancelled' && (
+                          <button onClick={() => setConverting(item)}
+                            className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-xl bg-gray-900 text-white hover:bg-gray-800">
+                            <Icon name="domain_add" size={16} />Convertir en client
+                          </button>
+                        )}
+                        {item.organization && (
+                          <>
+                            <button onClick={() => downloadCards(item, 'sheet')} disabled={!!cardsBusy}
+                              title="Cartes de l'organisation : planche A4"
+                              className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-sand disabled:opacity-60">
+                              {cardsBusy === `${item.id}-sheet`
+                                ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                                : <Icon name="badge" size={16} />}
+                              Cartes (A4)
+                            </button>
+                            <button onClick={() => downloadCards(item, 'single')} disabled={!!cardsBusy}
+                              title="Cartes de l'organisation : une par page, prêtes à découper (CR80)"
+                              className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-sand disabled:opacity-60">
+                              {cardsBusy === `${item.id}-single`
+                                ? <span className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                                : <Icon name="content_cut" size={16} />}
+                              1 par page
+                            </button>
+                          </>
+                        )}
                         {item.status === 'pending' && (
                           <button disabled={busyId === item.id} onClick={() => setItemStatus(item, 'in_progress')}
                             className="text-sm px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">Prendre en charge</button>
@@ -244,6 +297,14 @@ export default function PrintRequestsPage() {
             </div>
           )}
 
+          {converting && (
+            <ConvertRequestModal
+              item={converting}
+              onClose={() => setConverting(null)}
+              onConverted={req => setItems(list => list.map(i => (i.id === req.id ? req : i)))}
+            />
+          )}
+
           {meta && meta.last_page > 1 && (
             <div className="mt-4 bg-white rounded-2xl ring-1 ring-black/5 shadow-sm">
               <Pagination meta={meta} page={page} onChange={setPage} count={items.length} label="demande(s)" />
@@ -262,6 +323,18 @@ function saveBlob(blob, filename) {
   a.href = url; a.download = filename
   document.body.appendChild(a); a.click(); a.remove()
   URL.revokeObjectURL(url)
+}
+
+/** Message d'une erreur reçue en blob (réponse JSON de l'API lue depuis le Blob). */
+async function blobErrorMessage(err, fallback) {
+  const data = err.response?.data
+  if (data instanceof Blob) {
+    try {
+      const json = JSON.parse(await data.text())
+      if (json?.message) return json.message
+    } catch { /* pas du JSON */ }
+  }
+  return apiErrorMessage(err, fallback)
 }
 
 const fmtNum = n => (n ?? 0).toLocaleString('fr-FR')

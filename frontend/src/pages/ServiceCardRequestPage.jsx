@@ -4,6 +4,8 @@ import api, { apiErrorMessage } from '../lib/axios'
 import logoWhite from '../assets/logo-white.png'
 import logoFull from '../assets/logo-full.png'
 import Icon from '../components/ui/Icon'
+import StaffListUpload from '../components/StaffListUpload'
+import { memberTerm } from '../lib/memberTerm'
 
 const inputClass =
   'w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-gray-200 ' +
@@ -13,16 +15,24 @@ const inputClass =
  * Portail public de demande de cartes de service (sans compte).
  * Un prospect décrit son besoin ; la demande alimente la file de travail que
  * l'équipe plateforme traite. Service opéré — pas de self-service requis.
+ * La liste du personnel peut être jointe (Excel/CSV) : à l'ouverture de l'espace
+ * client, elle devient ses agents/employés, sans ressaisie.
  */
 export default function ServiceCardRequestPage() {
   const [form, setForm] = useState({
     contact_name: '', contact_company: '', contact_email: '', contact_phone: '',
     quantity: '', delivery_address: '', note: '', website: '', // website = honeypot
+    member_term: 'agent',
   })
+  const [staff, setStaff]     = useState(null) // lignes lues dans le fichier joint
   const [errors, setErrors]   = useState({})
   const [error, setError]     = useState(null)
   const [loading, setLoading] = useState(false)
   const [ticket, setTicket]   = useState(null) // { reference, token } après envoi
+
+  const term = memberTerm(form.member_term)
+  // Erreur serveur sur la liste (ex. « staff.12.last_name ») : la première suffit.
+  const staffError = Object.entries(errors).find(([k, v]) => k.startsWith('staff') && v)?.[1]
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(er => ({ ...er, [k]: undefined })) }
 
@@ -30,7 +40,9 @@ export default function ServiceCardRequestPage() {
     e.preventDefault()
     setLoading(true); setErrors({}); setError(null)
     try {
-      const res = await api.post('/public/card-print-requests', form)
+      // Avec une liste jointe, la quantité en découle (une carte par personne).
+      const payload = staff?.length ? { ...form, quantity: undefined, staff } : form
+      const res = await api.post('/public/card-print-requests', payload)
       setTicket({ reference: res.data.reference, token: res.data.token })
     } catch (err) {
       if (err.response?.status === 422) {
@@ -128,11 +140,39 @@ export default function ServiceCardRequestPage() {
                   </div>
                 </div>
 
+                <fieldset>
+                  <legend className="block text-sm font-medium text-gray-700 mb-1.5">Votre personnel s'appelle</legend>
+                  <div className="flex gap-2">
+                    {['agent', 'employe'].map(k => (
+                      <label key={k} className={`flex-1 text-center text-sm px-3 py-2 rounded-xl border cursor-pointer transition-colors ${
+                        form.member_term === k ? 'border-brand bg-brand/5 text-brand font-semibold' : 'border-gray-200 bg-white text-gray-600 hover:bg-sand'}`}>
+                        <input type="radio" name="member_term" value={k} checked={form.member_term === k}
+                          onChange={() => set('member_term', k)} className="sr-only" />
+                        {memberTerm(k).many}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre de cartes <span className="text-red-500">*</span></label>
-                  <input type="number" min="1" className={inputClass} placeholder="Ex. 80" value={form.quantity} onChange={e => set('quantity', e.target.value)} />
-                  {errors.quantity && <p className="text-xs text-red-600 mt-1">{errors.quantity}</p>}
+                  <p className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Liste des {term.lowerMany} <span className="text-gray-400 font-normal">(recommandé)</span>
+                  </p>
+                  <StaffListUpload term={term} onChange={setStaff} serverError={staffError} />
+                  <p className="text-xs text-gray-400 mt-1.5">Chaque personne aura sa carte et son QR de pointage ; vous les retrouverez dans votre espace dès son ouverture.</p>
                 </div>
+
+                {staff?.length ? (
+                  <p className="text-sm text-gray-600 bg-white rounded-xl ring-1 ring-black/5 px-4 py-2.5">
+                    <span className="font-semibold text-gray-900 tabular-nums">{staff.length}</span> carte(s) : une par personne de la liste.
+                  </p>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre de cartes <span className="text-red-500">*</span></label>
+                    <input type="number" min="1" className={inputClass} placeholder="Ex. 80" value={form.quantity} onChange={e => set('quantity', e.target.value)} />
+                    {errors.quantity && <p className="text-xs text-red-600 mt-1">{errors.quantity}</p>}
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Adresse de livraison</label>
