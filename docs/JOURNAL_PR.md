@@ -7,6 +7,7 @@ Statuts : 🟩 mergée · 🟦 ouverte · ⬜ brouillon
 
 | PR | Produit · Étape | Titre | Statut | Commit / SHA |
 |---|---|---|:--:|---|
+| [#77](https://github.com/eternel09/respect/pull/77) | Socle · sécurité | **Correctif urgent** : faille PHP « php2shell » (CVE-2026-109618 / -109619, exécution de code à distance) → image PHP 8.3.36 épinglée + durcissement ; dépendances PHP vulnérables mises à jour (`composer audit` : 33 → 0). Branche `hotfix/php2shell`, indépendante de la #76 | 🟦 | `fix(security): patch "php2shell" PHP RCE and vulnerable PHP dependencies` |
 | [#76](https://github.com/eternel09/respect/pull/76) | Socle · équipe | Comptes : changer son mot de passe (imposé après mot de passe temporaire), mot de passe oublié par e-mail, désactivation, dernière connexion ; file : recherche, « Mes demandes » / « Non attribuées », attribution à un collègue ; `FRONTEND_URL` + SMTP transmis au backend | 🟦 | `feat(team): real account management + team tools on the request queue` |
 | [#75](https://github.com/eternel09/respect/pull/75) | Présence · 1.7 (retouche) | Liste du personnel : colonnes **reconnues automatiquement** (plus de choix manuel) ; détection renforcée (titre au-dessus, Nom/Postnom/Prénom, nom complet, anglais, CSV « ; » / Windows-1252, entêtes répétées) | 🟩 | (mergée) |
 | [#74](https://github.com/eternel09/respect/pull/74) | Présence · 1.7 (retouche) | Portail : retrait du champ « Votre personnel s'appelle » ; libellés neutres (« personnel ») ; terme fixé par l'équipe à la conversion (« Agents » par défaut) | 🟩 | (mergée) |
