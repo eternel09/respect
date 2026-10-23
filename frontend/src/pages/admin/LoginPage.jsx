@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useAuth } from '../../context/AuthContext'
 import { apiErrorMessage } from '../../lib/axios'
+import { homeFor } from '../../lib/passwordForm'
 import Icon from '../../components/ui/Icon'
 import logoWhite from '../../assets/logo-white.png'
 import logoFull from '../../assets/logo-full.png'
@@ -29,14 +30,9 @@ export default function LoginPage() {
     try {
       const data = await login(form.email, form.password)
       const u = data?.user
-      // super-admin → organisations ; opérateur → file des demandes ;
-      // agent d'événement → son événement ; sinon back-office.
-      navigate(
-        u?.role === 'super_admin' ? '/admin/organizations'
-        : u?.role === 'operator' ? '/admin/print-requests'
-        : u?.occasion_id ? `/events/${u.occasion_id}`
-        : '/admin/dashboard'
-      )
+      // Mot de passe temporaire → d'abord en choisir un ; sinon accueil du rôle
+      // (super-admin → organisations, opérateur → file, agent → son événement…).
+      navigate(u?.must_change_password ? '/admin/mot-de-passe' : homeFor(u))
     } catch (err) {
       // 401 → identifiants ; 429 → trop de tentatives (anti-bruteforce) ; etc.
       setError(err.response?.status === 401
@@ -128,6 +124,9 @@ export default function LoginPage() {
                 <Icon name={showPw ? 'visibility_off' : 'visibility'} size={20} />
               </button>
             </Field>
+            <div className="flex justify-end -mt-1">
+              <Link to="/mot-de-passe-oublie" className="text-[13px] font-medium text-brand hover:text-brand-dark">Mot de passe oublié ?</Link>
+            </div>
 
             <motion.button type="submit" disabled={loading}
               whileHover={{ y: -2 }} whileTap={{ y: 0, scale: 0.99 }}

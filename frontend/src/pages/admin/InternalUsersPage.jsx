@@ -15,6 +15,11 @@ const roleBadge = role => role === 'super_admin'
   ? 'text-brand bg-brand/10'
   : 'text-violet-700 bg-violet-50'
 
+// « 12 oct. 2026, 14:05 » ou « jamais »
+const fmtLogin = iso => iso
+  ? new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  : 'jamais'
+
 const inputBase =
   'w-full px-4 py-2.5 border rounded-xl text-sm bg-white transition-colors ' +
   'focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand border-gray-200'
@@ -51,6 +56,17 @@ export default function InternalUsersPage() {
       const res = await api.post(`/admin/internal-users/${u.id}/password`, {})
       setSecret({ email: u.email, password: res.data.temp_password })
     } catch (err) { setError(apiErrorMessage(err, 'Réinitialisation impossible.')) }
+  }
+
+  // Désactiver : l'accès est coupé (sessions fermées) mais le compte et son historique restent.
+  const toggleActive = async u => {
+    const next = !u.is_active
+    if (!next && !window.confirm(`Désactiver le compte de ${u.name} ? Il ne pourra plus se connecter.`)) return
+    setError(null)
+    try {
+      const res = await api.patch(`/admin/internal-users/${u.id}/active`, { active: next })
+      setItems(list => list.map(i => (i.id === u.id ? res.data.user : i)))
+    } catch (err) { setError(apiErrorMessage(err, 'Modification impossible.')) }
   }
 
   const remove = async u => {
@@ -97,7 +113,7 @@ export default function InternalUsersPage() {
                   <p className="text-sm text-emerald-700 mt-1">
                     {secret.email} · <span className="font-mono font-bold bg-white px-2 py-0.5 rounded">{secret.password}</span>
                   </p>
-                  <p className="text-xs text-emerald-600 mt-1.5">Communiquez-le à l'intéressé ; il ne sera plus affiché.</p>
+                  <p className="text-xs text-emerald-600 mt-1.5">Communiquez-le à l'intéressé : il devra le remplacer par son propre mot de passe à la première connexion. Il ne sera plus affiché.</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => navigator.clipboard?.writeText(secret.password)} title="Copier"
@@ -118,20 +134,31 @@ export default function InternalUsersPage() {
               {items.map(u => {
                 const self = u.id === user?.id
                 return (
-                  <div key={u.id} className="flex items-center justify-between gap-3 px-5 py-4">
+                  <div key={u.id} className={`flex items-center justify-between gap-3 px-5 py-4 ${u.is_active ? '' : 'bg-gray-50'}`}>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900 truncate">{u.name}</span>
+                        <span className={`font-semibold truncate ${u.is_active ? 'text-gray-900' : 'text-gray-500'}`}>{u.name}</span>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleBadge(u.role)}`}>{ROLE_LABEL[u.role] || u.role}</span>
+                        {!u.is_active && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full text-gray-600 bg-gray-200"><Icon name="block" size={13} />Désactivé</span>}
+                        {u.is_active && u.must_change_password && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full text-amber-800 bg-amber-50"><Icon name="key" size={13} />Mot de passe temporaire</span>}
                         {self && <span className="text-xs text-gray-400">(vous)</span>}
                       </div>
                       <p className="text-sm text-gray-500 truncate">{u.email}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Dernière connexion : {fmtLogin(u.last_login_at)}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => setModal({ mode: 'edit', user: u })} title="Modifier"
                         className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-sand"><Icon name="edit" size={18} /></button>
                       <button onClick={() => resetPassword(u)} title="Réinitialiser le mot de passe"
                         className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-sand"><Icon name="key" size={18} /></button>
+                      {!self && (
+                        <button onClick={() => toggleActive(u)}
+                          title={u.is_active ? 'Désactiver le compte' : 'Réactiver le compte'}
+                          aria-label={u.is_active ? `Désactiver le compte de ${u.name}` : `Réactiver le compte de ${u.name}`}
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center hover:bg-sand ${u.is_active ? 'text-gray-500' : 'text-emerald-600'}`}>
+                          <Icon name={u.is_active ? 'block' : 'check_circle'} size={18} />
+                        </button>
+                      )}
                       {!self && (
                         <button onClick={() => remove(u)} title="Supprimer"
                           className="w-9 h-9 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50"><Icon name="delete" size={18} /></button>

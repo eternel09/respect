@@ -105,6 +105,7 @@ class SubOrganizationController extends Controller
                 'name'            => $request->admin_name,
                 'email'           => $request->admin_email,
                 'password'        => Hash::make($tempPassword),
+                'must_change_password' => true, // mot de passe temporaire à remplacer
                 'role'            => 'admin',
             ]);
 

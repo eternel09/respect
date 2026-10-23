@@ -221,6 +221,10 @@ function TopBar({ onMenu }) {
                     <span className="text-gray-400">Organisation</span>
                     <span className="font-medium text-gray-800 truncate max-w-[150px]">{user?.organization?.name || '—'}</span>
                   </div>
+                  <Link to="/admin/mot-de-passe" onClick={() => setOpen(null)}
+                    className="flex items-center gap-1.5 pt-1 text-brand font-medium hover:text-brand-dark">
+                    <Icon name="key" size={16} />Changer mon mot de passe
+                  </Link>
                 </div>
                 <div className="p-3 border-t border-black/5 flex gap-2">
                   <Link
