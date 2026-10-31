@@ -15,6 +15,13 @@ const INVITE = {
   sent:    ['Envoyée',    'bg-emerald-50 text-emerald-700'],
   failed:  ['Échec',      'bg-red-50 text-red-600'],
 }
+// Mode d'envoi des invitations WhatsApp (réglage par événement).
+const DELIVERY = [
+  ['pdf',  'picture_as_pdf', 'Carton PDF',  'Le carton personnalisé (nom, table, QR) en pièce jointe.'],
+  ['link', 'link',           'Lien',        'Un message léger avec le lien personnel de l\'invité : carton en ligne, QR d\'accès, PDF à télécharger et confirmation.'],
+  ['both', 'library_add',    'PDF + lien',  'Le carton en pièce jointe et le lien personnel dans le message.'],
+]
+
 const Pill = ({ children, cls }) => <span className={`inline-flex items-center gap-1 text-[11.5px] font-semibold px-2.5 py-0.5 rounded-full ${cls}`}>{children}</span>
 
 export default function OccasionDetailPage() {
@@ -33,6 +40,7 @@ export default function OccasionDetailPage() {
   const [editOccasion, setEditOccasion] = useState(null) // événement en cours d'édition
   const [msg, setMsg] = useState('')      // message d'accompagnement WhatsApp
   const [savingMsg, setSavingMsg] = useState(false)
+  const [savingDelivery, setSavingDelivery] = useState(null) // mode en cours d'enregistrement
   const [selected, setSelected] = useState(() => new Set()) // ids invités cochés
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
@@ -63,6 +71,17 @@ export default function OccasionDetailPage() {
     } catch (e) {
       setFlash({ ok: false, text: apiErrorMessage(e, 'Enregistrement impossible.') })
     } finally { setSavingMsg(false) }
+  }
+  const saveDelivery = async (mode) => {
+    if (mode === data?.occasion?.invitation_delivery) return
+    setSavingDelivery(mode)
+    try {
+      const res = await api.put(`/occasions/${id}/invitation-delivery`, { delivery: mode })
+      setData(d => ({ ...d, occasion: { ...d.occasion, invitation_delivery: res.data.invitation_delivery } }))
+      setFlash({ ok: true, text: 'Mode d\'envoi enregistré.' })
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Enregistrement impossible.') })
+    } finally { setSavingDelivery(null) }
   }
   // Libère l'URL blob de l'aperçu quand elle change ou au démontage.
   useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url) }, [preview?.url])
@@ -409,6 +428,41 @@ export default function OccasionDetailPage() {
           {o.rsvp_video_url
             ? <video src={o.rsvp_video_url} className="w-24 h-32 object-cover rounded-xl ring-1 ring-black/10 bg-black flex-shrink-0" muted playsInline preload="metadata" />
             : <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-[11px] text-center px-2 flex-shrink-0">Aucune vidéo</div>}
+        </div>
+        )}
+
+        {/* Mode d'envoi : carton PDF, lien personnel, ou les deux */}
+        {has('guests') && (
+        <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6" data-testid="delivery-card">
+          <h3 className="font-bold text-gray-900">Mode d'envoi des invitations</h3>
+          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+            Choisissez ce que reçoit chaque invité sur WhatsApp. Le lien ouvre sa page personnelle, d'où il peut aussi télécharger son carton en PDF.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Mode d'envoi">
+            {DELIVERY.map(([k, icon, label, help]) => {
+              const active = (o.invitation_delivery || 'pdf') === k
+              return (
+                <button key={k} type="button" role="radio" aria-checked={active}
+                  onClick={() => saveDelivery(k)} disabled={!!savingDelivery}
+                  className={`text-left rounded-xl border p-3.5 transition disabled:cursor-wait ${active ? 'border-brand ring-2 ring-brand/30 bg-brand/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <span className="flex items-center gap-2 font-semibold text-sm text-gray-900">
+                    {savingDelivery === k
+                      ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" />
+                      : <Icon name={icon} size={18} className={active ? 'text-brand' : 'text-gray-400'} />}
+                    {label}
+                    {active && <Icon name="check_circle" size={16} className="ml-auto text-brand" />}
+                  </span>
+                  <span className="block text-xs text-gray-500 mt-1.5 leading-relaxed">{help}</span>
+                </button>
+              )
+            })}
+          </div>
+          {o.invitation_links_available === false && (
+            <p className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-1.5">
+              <Icon name="warning" size={15} className="mt-px flex-shrink-0" />
+              <span>L'adresse publique du site n'est pas configurée : les modes « Lien » et « PDF + lien » sont bloqués à l'envoi. Choisissez « Carton PDF » en attendant que l'adresse soit configurée.</span>
+            </p>
+          )}
         </div>
         )}
 

@@ -62,6 +62,7 @@ s'y branchent.
 | 2.4 | **Demande → événement** | L'opérateur transforme la demande en événement pré-rempli dans l'organisation de production. | ⬜ |
 | 2.5 | **Suivi du couple** | Lien public : invitations envoyées, confirmés / déclinés / en attente, sans compte. | ⬜ |
 | 2.6 | **Relances** | Invités sans réponse relancés ; couple informé des étapes. | ⬜ |
+| 2.7 | **Invitation par lien (option du PDF)** | Mode d'envoi choisi par événement : **carton PDF** en pièce jointe (défaut, inchangé), **lien** personnel seul (message léger), ou **PDF + lien**. Le lien ouvre la page de l'invité, devenue son invitation en ligne : **QR d'accès** à présenter à l'accueil, **carton PDF à télécharger** (identique à la pièce jointe, mis en cache), confirmation de présence. Les modes « lien » exigent l'adresse publique du site (`FRONTEND_URL`) : sinon l'envoi est bloqué avec un message clair et l'écran prévient. | ✅ |
 
 ## Produit 3 — Billetterie
 À détailler en dernier. Déjà le plus autonome (domaine `ticket_*`, paiement

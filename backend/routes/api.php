@@ -68,6 +68,8 @@ Route::post('/register/network/{token}', [NetworkJoinController::class, 'store']
 // Confirmation de présence (RSVP) — page publique ouverte par l'invité via son jeton
 Route::get('/rsvp/{token}', [RsvpController::class, 'show'])->middleware('throttle:60,1');
 Route::post('/rsvp/{token}', [RsvpController::class, 'store'])->middleware('throttle:20,1');
+// Carton de l'invité à télécharger depuis sa page (rendu coûteux : limité).
+Route::get('/rsvp/{token}/invitation', [RsvpController::class, 'invitation'])->middleware('throttle:10,1');
 
 // Billetterie publique — vitrine, achat, suivi et e-billets (par jeton)
 Route::get('/public/occasions/{occasion}/tickets', [\App\Http\Controllers\Api\TicketOrderController::class, 'storefront'])->middleware('throttle:60,1');
@@ -210,6 +212,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::delete('/occasions/{occasion}/ticket-design', [OccasionController::class, 'removeTicketDesign']);
         // Message d'accompagnement WhatsApp (ajouté à la légende automatique)
         Route::put('/occasions/{occasion}/invitation-message', [OccasionController::class, 'updateInvitationMessage']);
+        Route::put('/occasions/{occasion}/invitation-delivery', [OccasionController::class, 'updateInvitationDelivery']);
         // Aperçu composé (fond + QR + nom d'un invité d'exemple) — ne renvoie qu'une image
         Route::get('/occasions/{occasion}/invitation-preview', [OccasionInvitationController::class, 'preview']);
         // Vidéo du couple (montrée sur la page de confirmation RSVP)

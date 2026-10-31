@@ -7,9 +7,10 @@ const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { w
 const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null
 
 /**
- * Page publique de confirmation de présence (RSVP), ouverte par l'invité via le
- * lien reçu dans l'invitation. Affiche la vidéo « short » du couple et enregistre
- * la réponse (présent / décliné). Aucun compte requis — le jeton fait foi.
+ * Page personnelle de l'invité, ouverte via le lien reçu dans l'invitation :
+ * invitation en ligne (QR d'accès à présenter, carton PDF à télécharger),
+ * vidéo « short » du couple, et confirmation de présence (présent / décliné).
+ * Aucun compte requis — le jeton fait foi.
  */
 export default function RsvpPage() {
   const { token } = useParams()
@@ -18,6 +19,7 @@ export default function RsvpPage() {
   const [err, setErr] = useState(null)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState(null)  // { status, table, message }
+  const [download, setDownload] = useState({ busy: false, error: null })
 
   const load = useCallback(() => {
     api.get(`/rsvp/${token}`)
@@ -35,6 +37,25 @@ export default function RsvpPage() {
     } catch (e) {
       setErr(apiErrorMessage(e, "Impossible d'enregistrer votre réponse. Réessayez."))
     } finally { setBusy(false) }
+  }
+
+  // Carton identique à la pièce jointe WhatsApp, composé à la demande.
+  const downloadCard = async () => {
+    setDownload({ busy: true, error: null })
+    try {
+      const res = await api.get(`/rsvp/${token}/invitation`, { responseType: 'blob' })
+      const name = /filename="([^"]+)"/.exec(res.headers['content-disposition'] || '')?.[1] || 'invitation.pdf'
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url; a.download = name
+      document.body.appendChild(a); a.click(); a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      setDownload({ busy: false, error: null })
+    } catch (e) {
+      setDownload({ busy: false, error: e.response?.status === 429
+        ? 'Trop de téléchargements. Réessayez dans une minute.'
+        : 'Votre invitation est momentanément indisponible. Réessayez dans un instant.' })
+    }
   }
 
   if (loading) return (
@@ -88,6 +109,26 @@ export default function RsvpPage() {
 
           <p className="text-sm text-gray-500">Invitation adressée à</p>
           <p className="text-lg font-semibold text-gray-900">{guest.name}</p>
+
+          {/* Invitation en ligne : QR d'accès + carton à télécharger */}
+          {!occasion.is_expired && (
+            <div className="mt-6" data-testid="invitation-access">
+              {guest.qr && (
+                <figure className="inline-block">
+                  <img src={guest.qr} alt="Votre QR d'accès" className="w-44 h-44 mx-auto rounded-xl ring-1 ring-black/5 bg-white p-2" />
+                  <figcaption className="mt-2 text-xs text-gray-500">Votre QR d'accès — à présenter à l'accueil le jour J.</figcaption>
+                </figure>
+              )}
+              <button onClick={downloadCard} disabled={download.busy}
+                className="mt-4 w-full py-3 rounded-2xl font-semibold text-brand-dark bg-brand/10 hover:bg-brand/15 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                {download.busy
+                  ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" />
+                  : <Icon name="download" size={18} />}
+                Télécharger mon invitation
+              </button>
+              {download.error && <p className="mt-2 text-xs text-red-600">{download.error}</p>}
+            </div>
+          )}
 
           {/* État / actions */}
           {occasion.is_expired ? (

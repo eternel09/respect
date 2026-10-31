@@ -5,31 +5,31 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Guest;
 use App\Models\Occasion;
-use App\Services\QrCodeService;
+use App\Services\InvitationComposer;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
-/** Envoi des invitations WhatsApp (QR + carte) aux invités d'une occasion. */
+/**
+ * Envoi des invitations WhatsApp aux invités d'une occasion : le carton en
+ * pièce jointe (PDF), le lien personnel de l'invité, ou les deux, selon le
+ * mode d'envoi choisi pour l'événement.
+ */
 class OccasionInvitationController extends Controller
 {
-    private const TYPE_LABELS = [
-        'mariage'      => 'Mariage',
-        'gala'         => 'Gala',
-        'ceremonie'    => 'Cérémonie',
-        'anniversaire' => 'Anniversaire',
-        'concert'      => 'Concert',
-        'autre'        => 'Invitation',
-    ];
+    public function __construct(private InvitationComposer $composer) {}
 
     /** Un envoi dont le heartbeat s'est tu depuis ce délai est réputé mort (process tué) et repris. */
     private const SEND_LOCK_STALE_MINUTES = 10;
 
     /** Envoie l'invitation à tous les invités joignables (avec téléphone). */
-    public function sendAll(Occasion $occasion, Request $request, QrCodeService $qr): JsonResponse
+    public function sendAll(Occasion $occasion, Request $request): JsonResponse
     {
         abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        if ($blocked = $this->linkUnavailable($occasion)) {
+            return $blocked;
+        }
 
         // Verrou anti-doublon : un seul envoi groupé à la fois par événement.
         // Sans lui, deux exécutions parallèles (re-clic, rechargement, second
@@ -114,7 +114,7 @@ class OccasionInvitationController extends Controller
                     break;
                 }
 
-                $result = $this->dispatch($occasion, $guest, $qr);
+                $result = $this->dispatch($occasion, $guest);
 
                 if ($result === 'not_ready') {
                     // WhatsApp non connecté : on arrête tout de suite sans marquer d'échec.
@@ -182,37 +182,19 @@ class OccasionInvitationController extends Controller
      * représentatif), sinon un invité factice. Fonctionne même si WhatsApp
      * n'est pas connecté (le service ne rend que l'image).
      */
-    public function preview(Occasion $occasion, Request $request, QrCodeService $qr): \Symfony\Component\HttpFoundation\Response
+    public function preview(Occasion $occasion, Request $request): \Symfony\Component\HttpFoundation\Response
     {
         abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
 
         $sample     = $occasion->guests()->with('table')->orderBy('name')->first();
         $guestName  = $sample?->name ?: 'Marie Exemple';
-        $tableLabel = $sample ? $this->tableLabel($sample) : 'Table 1';
+        $tableLabel = $sample ? $this->composer->tableLabel($sample) : 'Table 1';
         $token      = $sample?->token ?: (string) \Illuminate\Support\Str::uuid();
 
-        $payload = [
-            'org'        => $occasion->organization->name,
-            'orgLogo'    => $occasion->organization->logoDataUri(),
-            'eventType'  => self::TYPE_LABELS[$occasion->type] ?? 'Invitation',
-            'eventName'  => $occasion->name,
-            'guestName'  => $guestName,
-            'dateText'   => $this->dateText($occasion),
-            'location'   => $occasion->location,
-            'tableLabel' => $tableLabel,
-            'qrDataUri'  => 'data:image/svg+xml;base64,' . $qr->guest($token),
-            'backgroundDataUri' => $occasion->invitationBgDataUri(),
-        ];
-
-        // Aperçu d'un modèle PDF : composé et renvoyé en PDF (repères + valeurs).
-        if ($occasion->invitationIsPdf()) {
-            $payload['templatePdfBase64'] = $occasion->invitationTemplateBase64();
-            $payload['qrText'] = $token;
-            unset($payload['backgroundDataUri']);
-        }
+        $payload = $this->composer->payload($occasion, $guestName, $tableLabel, $token);
 
         try {
-            $res = $this->service()->timeout(60)->post('/preview-invitation', $payload);
+            $res = $this->composer->service()->timeout(60)->post('/preview-invitation', $payload);
         } catch (ConnectionException) {
             return response()->json(['message' => 'Service WhatsApp injoignable.'], 503);
         }
@@ -226,7 +208,7 @@ class OccasionInvitationController extends Controller
     }
 
     /** (Re)envoie l'invitation à un invité précis. */
-    public function sendOne(Guest $guest, Request $request, QrCodeService $qr): JsonResponse
+    public function sendOne(Guest $guest, Request $request): JsonResponse
     {
         abort_if($guest->organization_id !== $request->user()->organization_id, 404);
 
@@ -235,7 +217,10 @@ class OccasionInvitationController extends Controller
         }
 
         $guest->loadMissing('table', 'occasion');
-        $result = $this->dispatch($guest->occasion, $guest, $qr);
+        if ($blocked = $this->linkUnavailable($guest->occasion)) {
+            return $blocked;
+        }
+        $result = $this->dispatch($guest->occasion, $guest);
 
         return match ($result) {
             'not_ready' => response()->json(['message' => 'WhatsApp n’est pas connecté. Liez le compte depuis les Réglages.'], 409),
@@ -246,42 +231,56 @@ class OccasionInvitationController extends Controller
     }
 
     /**
+     * Les modes « lien » exigent une adresse publique du site : sans elle, le
+     * lien serait injoignable pour l'invité. On bloque l'envoi avec un message
+     * clair plutôt que d'envoyer un message vide (mode lien seul) ou de retirer
+     * le lien en silence (mode les deux).
+     */
+    private function linkUnavailable(Occasion $occasion): ?JsonResponse
+    {
+        if ($occasion->sendsInvitationLink() && InvitationComposer::publicBaseUrl() === null) {
+            return response()->json([
+                'message' => 'L’envoi par lien nécessite l’adresse publique du site (FRONTEND_URL). '
+                    . 'Configurez-la ou choisissez l’envoi en PDF.',
+            ], 422);
+        }
+
+        return null;
+    }
+
+    /**
      * Envoie une invitation et met à jour le statut de l'invité.
      * Retour : true (ok) | false (échec applicatif) | 'not_ready' | 'offline'.
      */
-    private function dispatch(Occasion $occasion, Guest $guest, QrCodeService $qr): bool|string
+    private function dispatch(Occasion $occasion, Guest $guest): bool|string
     {
-        $payload = [
-            'phone'      => $guest->phone,
-            'org'        => $occasion->organization->name,
-            'orgLogo'    => $occasion->organization->logoDataUri(),
-            'eventType'  => self::TYPE_LABELS[$occasion->type] ?? 'Invitation',
-            'eventName'  => $occasion->name,
-            'guestName'  => $guest->name,
-            'dateText'   => $this->dateText($occasion),
-            'location'   => $occasion->location,
-            'tableLabel' => $this->tableLabel($guest),
-            'qrDataUri'  => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
-            // Carton personnalisé (option A) : si présent, le service WhatsApp
-            // superpose QR + nom dessus au lieu de générer le design par défaut.
-            'backgroundDataUri' => $occasion->invitationBgDataUri(),
-            // Lien public de confirmation de présence (RSVP + vidéo du couple).
-            // Omis tant que le site n'a pas d'URL publique (évite un lien localhost).
-            'rsvpUrl' => $this->rsvpUrl($guest),
+        $delivery = $occasion->invitationDelivery();
+
+        // Le carton n'est composé que s'il part en pièce jointe : en mode lien
+        // seul, l'invité le consulte (et le télécharge) depuis sa page.
+        $payload = $delivery === 'link' ? [] : $this->composer->guestPayload($guest);
+
+        $payload += [
+            'phone'    => $guest->phone,
+            'org'      => $occasion->organization->name,
+            'eventName' => $occasion->name,
+            'guestName' => $guest->name,
+            'dateText' => $this->composer->dateText($occasion),
+            'location' => $occasion->location,
+            'tableLabel' => $this->composer->tableLabel($guest),
+            'delivery' => $delivery,
+            // Page personnelle de l'invité : carton en ligne, QR d'accès,
+            // téléchargement du PDF et confirmation de présence. Omise tant que
+            // le site n'a pas d'URL publique (jamais de lien localhost).
+            'invitationUrl' => $this->composer->guestUrl($guest),
             // Mot personnalisé de l'organisateur, ajouté à la légende automatique.
             'customMessage' => $occasion->invitation_message,
         ];
-
-        // Modèle PDF : le service détecte les repères et tamponne nom/table/QR.
-        // Le QR encode le jeton de l'invité (identique à ce que scanne l'accueil).
-        if ($occasion->invitationIsPdf()) {
-            $payload['templatePdfBase64'] = $occasion->invitationTemplateBase64();
-            $payload['qrText'] = $guest->token;
-            unset($payload['backgroundDataUri']);
-        }
+        // Ancien nom du lien, conservé pour un service WhatsApp pas encore mis à jour.
+        $payload['rsvpUrl'] = $payload['invitationUrl'];
 
         try {
-            $res = $this->service()->timeout(120)->post('/send-invitation', $payload);
+            $res = $this->composer->service()->timeout(120)->post('/send-invitation', $payload);
         } catch (ConnectionException) {
             return 'offline';
         }
@@ -304,55 +303,5 @@ class OccasionInvitationController extends Controller
             'invite_error'  => \Illuminate\Support\Str::limit($res->json('message') ?? 'Échec inconnu.', 190),
         ])->save();
         return false;
-    }
-
-    /**
-     * Lien public de confirmation (RSVP), ou null si le site n'a pas d'URL
-     * publique configurée. On n'envoie jamais un lien localhost / injoignable
-     * aux invités : la ligne « Confirmez votre présence » disparaît alors du
-     * message. Il suffit de définir FRONTEND_URL sur le vrai domaine pour la
-     * réactiver automatiquement.
-     */
-    private function rsvpUrl(Guest $guest): ?string
-    {
-        $base = rtrim((string) config('app.frontend_url'), '/');
-
-        if ($base === '' || ! preg_match('#^https?://#i', $base)) {
-            return null;
-        }
-
-        $host = strtolower((string) parse_url($base, PHP_URL_HOST));
-        if ($host === '' || in_array($host, ['localhost', '127.0.0.1', '0.0.0.0', '::1'], true)
-            || str_ends_with($host, '.local')) {
-            return null;
-        }
-
-        return $base . '/confirmer/' . $guest->token;
-    }
-
-    private function tableLabel(Guest $guest): ?string
-    {
-        $label = $guest->table?->label;
-        if (! $label) {
-            return null;
-        }
-        return is_numeric($label) ? "Table {$label}" : $label;
-    }
-
-    private function dateText(Occasion $occasion): string
-    {
-        $text = $occasion->date->locale('fr')->translatedFormat('l j F Y');
-        if ($occasion->starts_at) {
-            $text .= ' à ' . $occasion->starts_at->format('H\hi');
-        }
-        return $text;
-    }
-
-    private function service()
-    {
-        return Http::baseUrl(config('services.whatsapp.url'))
-            ->withHeaders(['X-Api-Key' => config('services.whatsapp.key')])
-            ->timeout(15)
-            ->acceptJson();
     }
 }

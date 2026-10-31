@@ -16,6 +16,7 @@ const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
 const { renderCard, renderInvitation, renderPrintPdf, warmUp } = require('./card')
+const { buildInvitationMessage } = require('./invitation-message')
 // Chargement DÉFENSIF du module PDF : s'il est indisponible (dépendances non
 // installées, erreur de chargement…), le service doit QUAND MÊME démarrer et
 // ouvrir la session WhatsApp — l'envoi d'invitations retombe alors sur l'image
@@ -201,6 +202,18 @@ app.post('/preview-invitation', async (req, res) => {
   }
 })
 
+// Carton composé d'un invité (PDF, image en repli), sans envoi : téléchargé
+// par l'invité depuis sa page personnelle.
+app.post('/render-invitation', async (req, res) => {
+  try {
+    const { buffer, mime } = await buildInvitationMedia(req.body)
+    res.type(mime === 'application/pdf' ? 'pdf' : 'png').send(buffer)
+  } catch (e) {
+    console.error('[invitation] rendu:', e.message)
+    res.status(500).json({ message: "Échec du rendu de l'invitation." })
+  }
+})
+
 // Planche A4 de cartes (format carte de visite) — impression au même design
 app.post('/print-cards', async (req, res) => {
   const { org, orgLogo, cardDesign, layout, members } = req.body
@@ -258,19 +271,17 @@ app.post('/send-invitation', async (req, res) => {
     const numberId = await client.getNumberId(digits)
     if (!numberId) return res.status(404).json({ message: "Ce numéro n'est pas sur WhatsApp." })
 
-    const { buffer, mime, filename } = await buildInvitationMedia(req.body)
-    const media = new MessageMedia(mime, buffer.toString('base64'), filename)
-    const table = req.body.tableLabel ? `\n🍽️ Votre place : ${req.body.tableLabel}` : ''
-    const rsvp = req.body.rsvpUrl ? `\n✅ Confirmez votre présence : ${req.body.rsvpUrl}` : ''
-    // Mot personnalisé de l'organisateur, en tête de la légende automatique.
-    const custom = String(req.body.customMessage || '').trim()
-    const caption =
-      (custom ? `${custom}\n\n` : '') +
-      `💌 ${req.body.guestName}, vous êtes convié(e) à ${req.body.eventName}.\n` +
-      `📅 ${req.body.dateText}${req.body.location ? ` · ${req.body.location}` : ''}${table}${rsvp}\n` +
-      `Présentez ce QR à l'accueil le jour J. Au plaisir de vous y voir !`
+    const { text, withMedia } = buildInvitationMessage(req.body)
+    if (!text) return res.status(422).json({ message: "Lien d'invitation manquant." })
 
-    await client.sendMessage(numberId._serialized, media, { caption })
+    if (withMedia) {
+      const { buffer, mime, filename } = await buildInvitationMedia(req.body)
+      const media = new MessageMedia(mime, buffer.toString('base64'), filename)
+      await client.sendMessage(numberId._serialized, media, { caption: text })
+    } else {
+      // Mode lien : message texte seul, l'aperçu du lien s'affiche dans WhatsApp.
+      await client.sendMessage(numberId._serialized, text, { linkPreview: true })
+    }
     console.log(`[wa] invitation envoyée → ${digits}`)
     res.json({ sent: true, message: `Invitation envoyée à ${req.body.guestName}.` })
   } catch (e) {

@@ -16,7 +16,11 @@ class Occasion extends Model
     protected $fillable = [
         'organization_id', 'created_by', 'name', 'type', 'date',
         'starts_at', 'ends_at', 'location', 'description', 'invitation_message', 'features',
+        'invitation_delivery',
     ];
+
+    /** Modes d'envoi des invitations : pièce jointe, lien personnel, ou les deux. */
+    public const DELIVERY_MODES = ['pdf', 'link', 'both'];
 
     protected $casts = [
         'date'               => 'date',
@@ -85,6 +89,18 @@ class Occasion extends Model
         return $this->invitation_bg_path
             ? Storage::disk('public')->url($this->invitation_bg_path)
             : null;
+    }
+
+    /** Mode d'envoi des invitations (« pdf » par défaut). */
+    public function invitationDelivery(): string
+    {
+        return in_array($this->invitation_delivery, self::DELIVERY_MODES, true) ? $this->invitation_delivery : 'pdf';
+    }
+
+    /** L'envoi joint-il le lien personnel de l'invité (modes « link » et « both ») ? */
+    public function sendsInvitationLink(): bool
+    {
+        return $this->invitationDelivery() !== 'pdf';
     }
 
     /** Le carton téléversé est un modèle PDF (repères détectés à l'envoi). */

@@ -4,19 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Guest;
+use App\Services\InvitationComposer;
+use App\Services\QrCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Confirmation de présence (RSVP) — page publique ouverte par l'invité via le
- * lien reçu dans l'invitation (`/confirmer/{token}`). Aucun compte requis :
- * le jeton UUID de l'invité fait foi. Montre la vidéo du couple et enregistre
- * la réponse (présent / décliné).
+ * Page personnelle de l'invité — ouverte via le lien reçu dans l'invitation
+ * (`/confirmer/{token}`). Aucun compte requis : le jeton UUID de l'invité fait
+ * foi. Montre l'invitation en ligne (QR d'accès, carton à télécharger), la
+ * vidéo du couple, et enregistre la réponse (présent / décliné).
  */
 class RsvpController extends Controller
 {
     /** Détail public pour la page de confirmation. */
-    public function show(string $token): JsonResponse
+    public function show(string $token, QrCodeService $qr): JsonResponse
     {
         $guest = $this->find($token);
         $occasion = $guest->occasion;
@@ -26,6 +29,8 @@ class RsvpController extends Controller
                 'name'      => $guest->name,
                 'status'    => $this->status($guest),
                 'table'     => $guest->table?->label,
+                // QR d'accès à présenter à l'accueil (même contenu que sur le carton).
+                'qr'        => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
             ],
             'occasion' => [
                 'name'          => $occasion->name,
@@ -37,6 +42,29 @@ class RsvpController extends Controller
                 'video_url'     => $occasion->rsvpVideoUrl(),
                 'organization'  => $occasion->organization->name,
             ],
+        ]);
+    }
+
+    /**
+     * Le carton de l'invité (PDF, ou image si l'événement n'a qu'un fond
+     * image), identique à la pièce jointe envoyée par WhatsApp.
+     */
+    public function invitation(string $token, InvitationComposer $composer): Response
+    {
+        $guest = $this->find($token);
+
+        $file = $composer->render($guest);
+        if (! $file) {
+            return response()->json(['message' => 'Invitation momentanément indisponible. Réessayez dans un instant.'], 503);
+        }
+
+        $ext = $file['mime'] === 'application/pdf' ? 'pdf' : 'png';
+        $name = \Illuminate\Support\Str::slug('invitation ' . $guest->occasion->name . ' ' . $guest->name) . '.' . $ext;
+
+        return response($file['body'], 200, [
+            'Content-Type'        => $file['mime'],
+            'Content-Disposition' => 'attachment; filename="' . $name . '"',
+            'Cache-Control'       => 'private, no-store',
         ]);
     }
 
