@@ -398,12 +398,73 @@ class CardPrintRequestController extends Controller
         }, 'demandes-cartes.csv', $headers);
     }
 
-    /** Requête opérateur commune (file + export), filtrable par statut et canal. */
+    /**
+     * Requête opérateur commune (file + export) : statut, canal, attribution
+     * (`me`, `none` ou id d'un collègue) et recherche libre `q` (ticket, société,
+     * contact, e-mail, organisation), insensible à la casse.
+     */
     private function filtered(Request $request)
     {
         return CardPrintRequest::with('organization', 'requester', 'assignee')
             ->when($request->query('status'), fn ($q, $s) => $q->where('status', $s))
             ->when($request->query('source'), fn ($q, $s) => $q->where('source', $s))
+            ->when($request->query('assigned'), function ($q, $a) use ($request) {
+                match (true) {
+                    $a === 'me'      => $q->where('assigned_to', $request->user()->id),
+                    $a === 'none'    => $q->whereNull('assigned_to'),
+                    ctype_digit($a)  => $q->where('assigned_to', (int) $a),
+                    default          => null,
+                };
+            })
+            ->when(trim((string) $request->query('q')), function ($q, $term) {
+                $like = '%' . mb_strtolower($term) . '%';
+                $q->where(function ($w) use ($like) {
+                    foreach (['reference', 'contact_company', 'contact_name', 'contact_email', 'contact_phone'] as $col) {
+                        $w->orWhereRaw("LOWER({$col}) LIKE ?", [$like]);
+                    }
+                    $w->orWhereHas('organization', fn ($o) => $o->whereRaw('LOWER(name) LIKE ?', [$like]));
+                });
+            })
             ->latest();
+    }
+
+    /** Attribue la demande à un collègue de l'équipe (ou la libère avec `user_id: null`). */
+    public function assign(CardPrintRequest $cardPrintRequest, Request $request): JsonResponse
+    {
+        $data = $request->validate(['user_id' => ['present', 'nullable', 'integer']]);
+
+        $assignee = null;
+        if ($data['user_id'] !== null) {
+            $assignee = $this->teamQuery()->find($data['user_id']);
+            abort_unless($assignee, 422, 'Ce collègue ne fait pas partie de l\'équipe active.');
+        }
+
+        if ($cardPrintRequest->assigned_to !== $assignee?->id) {
+            $cardPrintRequest->update(['assigned_to' => $assignee?->id]);
+            $by = $request->user()->name;
+            $cardPrintRequest->logEvent('assigned', $assignee
+                ? ($assignee->id === $request->user()->id ? "Prise en charge par {$by}." : "Attribuée à {$assignee->name} par {$by}.")
+                : "Remise sans attribution par {$by}.", $request->user()->id);
+        }
+
+        return response()->json([
+            'message' => $assignee ? "Demande attribuée à {$assignee->name}." : 'Demande sans attribution.',
+            'request' => new CardPrintRequestResource($cardPrintRequest->load('organization', 'requester', 'assignee')),
+        ]);
+    }
+
+    /** Équipe à qui une demande peut être attribuée (comptes internes actifs). */
+    public function team(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->teamQuery()->orderBy('name')->get(['id', 'name', 'role']),
+        ]);
+    }
+
+    private function teamQuery()
+    {
+        return User::whereNull('organization_id')
+            ->whereIn('role', ['super_admin', 'operator'])
+            ->where('is_active', true);
     }
 }

@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -42,7 +44,32 @@ class AppServiceProvider extends ServiceProvider
                 return false;
             }
 
-            return true;
+            // Compte désactivé : ses sessions encore ouvertes sont refusées aussitôt.
+            return $token->tokenable?->is_active !== false;
+        });
+
+        $this->configurePasswordResetMail();
+    }
+
+    /** Lien « mot de passe oublié » : vers le front, e-mail en français. */
+    private function configurePasswordResetMail(): void
+    {
+        ResetPassword::createUrlUsing(fn ($user, string $token) => rtrim((string) config('app.frontend_url'), '/')
+            . '/reinitialiser-mot-de-passe?token=' . $token . '&email=' . urlencode($user->email));
+
+        ResetPassword::toMailUsing(function ($user, string $token) {
+            $minutes = config('auth.passwords.' . config('auth.defaults.passwords') . '.expire');
+
+            return (new MailMessage)
+                ->subject('Réinitialisation de votre mot de passe Signiq')
+                ->greeting('Bonjour ' . $user->name . ',')
+                ->line('Nous avons reçu une demande de réinitialisation du mot de passe de votre compte Signiq.')
+                ->action('Choisir un nouveau mot de passe', ResetPassword::$createUrlCallback
+                    ? call_user_func(ResetPassword::$createUrlCallback, $user, $token)
+                    : url('/'))
+                ->line("Ce lien est valable {$minutes} minutes.")
+                ->line('Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé.')
+                ->salutation('L\'équipe Signiq');
         });
     }
 
@@ -68,5 +95,13 @@ class AppServiceProvider extends ServiceProvider
         // Portail public des cartes : dépôt de demande et page de suivi.
         RateLimiter::for('card-portal', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('card-tracking', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+
+        // Mot de passe oublié / réinitialisation : freine l'envoi d'e-mails en rafale.
+        RateLimiter::for('password-reset', function (Request $request) {
+            return [
+                Limit::perMinute(3)->by(Str::lower((string) $request->input('email')) . '|' . $request->ip()),
+                Limit::perMinute(10)->by($request->ip()),
+            ];
+        });
     }
 }

@@ -79,3 +79,27 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* ── Invitation en ligne (page invité) ─────────────────────────── */
+.inv-script { font-family: 'Great Vibes', 'Snell Roundhand', cursive; font-weight: 400; }
+.inv-serif  { font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif; }
+.inv-cinzel { font-family: 'Cinzel', 'Trajan Pro', Georgia, serif; }
+.inv-jost   { font-family: 'Jost', 'Plus Jakarta Sans', sans-serif; }
+.inv-shimmer {
+  background-size: 250% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: inv-shimmer 6s linear infinite;
+}
+@keyframes inv-shimmer { from { background-position: 100% 0 } to { background-position: -150% 0 } }
+.inv-holo::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.22) 46%, rgba(255,225,170,.18) 50%, transparent 60%);
+  background-size: 300% 100%; mix-blend-mode: screen;
+  animation: inv-holo 4.5s ease-in-out infinite;
+}
+@keyframes inv-holo { 0%, 35% { background-position: 120% 0 } 75%, 100% { background-position: -60% 0 } }
+@keyframes inv-bokeh { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(14px, -22px) scale(1.08) } }
+@media (prefers-reduced-motion: reduce) {
+  .inv-shimmer, .inv-holo::after { animation: none; }
+}

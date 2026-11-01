@@ -62,6 +62,7 @@ s'y branchent.
 | 2.4 | **Demande → événement** | L'opérateur transforme la demande en événement pré-rempli dans l'organisation de production. | ⬜ |
 | 2.5 | **Suivi du couple** | Lien public : invitations envoyées, confirmés / déclinés / en attente, sans compte. | ⬜ |
 | 2.6 | **Relances** | Invités sans réponse relancés ; couple informé des étapes. | ⬜ |
+| 2.7 | **Invitation par lien (option du PDF)** | Mode d'envoi choisi par événement : **carton PDF** en pièce jointe (défaut, inchangé), **lien** personnel seul (message léger), ou **PDF + lien**. Le lien ouvre l'**invitation en ligne animée** : enveloppe scellée d'un cachet doré au monogramme, qui s'ouvre au toucher (rabat 3D, paillettes) ; la carte d'invitation façon carte bancaire en sort (QR de l'invité à la place de la puce, date en « numéro de carte », lieu, table) ; puis le faire-part (prénoms, date, mot des hôtes, compte à rebours), la confirmation (gerbe dorée), le **pass d'accès** (QR), le **carton PDF à télécharger** (identique à la pièce jointe, mis en cache), l'ajout à l'agenda et l'itinéraire. Couleurs selon le type d'événement ; animations réduites si l'appareil le demande. Les modes « lien » exigent l'adresse publique du site (`FRONTEND_URL`) : sinon l'envoi est bloqué avec un message clair et l'écran prévient. | ✅ |
 
 ## Produit 3 — Billetterie
 À détailler en dernier. Déjà le plus autonome (domaine `ticket_*`, paiement
@@ -78,6 +79,12 @@ scan mobile des billets, et extraction.
   **Équipe plateforme** : deux rôles internes — `super_admin` (pleins pouvoirs)
   et `operator` (demandes d'impression seulement, moindre privilège) — avec une
   page de gestion (création, modification, rôle, réinitialisation de mot de passe).
+  **Comptes « équipe »** : tout utilisateur (équipe et clients) **change son mot de passe**, et
+  doit le faire à la **première connexion** après un mot de passe temporaire ; **mot de passe
+  oublié** par e-mail (lien 60 min, réponse neutre, limité) ; comptes **désactivables** (sessions
+  coupées aussitôt) ; **dernière connexion** affichée. File des demandes : **recherche**, filtres
+  **« Mes demandes » / « Non attribuées »**, **attribution à un collègue** (historisée).
+  Déploiement : `FRONTEND_URL` et variables **SMTP** désormais transmises au backend.
 - 💬 **Envoi WhatsApp** — déjà un micro-service séparé.
 - 🪪 **QR / Badges / PDF** — à extraire progressivement en service « credentials ».
 - 💳 **Paiement** — interface prête ; driver réel à venir.

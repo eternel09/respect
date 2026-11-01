@@ -32,6 +32,7 @@ class CardPrintRequestResource extends JsonResource
             'delivery_address' => $this->delivery_address,
             'status'           => $this->status,
             'assigned_to'      => $this->whenLoaded('assignee', fn () => $this->assignee?->name),
+            'assigned_to_id'   => $this->assigned_to,
             'handled_at'       => $this->handled_at?->toIso8601String(),
             'created_at'       => $this->created_at?->toIso8601String(),
         ];

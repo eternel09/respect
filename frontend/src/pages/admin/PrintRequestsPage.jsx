@@ -50,14 +50,42 @@ export default function PrintRequestsPage() {
   const [converting, setConverting] = useState(null) // demande en cours de conversion en client
   const [cardsBusy, setCardsBusy] = useState(null)   // `${id}-${layout}` en génération
   const isSuperAdmin = user?.role === 'super_admin'
+  const [search, setSearch]   = useState('')   // saisie
+  const [q, setQ]             = useState('')   // recherche appliquée (après une courte pause)
+  const [assigned, setAssigned] = useState('') // '' | 'me' | 'none'
+  const [team, setTeam]       = useState([])   // collègues à qui attribuer
+  const [assignBusy, setAssignBusy] = useState(null)
+
+  // Recherche appliquée 300 ms après la dernière frappe.
+  useEffect(() => {
+    const t = setTimeout(() => { setQ(search.trim()); setPage(1) }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  // Filtres courants, partagés par la file et l'export CSV.
+  const filters = { status: status || undefined, source: source || undefined, assigned: assigned || undefined, q: q || undefined }
 
   const load = useCallback(() => {
     setLoading(true); setError(null)
-    api.get('/admin/print-requests', { params: { page, status: status || undefined, source: source || undefined } })
+    api.get('/admin/print-requests', { params: { page, status: status || undefined, source: source || undefined, assigned: assigned || undefined, q: q || undefined } })
       .then(res => { setItems(res.data.data); setMeta(res.data.meta) })
       .catch(err => setError(apiErrorMessage(err, "Impossible de charger les demandes.")))
       .finally(() => setLoading(false))
-  }, [page, status, source])
+  }, [page, status, source, assigned, q])
+
+  useEffect(() => {
+    api.get('/admin/platform/team').then(res => setTeam(res.data.data)).catch(() => {})
+  }, [])
+
+  const assignTo = async (item, userId) => {
+    setAssignBusy(item.id); setError(null)
+    try {
+      const res = await api.patch(`/admin/print-requests/${item.id}/assign`, { user_id: userId })
+      setItems(list => list.map(i => (i.id === item.id ? res.data.request : i)))
+    } catch (err) {
+      setError(apiErrorMessage(err, "Attribution impossible."))
+    } finally { setAssignBusy(null) }
+  }
 
   // Chargement initial + rechargement quand le filtre/la page changent.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -87,7 +115,7 @@ export default function PrintRequestsPage() {
     setExporting(true); setError(null)
     try {
       const res = await api.get('/admin/print-requests/export', {
-        params: { status: status || undefined, source: source || undefined },
+        params: filters,
         responseType: 'blob',
       })
       saveBlob(res.data, 'demandes-cartes.csv')
@@ -141,6 +169,25 @@ export default function PrintRequestsPage() {
           </div>
 
           {stats && <StatsRow stats={stats} />}
+
+          {/* Recherche + attribution */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+            <label className="relative flex-1">
+              <span className="sr-only">Rechercher une demande</span>
+              <Icon name="search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input type="search" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Ticket, société, contact, e-mail, organisation…"
+                className="w-full pl-10 pr-3 py-2.5 rounded-xl text-sm bg-white ring-1 ring-black/5 border-0 focus:outline-none focus:ring-2 focus:ring-brand/40" />
+            </label>
+            <div className="flex gap-1 bg-white rounded-xl ring-1 ring-black/5 p-1 shrink-0" role="group" aria-label="Attribution">
+              {[{ key: '', label: 'Toutes' }, { key: 'me', label: 'Mes demandes' }, { key: 'none', label: 'Non attribuées' }].map(f => (
+                <button key={f.key} onClick={() => { setAssigned(f.key); setPage(1) }} aria-pressed={assigned === f.key}
+                  className={`text-sm px-3 py-1.5 rounded-lg transition-colors ${assigned === f.key ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-sand'}`}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Filtres par canal */}
           <div className="flex flex-wrap gap-2 mb-2">
@@ -224,7 +271,19 @@ export default function PrintRequestsPage() {
                           <span className="text-xs text-gray-400">
                             {item.created_at ? new Date(item.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
                           </span>
-                          {item.assigned_to && <span className="text-xs text-gray-500 flex items-center gap-1"><Icon name="assignment_ind" size={14} className="text-gray-400" />{item.assigned_to}</span>}
+                          <label className="text-xs text-gray-500 flex items-center gap-1">
+                            <Icon name="assignment_ind" size={14} className="text-gray-400" />
+                            <span className="sr-only">Attribuée à</span>
+                            <select value={item.assigned_to_id ?? ''} disabled={assignBusy === item.id}
+                              onChange={e => assignTo(item, e.target.value ? Number(e.target.value) : null)}
+                              className="text-xs bg-transparent border-0 py-0.5 pl-0.5 pr-6 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:opacity-60 cursor-pointer">
+                              <option value="">Non attribuée</option>
+                              {team.map(m => <option key={m.id} value={m.id}>{m.id === user?.id ? `${m.name} (moi)` : m.name}</option>)}
+                              {item.assigned_to_id && !team.some(m => m.id === item.assigned_to_id) && (
+                                <option value={item.assigned_to_id}>{item.assigned_to} (inactif)</option>
+                              )}
+                            </select>
+                          </label>
                         </div>
                       </div>
 

@@ -41,6 +41,7 @@ class OrganizationProvisioner
                 'email'           => $adminEmail,
                 'password'        => Hash::make($tempPassword),
                 'role'            => 'admin',
+                'must_change_password' => true, // mot de passe temporaire à remplacer
             ]);
 
             if ($within) {

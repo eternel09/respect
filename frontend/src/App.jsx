@@ -13,6 +13,9 @@ import OrganizationsPage from './pages/admin/OrganizationsPage'
 import PrintRequestsPage from './pages/admin/PrintRequestsPage'
 import InternalUsersPage from './pages/admin/InternalUsersPage'
 import PlatformWhatsAppPage from './pages/admin/PlatformWhatsAppPage'
+import ChangePasswordPage from './pages/admin/ChangePasswordPage'
+import ForgotPasswordPage from './pages/admin/ForgotPasswordPage'
+import ResetPasswordPage from './pages/admin/ResetPasswordPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import EventsPage from './pages/admin/EventsPage'
 import LoginPage from './pages/admin/LoginPage'
@@ -58,6 +61,10 @@ export default function App() {
 
           {/* Admin auth */}
           <Route path="/admin/login" element={<LoginPage />} />
+          {/* Mot de passe oublié (public) + changement de son mot de passe (tous rôles) */}
+          <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
+          <Route path="/reinitialiser-mot-de-passe" element={<ResetPasswordPage />} />
+          <Route path="/admin/mot-de-passe" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
           <Route path="/register"    element={<RegisterPage />} />
           {/* Auto-inscription d'une sous-organisation via lien d'invitation réseau */}
           <Route path="/rejoindre/:token" element={<RegisterNetworkPage />} />

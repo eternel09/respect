@@ -48,6 +48,8 @@ class InternalUserController extends Controller
             'email'           => $data['email'],
             'role'            => $data['role'],
             'password'        => Hash::make($plain),
+            // Mot de passe communiqué par un tiers : l'intéressé en choisit un à la 1re connexion.
+            'must_change_password' => true,
         ]);
 
         return response()->json([
@@ -95,11 +97,40 @@ class InternalUserController extends Controller
         ]);
 
         $plain = $data['password'] ?? Str::password(14);
-        $user->update(['password' => Hash::make($plain)]);
+        $user->forceFill(['password' => Hash::make($plain), 'must_change_password' => true])->save();
+        $user->tokens()->delete(); // les sessions ouvertes avec l'ancien mot de passe sont fermées
 
         return response()->json([
             'message'       => 'Mot de passe réinitialisé.',
             'temp_password' => $plain,
+        ]);
+    }
+
+    /**
+     * Désactiver / réactiver un compte sans le supprimer (historique conservé).
+     * Un compte désactivé ne peut plus se connecter et ses sessions sont fermées.
+     */
+    public function setActive(User $user, Request $request): JsonResponse
+    {
+        $this->ensureInternal($user);
+
+        $data = $request->validate(['active' => ['required', 'boolean']]);
+
+        if (! $data['active']) {
+            if ($user->id === $request->user()->id) {
+                abort(422, 'Vous ne pouvez pas désactiver votre propre compte.');
+            }
+            if ($user->role === 'super_admin' && $this->lastSuperAdmin($user)) {
+                abort(422, 'Impossible : il doit rester au moins un super-admin actif.');
+            }
+            $user->tokens()->delete();
+        }
+
+        $user->forceFill(['is_active' => $data['active']])->save();
+
+        return response()->json([
+            'message' => $data['active'] ? 'Compte réactivé.' : 'Compte désactivé.',
+            'user'    => new InternalUserResource($user),
         ]);
     }
 
@@ -127,10 +158,10 @@ class InternalUserController extends Controller
         abort_unless($user->isInternal() && in_array($user->role, self::ROLES, true), 404, 'Utilisateur interne introuvable.');
     }
 
-    /** Vrai si $user est le dernier super-admin restant. */
+    /** Vrai si $user est le dernier super-admin actif restant. */
     private function lastSuperAdmin(User $user): bool
     {
-        return User::whereNull('organization_id')->where('role', 'super_admin')
+        return User::whereNull('organization_id')->where('role', 'super_admin')->where('is_active', true)
             ->where('id', '!=', $user->id)->doesntExist();
     }
 }

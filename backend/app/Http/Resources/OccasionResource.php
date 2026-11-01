@@ -20,6 +20,10 @@ class OccasionResource extends JsonResource
             'description'       => $this->description,
             'features'          => $this->featureList(),
             'invitation_message' => $this->invitation_message,
+            // Mode d'envoi (pdf | link | both) et disponibilité des liens : un lien
+            // n'est envoyé que si le site a une adresse publique (FRONTEND_URL).
+            'invitation_delivery'        => $this->invitationDelivery(),
+            'invitation_links_available' => \App\Services\InvitationComposer::publicBaseUrl() !== null,
             'invitation_bg_url' => $this->invitationBgUrl(),
             'invitation_is_pdf' => $this->invitationIsPdf(),
             'ticket_design_url' => $this->ticketDesignUrl(),

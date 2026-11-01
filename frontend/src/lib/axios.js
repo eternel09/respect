@@ -18,7 +18,7 @@ api.interceptors.request.use((config) => {
 
 // Pages ouvertes sans compte (portail de cartes, suivi, RSVP, billetterie…).
 // Un jeton périmé resté dans le navigateur ne doit pas les renvoyer vers la connexion.
-const PUBLIC_PATHS = ['/admin/login', '/cartes-de-service', '/suivi', '/onboarding', '/presence', '/register', '/rejoindre', '/confirmer', '/billetterie']
+const PUBLIC_PATHS = ['/admin/login', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe', '/cartes-de-service', '/suivi', '/onboarding', '/presence', '/register', '/rejoindre', '/confirmer', '/billetterie']
 
 function onPublicPage() {
   const path = window.location.pathname

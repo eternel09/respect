@@ -27,6 +27,10 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        // État du compte
+        'must_change_password',
+        'is_active',
+        'last_login_at',
     ];
 
     public function organization()
@@ -92,6 +96,12 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    // Valeurs par défaut côté modèle (alignées sur la base) : un compte neuf est actif.
+    protected $attributes = [
+        'must_change_password' => false,
+        'is_active'            => true,
+    ];
+
     protected $hidden = [
         'password',
         'remember_token',
@@ -105,8 +115,11 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at'    => 'datetime',
+            'password'             => 'hashed',
+            'must_change_password' => 'boolean',
+            'is_active'            => 'boolean',
+            'last_login_at'        => 'datetime',
         ];
     }
 }

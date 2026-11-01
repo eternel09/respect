@@ -29,6 +29,18 @@ x-backend-env: &backend-env
   APP_DEBUG: "false"
   APP_KEY: ${APP_KEY}
   APP_URL: https://signiq.saas.cd
+  # Adresse publique du front : liens des e-mails (suivi, connexion, mot de passe oublié).
+  FRONTEND_URL: ${FRONTEND_URL:-https://signiq.saas.cd}
+  # Envoi des e-mails (SMTP). Sans MAIL_MAILER=smtp, les e-mails sont seulement
+  # journalisés et ne partent pas (accusés, suivi, accès, mot de passe oublié).
+  MAIL_MAILER: ${MAIL_MAILER:-log}
+  MAIL_SCHEME: ${MAIL_SCHEME:-}
+  MAIL_HOST: ${MAIL_HOST:-}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@signiq.saas.cd}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Signiq}
   LOG_CHANNEL: stderr
   LOG_LEVEL: error
   DB_CONNECTION: pgsql

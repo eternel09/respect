@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import Icon from './ui/Icon'
 
 const TABS = [
@@ -44,6 +44,10 @@ export default function PlatformHeader({ user, onLogout }) {
 
         <div className="flex items-center gap-3 shrink-0">
           <span className="hidden 2xl:block text-xs text-gray-500">{user?.email}</span>
+          <Link to="/admin/mot-de-passe" title="Changer mon mot de passe" aria-label="Changer mon mot de passe"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-800 hover:bg-sand">
+            <Icon name="key" size={19} />
+          </Link>
           <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">Déconnexion</button>
         </div>
       </div>

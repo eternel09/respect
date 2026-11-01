@@ -200,6 +200,26 @@ class OccasionController extends Controller
     }
 
     /**
+     * Mode d'envoi des invitations : carton PDF en pièce jointe, lien personnel
+     * de l'invité, ou les deux.
+     */
+    public function updateInvitationDelivery(Request $request, Occasion $occasion): JsonResponse
+    {
+        $data = $request->validate([
+            'delivery' => ['required', 'in:' . implode(',', Occasion::DELIVERY_MODES)],
+        ], ['delivery.in' => 'Mode d’envoi inconnu.']);
+
+        $occasion->invitation_delivery = $data['delivery'];
+        $occasion->save();
+
+        return response()->json([
+            'message'             => 'Mode d’envoi enregistré.',
+            'invitation_delivery' => $occasion->invitationDelivery(),
+            'invitation_links_available' => \App\Services\InvitationComposer::publicBaseUrl() !== null,
+        ]);
+    }
+
+    /**
      * Téléverse la vidéo « short » du couple, montrée à l'invité sur la page de
      * confirmation (RSVP). Une vidéo par occasion. Stockée telle quelle.
      */
