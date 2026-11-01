@@ -1,5 +1,7 @@
 # Backend Laravel — image prête prod (nginx + php-fpm, non-root, healthcheck)
-FROM serversideup/php:8.3-fpm-nginx AS base
+# Version PHP épinglée : 8.3.36 corrige « php2shell » (CVE-2026-109618 / -109619,
+# exécution de code à distance). Monter ce numéro à chaque correctif de sécurité.
+FROM serversideup/php:8.3.36-fpm-nginx AS base
 
 # Extensions requises : pdo_pgsql (Postgres), gd (QR/dompdf), intl, zip, bcmath
 USER root
@@ -18,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Limites d'upload : PHP (drop-in conf.d, prioritaire via le préfixe zz-) pour
 # accepter les cartons haute résolution / HEIC / PDF, et nginx côté serversideup.
 COPY docker/php-uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+COPY docker/php-security.ini /usr/local/etc/php/conf.d/zz-security.ini
 ENV NGINX_CLIENT_MAX_BODY_SIZE=120m
 
 USER www-data
