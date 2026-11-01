@@ -29,6 +29,9 @@ class OccasionResource extends JsonResource
             'day_reminder_at'   => config('occasions.day_reminder.at'),
             'reminded_count'    => $this->whenCounted('reminded_count'),
             'invitation_bg_url' => $this->invitationBgUrl(),
+            // Design de l'invitation en ligne (palette, polices, cachet, carte) + couverture.
+            'invitation_theme'     => $this->invitationTheme(),
+            'invitation_cover_url' => $this->invitationCoverUrl(),
             'invitation_is_pdf' => $this->invitationIsPdf(),
             'ticket_design_url' => $this->ticketDesignUrl(),
             'rsvp_video_url'    => $this->rsvpVideoUrl(),

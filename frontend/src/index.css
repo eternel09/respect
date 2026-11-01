@@ -81,8 +81,10 @@ body {
 }
 
 /* ── Invitation en ligne (page invité) ─────────────────────────── */
-.inv-script { font-family: 'Great Vibes', 'Snell Roundhand', cursive; font-weight: 400; }
-.inv-serif  { font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif; }
+/* Polices réglables par événement (style « classique », « romantique »,
+   « moderne ») : variables posées sur la page, défaut = classique. */
+.inv-script { font-family: var(--inv-script, 'Great Vibes'), 'Snell Roundhand', cursive; font-weight: 400; font-style: var(--inv-script-style, normal); }
+.inv-serif  { font-family: var(--inv-serif, 'Cormorant Garamond'), 'Iowan Old Style', Georgia, serif; }
 .inv-cinzel { font-family: 'Cinzel', 'Trajan Pro', Georgia, serif; }
 .inv-jost   { font-family: 'Jost', 'Plus Jakarta Sans', sans-serif; }
 .inv-shimmer {

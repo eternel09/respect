@@ -12,6 +12,8 @@ class GuestResource extends JsonResource
         return [
             'id'            => $this->id,
             'name'         => $this->name,
+            // Jeton du lien personnel (page en ligne) — back-office seulement.
+            'token'        => $this->token,
             'phone'        => $this->phone,
             'table'        => $this->whenLoaded('table', fn () => $this->table
                 ? ['id' => $this->table->id, 'label' => $this->table->label] : null),

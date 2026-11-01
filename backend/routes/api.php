@@ -70,6 +70,7 @@ Route::get('/rsvp/{token}', [RsvpController::class, 'show'])->middleware('thrott
 Route::post('/rsvp/{token}', [RsvpController::class, 'store'])->middleware('throttle:20,1');
 // L'événement au format agenda (.ics), pour le bouton « Agenda » de la page invité.
 Route::get('/rsvp/{token}/calendar.ics', [RsvpController::class, 'calendar'])->middleware('throttle:30,1');
+Route::get('/rsvp/{token}/carton', [RsvpController::class, 'carton'])->middleware('throttle:30,1');
 
 // Billetterie publique — vitrine, achat, suivi et e-billets (par jeton)
 Route::get('/public/occasions/{occasion}/tickets', [\App\Http\Controllers\Api\TicketOrderController::class, 'storefront'])->middleware('throttle:60,1');
@@ -214,6 +215,10 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::put('/occasions/{occasion}/invitation-message', [OccasionController::class, 'updateInvitationMessage']);
         Route::put('/occasions/{occasion}/invitation-delivery', [OccasionController::class, 'updateInvitationDelivery']);
         Route::put('/occasions/{occasion}/day-reminder', [OccasionController::class, 'updateDayReminder']);
+        // Design de l'invitation en ligne (palette, polices, cachet, carte) + photo de couverture
+        Route::put('/occasions/{occasion}/invitation-theme', [OccasionController::class, 'updateInvitationTheme']);
+        Route::post('/occasions/{occasion}/invitation-cover', [OccasionController::class, 'uploadInvitationCover']);
+        Route::delete('/occasions/{occasion}/invitation-cover', [OccasionController::class, 'removeInvitationCover']);
         // Aperçu composé (fond + QR + nom d'un invité d'exemple) — ne renvoie qu'une image
         Route::get('/occasions/{occasion}/invitation-preview', [OccasionInvitationController::class, 'preview']);
         // Vidéo du couple (montrée sur la page de confirmation RSVP)

@@ -19,6 +19,15 @@ class Occasion extends Model
         'invitation_delivery',
     ];
 
+    /**
+     * Design de l'invitation en ligne. Palettes nommées (« auto » = couleur du
+     * type d'événement) ou couleur libre ; polices ; carte affichée : « auto »
+     * = le carton du client s'il en a téléversé un, sinon la carte Signiq.
+     */
+    public const THEME_PALETTES = ['auto', 'bordeaux', 'emeraude', 'nuit', 'rose', 'noir', 'violet', 'terracotta', 'custom'];
+    public const THEME_FONTS = ['classique', 'romantique', 'moderne'];
+    public const THEME_CARDS = ['auto', 'carton', 'signiq'];
+
     /** Modes d'envoi des invitations : pièce jointe, lien personnel, ou les deux. */
     public const DELIVERY_MODES = ['pdf', 'link', 'both'];
 
@@ -29,6 +38,7 @@ class Occasion extends Model
         'invites_sending_at' => 'datetime',
         'features'           => 'array',
         'day_reminder'       => 'boolean',
+        'invitation_theme'   => 'array',
     ];
 
     /** Modules activés par défaut pour un type d'événement (config/occasions.php). */
@@ -142,6 +152,34 @@ class Occasion extends Model
         $mime = $disk->mimeType($this->invitation_bg_path) ?: 'image/png';
 
         return 'data:' . $mime . ';base64,' . base64_encode($disk->get($this->invitation_bg_path));
+    }
+
+    /** Design de l'invitation en ligne, valeurs par défaut comprises. */
+    public function invitationTheme(): array
+    {
+        $theme = $this->invitation_theme ?? [];
+
+        return [
+            'palette' => in_array($theme['palette'] ?? null, self::THEME_PALETTES, true) ? $theme['palette'] : 'auto',
+            'color'   => $theme['color'] ?? null,
+            'font'    => in_array($theme['font'] ?? null, self::THEME_FONTS, true) ? $theme['font'] : 'classique',
+            'seal'    => $theme['seal'] ?? null,
+            'card'    => in_array($theme['card'] ?? null, self::THEME_CARDS, true) ? $theme['card'] : 'auto',
+        ];
+    }
+
+    /** La page en ligne montre-t-elle le carton du client (plutôt que la carte Signiq) ? */
+    public function showsCartonOnline(): bool
+    {
+        return $this->invitation_bg_path !== null && $this->invitationTheme()['card'] !== 'signiq';
+    }
+
+    /** URL publique de la photo de couverture de l'invitation en ligne, ou null. */
+    public function invitationCoverUrl(): ?string
+    {
+        return $this->invitation_cover_path
+            ? Storage::disk('public')->url($this->invitation_cover_path)
+            : null;
     }
 
     /** URL publique de la vidéo du couple (RSVP), ou null. */
