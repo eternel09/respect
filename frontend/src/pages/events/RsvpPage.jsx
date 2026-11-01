@@ -6,6 +6,7 @@ import Icon from '../../components/ui/Icon'
 import Envelope from '../../components/invitation/Envelope'
 import InviteCard from '../../components/invitation/InviteCard'
 import CartonCard from '../../components/invitation/CartonCard'
+import PhotoBackdrop from '../../components/invitation/PhotoBackdrop'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
 import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, resolveTheme, sealOf, startOf } from '../../lib/invitationTheme'
@@ -117,6 +118,9 @@ export default function RsvpPage() {
   const phrase = couple
     ? (occasion.type === 'mariage' ? 'ont la joie de vous convier à leur mariage' : 'ont le plaisir de vous convier')
     : `${occasion.organization} a le plaisir de vous convier`
+  const photoMode = occasion.theme?.photo || 'arch'
+  const photoBg = !!occasion.cover_url && photoMode !== 'arch'
+  const photoArch = !!occasion.cover_url && photoMode !== 'background'
   const showCarton = occasion.carton && carton !== 'failed'
   const card = (full) => showCarton
     ? <CartonCard src={carton?.src || `${API_BASE}/rsvp/${token}/carton`} ratio={carton?.ratio} full={full} theme={t}
@@ -137,6 +141,8 @@ export default function RsvpPage() {
   return (
     <div className="relative min-h-svh overflow-x-hidden"
       style={{ background: `radial-gradient(130% 80% at 50% 0%, #fbf7f1 0%, ${t.ivory} 55%, #efe3d3 100%)`, color: t.ink, ...t.fontVars }}>
+      {/* Photo du couple en fond (si l'organisateur l'a choisie) */}
+      {photoBg && <PhotoBackdrop src={occasion.cover_url} ivory={t.ivory} />}
       {/* Bokeh doré */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         {BOKEH.map(([x, y, s, d], i) => (
@@ -185,7 +191,7 @@ export default function RsvpPage() {
                 <Tilt disabled={reduced}>{card(true)}</Tilt>
               </motion.div>
 
-              {occasion.cover_url && (
+              {photoArch && (
                 <motion.div {...rise(0)} className="mx-auto mt-10 rounded-t-full p-[3px]"
                   style={{ width: 'min(64vw, 240px)', background: t.gold, boxShadow: '0 18px 40px -18px rgba(60,10,20,.45)' }}>
                   <img src={occasion.cover_url} alt="" className="block w-full aspect-[3/4] object-cover rounded-t-full" />

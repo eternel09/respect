@@ -236,6 +236,7 @@ class OccasionController extends Controller
             'font'    => ['required', 'in:' . implode(',', Occasion::THEME_FONTS)],
             'seal'    => ['nullable', 'string', 'max:3'],
             'card'    => ['required', 'in:' . implode(',', Occasion::THEME_CARDS)],
+            'photo'   => ['nullable', 'in:' . implode(',', Occasion::THEME_PHOTO)],
         ], [
             'palette.in'        => 'Palette inconnue.',
             'color.required_if' => 'Choisissez une couleur.',
@@ -243,6 +244,7 @@ class OccasionController extends Controller
             'font.in'           => 'Style de polices inconnu.',
             'seal.max'          => 'Le cachet accepte 3 caractères au plus.',
             'card.in'           => 'Carte inconnue.',
+            'photo.in'          => 'Affichage de la photo inconnu.',
         ]);
 
         $seal = trim((string) ($data['seal'] ?? ''));
@@ -252,6 +254,7 @@ class OccasionController extends Controller
             'font'    => $data['font'],
             'seal'    => $seal !== '' ? mb_strtoupper($seal) : null,
             'card'    => $data['card'],
+            'photo'   => $data['photo'] ?? 'arch',
         ];
         $occasion->save();
 
