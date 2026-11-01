@@ -130,10 +130,13 @@ class OccasionInvitationDeliveryTest extends TestCase
 
     // ── Page personnelle de l'invité ─────────────────────────────
 
-    public function test_guest_page_shows_the_access_qr(): void
+    public function test_guest_page_shows_the_access_qr_and_the_hosts_message(): void
     {
+        $this->occasion->update(['invitation_message' => 'Votre présence nous honore.']);
+
         $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
-            ->assertJsonPath('guest.qr', fn ($qr) => str_starts_with($qr, 'data:image/svg+xml;base64,'));
+            ->assertJsonPath('guest.qr', fn ($qr) => str_starts_with($qr, 'data:image/svg+xml;base64,'))
+            ->assertJsonPath('occasion.message', 'Votre présence nous honore.');
     }
 
     public function test_guest_downloads_the_card(): void

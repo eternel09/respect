@@ -7,7 +7,9 @@ import logoFull from '../assets/logo-full.png'
  * Disparaît en fondu après `duration` ms (ou immédiatement si déjà chargé).
  */
 export default function Splash({ duration = 700 }) {
-  const [visible, setVisible] = useState(true)
+  // L'invitation en ligne a sa propre ouverture animée (enveloppe) : pas de
+  // splash de marque par-dessus.
+  const [visible, setVisible] = useState(() => !window.location.pathname.startsWith('/confirmer/'))
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(false), duration)

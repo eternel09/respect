@@ -40,6 +40,8 @@ class RsvpController extends Controller
                 'location'      => $occasion->location,
                 'is_expired'    => $occasion->isExpired(),
                 'video_url'     => $occasion->rsvpVideoUrl(),
+                // Mot des hôtes (le même que dans le message WhatsApp).
+                'message'       => $occasion->invitation_message,
                 'organization'  => $occasion->organization->name,
             ],
         ]);
