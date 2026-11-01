@@ -26,7 +26,7 @@ class Occasion extends Model
      */
     public const THEME_PALETTES = ['auto', 'bordeaux', 'emeraude', 'nuit', 'rose', 'noir', 'violet', 'terracotta', 'custom'];
     public const THEME_FONTS = ['classique', 'romantique', 'moderne'];
-    public const THEME_CARDS = ['auto', 'carton', 'signiq'];
+    public const THEME_CARDS = ['auto', 'carton', 'signiq', 'none'];
     /** Photo de couverture : en arche sous la carte, en fond de page, ou les deux. */
     public const THEME_PHOTO = ['arch', 'background', 'both'];
 
@@ -168,13 +168,16 @@ class Occasion extends Model
             'seal'    => $theme['seal'] ?? null,
             'card'    => in_array($theme['card'] ?? null, self::THEME_CARDS, true) ? $theme['card'] : 'auto',
             'photo'   => in_array($theme['photo'] ?? null, self::THEME_PHOTO, true) ? $theme['photo'] : 'arch',
+            // Paillettes dorées (étoiles flottantes, gerbes à l'ouverture et à la confirmation).
+            'sparkles' => (bool) ($theme['sparkles'] ?? true),
         ];
     }
 
     /** La page en ligne montre-t-elle le carton du client (plutôt que la carte Signiq) ? */
     public function showsCartonOnline(): bool
     {
-        return $this->invitation_bg_path !== null && $this->invitationTheme()['card'] !== 'signiq';
+        return $this->invitation_bg_path !== null
+            && ! in_array($this->invitationTheme()['card'], ['signiq', 'none'], true);
     }
 
     /** URL publique de la photo de couverture de l'invitation en ligne, ou null. */

@@ -17,6 +17,7 @@ const draftFrom = (o) => {
     // « auto » = le carton s'il y en a un : on affiche le choix effectif.
     card: th.card && th.card !== 'auto' ? th.card : (o.invitation_bg_url ? 'carton' : 'signiq'),
     photo: th.photo || 'arch',
+    sparkles: th.sparkles !== false,
   }
 }
 
@@ -53,7 +54,8 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
   const cartonSrc = !hasCarton ? null
     : o.invitation_is_pdf ? (sample?.token ? `${API_BASE}/rsvp/${sample.token}/carton` : null)
     : o.invitation_bg_url
-  const card = draft.card === 'carton' && cartonSrc
+  const card = draft.card === 'none' ? null
+    : draft.card === 'carton' && cartonSrc
     ? <CartonCard src={cartonSrc} full={false} theme={t} />
     : <InviteCard occasion={o} guest={{ name: sample?.name || 'Marie Exemple', table: null, qr: null }} theme={t} />
 
@@ -67,6 +69,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         seal: draft.seal.trim() || null,
         card: draft.card,
         photo: draft.photo,
+        sparkles: draft.sparkles,
       })
       onSaved({ invitation_theme: res.data.invitation_theme })
       setFlash({ ok: true, text: res.data.message })
@@ -180,14 +183,14 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
             </div>
             <div>
               <Label>Carte qui sort de l'enveloppe</Label>
-              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Carte affichée">
-                {[['signiq', 'credit_card', 'Carte Signiq'], ['carton', 'image', 'Votre carton']].map(([k, icon, label]) => {
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Carte affichée">
+                {[['signiq', 'credit_card', 'Carte Signiq'], ['carton', 'image', 'Votre carton'], ['none', 'block', 'Aucune']].map(([k, icon, label]) => {
                   const active = draft.card === k
                   const disabled = k === 'carton' && !hasCarton
                   return (
                     <button key={k} type="button" role="radio" aria-checked={active} disabled={disabled}
                       onClick={() => set({ card: k })}
-                      className={`rounded-xl border px-2 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed ${active ? 'border-brand ring-2 ring-brand/30 bg-brand/5 text-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      className={`rounded-xl border px-1.5 py-2 text-xs font-medium flex flex-col items-center justify-center gap-0.5 text-center leading-tight transition disabled:opacity-40 disabled:cursor-not-allowed ${active ? 'border-brand ring-2 ring-brand/30 bg-brand/5 text-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                       <Icon name={icon} size={17} className={active ? 'text-brand' : 'text-gray-400'} /> {label}
                     </button>
                   )
@@ -230,6 +233,18 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
             ) : (
               <p className="text-xs text-gray-400 mt-1">La photo du couple : en arche sous la carte, en fond de page, ou les deux.</p>
             )}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3.5">
+            <div>
+              <p className="font-semibold text-sm text-gray-900">Paillettes dorées</p>
+              <p className="text-xs text-gray-500 mt-0.5">Étoiles qui flottent sur la page et gerbes à l'ouverture de l'enveloppe et à la confirmation.</p>
+            </div>
+            <button type="button" role="switch" aria-checked={draft.sparkles} aria-label="Paillettes dorées"
+              onClick={() => set({ sparkles: !draft.sparkles })}
+              className={`relative h-6 w-11 flex-shrink-0 rounded-full transition ${draft.sparkles ? 'bg-brand' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${draft.sparkles ? 'translate-x-5' : ''}`} />
+            </button>
           </div>
 
           <div className="flex items-center gap-3">

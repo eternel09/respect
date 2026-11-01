@@ -63,7 +63,7 @@ class OccasionInvitationDesignTest extends TestCase
     public function test_defaults_follow_the_event_type(): void
     {
         $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
-            ->assertJsonPath('occasion.theme', ['palette' => 'auto', 'color' => null, 'font' => 'classique', 'seal' => null, 'card' => 'auto', 'photo' => 'arch'])
+            ->assertJsonPath('occasion.theme', ['palette' => 'auto', 'color' => null, 'font' => 'classique', 'seal' => null, 'card' => 'auto', 'photo' => 'arch', 'sparkles' => true])
             ->assertJsonPath('occasion.cover_url', null)
             ->assertJsonPath('occasion.carton', false);
     }
@@ -155,6 +155,22 @@ class OccasionInvitationDesignTest extends TestCase
         $this->theme(['card' => 'signiq'])->assertOk();
 
         $this->getJson("/api/rsvp/{$this->guest->token}")->assertJsonPath('occasion.carton', false);
+        $this->get("/api/rsvp/{$this->guest->token}/carton")->assertNotFound();
+    }
+
+    public function test_no_card_and_no_sparkles(): void
+    {
+        Storage::disk('public')->put('invitations/carton.jpg', 'JPEGDATA');
+        $this->occasion->forceFill(['invitation_bg_path' => 'invitations/carton.jpg'])->save();
+
+        $this->theme(['card' => 'none', 'sparkles' => false])->assertOk()
+            ->assertJsonPath('invitation_theme.card', 'none')
+            ->assertJsonPath('invitation_theme.sparkles', false);
+
+        $this->getJson("/api/rsvp/{$this->guest->token}")
+            ->assertJsonPath('occasion.theme.card', 'none')
+            ->assertJsonPath('occasion.theme.sparkles', false)
+            ->assertJsonPath('occasion.carton', false);
         $this->get("/api/rsvp/{$this->guest->token}/carton")->assertNotFound();
     }
 
