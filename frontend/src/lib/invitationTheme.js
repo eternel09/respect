@@ -76,36 +76,38 @@ export function longDate(occasion) {
 
 const stamp = (d, withTime) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` + (withTime ? `T${pad(d.getHours())}${pad(d.getMinutes())}00` : '')
 
-const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-const isAndroid = () => /Android/i.test(navigator.userAgent)
+export const isAndroid = () => /Android/i.test(navigator.userAgent)
 
 /**
- * Lien du bouton « Agenda » : ouvre l'application d'agenda de l'appareil avec
- * l'événement pré-rempli.
- *  - Android : intention système « nouvel événement » (Google Agenda, Samsung
- *    Calendar…), repli sur Google Agenda web si aucune application ne répond ;
- *  - iPhone / iPad / ordinateur : le fichier .ics du serveur, que Calendrier
- *    (iOS, macOS) ou Outlook ouvrent directement.
+ * Lien du bouton « Agenda » : le fichier .ics du serveur, sur tous les
+ * appareils. iPhone / iPad l'affichent directement (« Ajouter au
+ * calendrier ») ; Android le télécharge puis l'ouvre avec l'application
+ * d'agenda du téléphone (Samsung Agenda…), événement pré-rempli ; Outlook et
+ * Calendrier l'ouvrent sur ordinateur.
+ *
+ * Android interdit à une page web d'ouvrir directement l'écran « nouvel
+ * événement » d'une application (Chrome n'ouvre que les écrans déclarés
+ * ouvrables depuis le web) : le fichier est la seule voie vers l'application
+ * native.
  */
-export function calendarHref(occasion, { icsUrl, inviteUrl, table }) {
-  if (!isAndroid() || isIOS()) return icsUrl
+export const calendarHref = (token, apiBase) => `${apiBase}/rsvp/${token}/calendar.ics`
 
+/**
+ * Repli Android : création d'événement Google Agenda pré-remplie. Le chemin
+ * /calendar/event est celui que l'application Google Agenda revendique, ce
+ * qui lui laisse l'occasion de s'ouvrir à la place du site.
+ */
+export function googleCalendarUrl(occasion, { inviteUrl, table }) {
   const start = startOf(occasion)
   const timed = !!occasion.starts_at
   const end = new Date(start.getTime() + (timed ? 5 * 3600e3 : 864e5))
   const details = [table && `Votre place : ${table}`, `Votre invitation : ${inviteUrl}`].filter(Boolean).join('\n')
   const enc = encodeURIComponent
 
-  const web = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+  return 'https://calendar.google.com/calendar/event?action=TEMPLATE'
     + `&text=${enc(occasion.name)}&dates=${stamp(start, timed)}/${stamp(end, timed)}`
     + (occasion.location ? `&location=${enc(occasion.location)}` : '')
     + `&details=${enc(details)}`
-
-  return 'intent://#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.item/event;'
-    + `S.title=${enc(occasion.name)};l.beginTime=${start.getTime()};l.endTime=${end.getTime()};`
-    + (timed ? '' : 'B.allDay=true;')
-    + (occasion.location ? `S.eventLocation=${enc(occasion.location)};` : '')
-    + `S.description=${enc(details)};S.browser_fallback_url=${enc(web)};end`
 }
 
 export const mapsUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`

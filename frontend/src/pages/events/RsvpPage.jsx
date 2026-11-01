@@ -7,7 +7,7 @@ import Envelope from '../../components/invitation/Envelope'
 import InviteCard from '../../components/invitation/InviteCard'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
-import { calendarHref, eventNames, hashtag, loadInvitationFonts, longDate, mapsUrl, monogram, startOf, themeFor } from '../../lib/invitationTheme'
+import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, monogram, startOf, themeFor } from '../../lib/invitationTheme'
 
 const seenKey = (token) => `inv-open:${token}`
 const readSeen = (token) => { try { return localStorage.getItem(seenKey(token)) === '1' } catch { return false } }
@@ -243,7 +243,7 @@ export default function RsvpPage() {
                   <p className="inv-jost text-[14px] font-medium mt-1" style={{ color: t.ink }}>{guest.name}{tableLabel && ` · ${tableLabel}`}</p>
 
                   <div className={`mt-6 grid gap-3 ${occasion.location ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                    <a href={calendarHref(occasion, { icsUrl: `${API_BASE}/rsvp/${token}/calendar.ics`, inviteUrl: window.location.href, table: tableLabel })}
+                    <a href={calendarHref(token, API_BASE)}
                       aria-label="Ajouter l'événement à mon agenda"
                       className="rounded-full py-3 inv-jost text-[11.5px] font-semibold tracking-[0.14em] uppercase flex items-center justify-center gap-1.5 text-white"
                       style={{ background: `linear-gradient(180deg, ${t.light}, ${t.main})` }}>
@@ -257,6 +257,15 @@ export default function RsvpPage() {
                       </a>
                     ) : null}
                   </div>
+                  {isAndroid() && (
+                    <p className="mt-4 inv-jost text-[12px] leading-relaxed" style={{ color: t.muted }}>
+                      Appuyez sur « Ouvrir » une fois le fichier téléchargé : votre agenda s'ouvre avec l'événement.{' '}
+                      <a href={googleCalendarUrl(occasion, { inviteUrl: window.location.href, table: tableLabel })}
+                        target="_blank" rel="noreferrer" className="underline underline-offset-4 font-medium" style={{ color: t.main }}>
+                        Ou ajouter à Google Agenda
+                      </a>
+                    </p>
+                  )}
                 </motion.section>
               )}
 

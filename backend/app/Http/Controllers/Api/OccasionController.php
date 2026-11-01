@@ -51,6 +51,7 @@ class OccasionController extends Controller
             'guests as invited_count'    => fn ($q) => $q->whereIn('invite_status', ['sent', 'queued']),
             'guests as confirmed_count'  => fn ($q) => $q->whereNotNull('confirmed_at'),
             'guests as checked_in_count' => fn ($q) => $q->whereNotNull('checked_in_at'),
+            'guests as reminded_count'   => fn ($q) => $q->where('reminder_status', 'sent'),
         ]);
 
         $tables = $occasion->tables()->withCount('guests')->orderBy('id')->get()
@@ -216,6 +217,27 @@ class OccasionController extends Controller
             'message'             => 'Mode d’envoi enregistré.',
             'invitation_delivery' => $occasion->invitationDelivery(),
             'invitation_links_available' => \App\Services\InvitationComposer::publicBaseUrl() !== null,
+        ]);
+    }
+
+    /**
+     * Active / désactive le rappel WhatsApp du jour J : le matin de
+     * l'événement, chaque invité qui a reçu son invitation (et ne l'a pas
+     * déclinée) reçoit un message avec le lien de son invitation.
+     */
+    public function updateDayReminder(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+
+        $occasion->day_reminder = $data['enabled'];
+        $occasion->save();
+
+        return response()->json([
+            'message'      => $occasion->day_reminder
+                ? 'Rappel du jour J activé : il partira à ' . ltrim(str_replace(':', 'h', config('occasions.day_reminder.at')), '0') . ' le jour de l’événement.'
+                : 'Rappel du jour J désactivé.',
+            'day_reminder' => $occasion->day_reminder,
         ]);
     }
 

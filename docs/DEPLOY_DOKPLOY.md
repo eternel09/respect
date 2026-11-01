@@ -72,6 +72,13 @@ Déjà provisionnée. Récupère : host, port (5432), database, user, password.
 - Sur le téléphone WhatsApp de l'organisation : Appareils connectés → scanner le QR.
 - La pastille passe au vert → l'envoi des cartes/invitations fonctionne.
 
+## 6 bis. Tâches planifiées
+Le service `scheduler` du `docker-compose.yml` (même image que le backend, commande
+`php artisan schedule:work`) démarre avec la pile. Il envoie notamment le **rappel WhatsApp du
+jour J** aux invités (9 h, heure de Kinshasa ; option à activer par événement) — il lui faut
+`FRONTEND_URL` (le lien de l'invitation) et le service WhatsApp connecté. Vérification depuis le
+terminal du backend : `php artisan schedule:list`.
+
 ## 7. Redéploiements
 - `git push` sur `main` → Dokploy redéploie (auto-deploy si activé).
 - Les migrations passent automatiquement ; la session WhatsApp est conservée (volume).
@@ -87,6 +94,7 @@ Déjà provisionnée. Récupère : host, port (5432), database, user, password.
 | WhatsApp : re-scan à chaque deploy | volume `/app/.wwebjs_auth` absent | ajouter le volume persistant |
 | Cartes : « Chromium » / timeout | Chromium non résolu | vérifier `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium` |
 | WhatsApp injoignable depuis backend | mauvaise URL interne | `WHATSAPP_SERVICE_URL` = `http://<nom-service>:3001` |
+| Rappel du jour J non reçu | conteneur `scheduler` arrêté, option non activée sur l'événement, ou `FRONTEND_URL` absente | vérifier le conteneur `scheduler` (logs) et l'option dans la fiche de l'événement |
 
 ## Note — application mobile (Expo)
 L'app scanner ne se déploie pas ici. Pour un APK de prod, builder avec l'URL

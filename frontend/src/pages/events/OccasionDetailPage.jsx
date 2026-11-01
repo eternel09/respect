@@ -41,6 +41,7 @@ export default function OccasionDetailPage() {
   const [msg, setMsg] = useState('')      // message d'accompagnement WhatsApp
   const [savingMsg, setSavingMsg] = useState(false)
   const [savingDelivery, setSavingDelivery] = useState(null) // mode en cours d'enregistrement
+  const [savingReminder, setSavingReminder] = useState(false)
   const [selected, setSelected] = useState(() => new Set()) // ids invités cochés
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
@@ -82,6 +83,17 @@ export default function OccasionDetailPage() {
     } catch (e) {
       setFlash({ ok: false, text: apiErrorMessage(e, 'Enregistrement impossible.') })
     } finally { setSavingDelivery(null) }
+  }
+  const toggleReminder = async () => {
+    const enabled = !data?.occasion?.day_reminder
+    setSavingReminder(true)
+    try {
+      const res = await api.put(`/occasions/${id}/day-reminder`, { enabled })
+      setData(d => ({ ...d, occasion: { ...d.occasion, day_reminder: res.data.day_reminder } }))
+      setFlash({ ok: true, text: res.data.message })
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Enregistrement impossible.') })
+    } finally { setSavingReminder(false) }
   }
   // Libère l'URL blob de l'aperçu quand elle change ou au démontage.
   useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url) }, [preview?.url])
@@ -457,10 +469,28 @@ export default function OccasionDetailPage() {
               )
             })}
           </div>
+          {/* Rappel WhatsApp le jour J, avec le lien de l'invitation */}
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-gray-200 p-3.5" data-testid="day-reminder">
+            <Icon name="notifications_active" size={20} className={`mt-0.5 flex-shrink-0 ${o.day_reminder ? 'text-brand' : 'text-gray-400'}`} />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-gray-900">
+                Rappel le jour J à {(o.day_reminder_at || '09:00').replace(/^0/, '').replace(':', 'h')}
+              </p>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Le matin de l'événement, chaque invité qui a reçu son invitation (et ne l'a pas déclinée) reçoit un message WhatsApp de rappel avec l'heure, le lieu, sa table et le lien de son invitation (QR d'accès, itinéraire).
+                {o.reminded_count > 0 && <b className="text-gray-700"> Rappel envoyé à {o.reminded_count} invité{o.reminded_count > 1 ? 's' : ''}.</b>}
+              </p>
+            </div>
+            <button type="button" role="switch" aria-checked={!!o.day_reminder} aria-label="Rappel le jour J"
+              onClick={toggleReminder} disabled={savingReminder}
+              className={`relative mt-0.5 h-6 w-11 flex-shrink-0 rounded-full transition disabled:opacity-60 ${o.day_reminder ? 'bg-brand' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${o.day_reminder ? 'translate-x-5' : ''}`} />
+            </button>
+          </div>
           {o.invitation_links_available === false && (
             <p className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-1.5">
               <Icon name="warning" size={15} className="mt-px flex-shrink-0" />
-              <span>L'adresse publique du site n'est pas configurée : les modes « Lien » et « PDF + lien » sont bloqués à l'envoi. Choisissez « Carton PDF » en attendant que l'adresse soit configurée.</span>
+              <span>L'adresse publique du site n'est pas configurée : les modes « Lien » et « PDF + lien » sont bloqués à l'envoi, et le rappel du jour J ne part pas. Choisissez « Carton PDF » en attendant que l'adresse soit configurée.</span>
             </p>
           )}
         </div>

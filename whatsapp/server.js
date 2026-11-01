@@ -5,6 +5,7 @@
  *  GET  /status        → { state: starting|qr|ready|disconnected, qr: dataURI|null }
  *  POST /send-card     → { phone, org, name, memberNo, serial, qrDataUri } → envoie la carte
  *  POST /preview-card  → même payload → renvoie le PNG (test/aperçu sans envoyer)
+ *  POST /send-reminder → { phone, guestName, eventName, timeText, location, tableLabel, invitationUrl } → rappel du jour J
  *
  * Première liaison : ouvrir les Réglages du back-office et scanner le QR
  * avec le WhatsApp de l'organisation (WhatsApp → Appareils connectés).
@@ -16,7 +17,7 @@ const puppeteer = require('puppeteer')
 const QRCode = require('qrcode')
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js')
 const { renderCard, renderInvitation, renderPrintPdf, warmUp } = require('./card')
-const { buildInvitationMessage } = require('./invitation-message')
+const { buildInvitationMessage, buildReminderMessage } = require('./invitation-message')
 // Chargement DÉFENSIF du module PDF : s'il est indisponible (dépendances non
 // installées, erreur de chargement…), le service doit QUAND MÊME démarrer et
 // ouvrir la session WhatsApp — l'envoi d'invitations retombe alors sur l'image
@@ -274,6 +275,31 @@ app.post('/send-invitation', async (req, res) => {
     res.json({ sent: true, message: `Invitation envoyée à ${req.body.guestName}.` })
   } catch (e) {
     console.error('[wa] invitation:', e.message)
+    res.status(500).json({ message: "Échec de l'envoi WhatsApp." })
+  }
+})
+
+// Rappel du jour J : message texte seul avec le lien de l'invitation.
+app.post('/send-reminder', async (req, res) => {
+  if (state !== 'ready') {
+    return res.status(409).json({ message: 'WhatsApp non connecté. Liez le compte depuis les Réglages.' })
+  }
+
+  const digits = String(req.body.phone || '').replace(/\D/g, '')
+  if (digits.length < 9) return res.status(422).json({ message: 'Numéro de téléphone invalide.' })
+
+  const text = buildReminderMessage(req.body)
+  if (!text) return res.status(422).json({ message: "Lien d'invitation manquant." })
+
+  try {
+    const numberId = await client.getNumberId(digits)
+    if (!numberId) return res.status(404).json({ message: "Ce numéro n'est pas sur WhatsApp." })
+
+    await client.sendMessage(numberId._serialized, text, { linkPreview: true })
+    console.log(`[wa] rappel envoyé → ${digits}`)
+    res.json({ sent: true })
+  } catch (e) {
+    console.error('[wa] rappel:', e.message)
     res.status(500).json({ message: "Échec de l'envoi WhatsApp." })
   }
 })
