@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { AnimatePresence, LayoutGroup, motion, useMotionValue, useReducedMotion, useSpring } from 'motion/react'
-import api, { apiErrorMessage } from '../../lib/axios'
+import api, { API_BASE, apiErrorMessage } from '../../lib/axios'
 import Icon from '../../components/ui/Icon'
 import Envelope from '../../components/invitation/Envelope'
 import InviteCard from '../../components/invitation/InviteCard'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
-import { calendarFile, eventNames, hashtag, loadInvitationFonts, longDate, mapsUrl, monogram, startOf, themeFor } from '../../lib/invitationTheme'
+import { calendarHref, eventNames, hashtag, loadInvitationFonts, longDate, mapsUrl, monogram, startOf, themeFor } from '../../lib/invitationTheme'
 
 const seenKey = (token) => `inv-open:${token}`
 const readSeen = (token) => { try { return localStorage.getItem(seenKey(token)) === '1' } catch { return false } }
@@ -21,7 +21,7 @@ const BOKEH = [
  * Invitation en ligne de l'invité, ouverte via le lien reçu sur WhatsApp
  * (`/confirmer/{token}`) : enveloppe scellée à ouvrir, carte d'invitation qui
  * en sort, puis le faire-part (date, lieu, compte à rebours), la confirmation
- * de présence, le pass d'accès (QR) et le carton PDF à télécharger.
+ * de présence, le pass d'accès (QR) et l'ajout à l'agenda du téléphone.
  * Aucun compte requis — le jeton fait foi.
  */
 export default function RsvpPage() {
@@ -32,7 +32,6 @@ export default function RsvpPage() {
   const [err, setErr] = useState(null)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState(null)  // { status, table, message }
-  const [download, setDownload] = useState({ busy: false, error: null })
   const [stage, setStage] = useState(() => (readSeen(token) ? 'revealed' : 'sealed'))
   const fx = useRef(null)
   const envRef = useRef(null)
@@ -75,21 +74,6 @@ export default function RsvpPage() {
     } catch (e) {
       setErr(apiErrorMessage(e, "Impossible d'enregistrer votre réponse. Réessayez."))
     } finally { setBusy(false) }
-  }
-
-  // Carton identique à la pièce jointe WhatsApp, composé à la demande.
-  const downloadCard = async () => {
-    setDownload({ busy: true, error: null })
-    try {
-      const res = await api.get(`/rsvp/${token}/invitation`, { responseType: 'blob' })
-      const name = /filename="([^"]+)"/.exec(res.headers['content-disposition'] || '')?.[1] || 'invitation.pdf'
-      saveBlob(res.data, name)
-      setDownload({ busy: false, error: null })
-    } catch (e) {
-      setDownload({ busy: false, error: e.response?.status === 429
-        ? 'Trop de téléchargements. Réessayez dans une minute.'
-        : 'Votre invitation est momentanément indisponible. Réessayez dans un instant.' })
-    }
   }
 
   if (loading) return (
@@ -258,26 +242,20 @@ export default function RsvpPage() {
                   <p className="inv-serif italic text-[17px] mt-4" style={{ color: t.muted }}>À présenter à l'accueil le jour J.</p>
                   <p className="inv-jost text-[14px] font-medium mt-1" style={{ color: t.ink }}>{guest.name}{tableLabel && ` · ${tableLabel}`}</p>
 
-                  <button onClick={downloadCard} disabled={download.busy}
-                    className="mt-6 w-full rounded-full py-3.5 inv-jost text-[12.5px] font-semibold tracking-[0.2em] uppercase flex items-center justify-center gap-2 disabled:opacity-60 text-white"
-                    style={{ background: `linear-gradient(180deg, ${t.light}, ${t.main})` }}>
-                    {download.busy ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> : <Icon name="download" size={18} />}
-                    Télécharger mon invitation
-                  </button>
-                  {download.error && <p className="mt-2 text-xs text-red-700">{download.error}</p>}
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <button onClick={() => saveBlob(calendarFile(occasion, window.location.href), 'invitation.ics')}
-                      className="rounded-full py-3 inv-jost text-[11.5px] font-semibold tracking-[0.14em] uppercase flex items-center justify-center gap-1.5"
-                      style={{ color: t.ink, border: `1px solid ${t.goldInk}66` }}>
+                  <div className={`mt-6 grid gap-3 ${occasion.location ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    <a href={calendarHref(occasion, { icsUrl: `${API_BASE}/rsvp/${token}/calendar.ics`, inviteUrl: window.location.href, table: tableLabel })}
+                      aria-label="Ajouter l'événement à mon agenda"
+                      className="rounded-full py-3 inv-jost text-[11.5px] font-semibold tracking-[0.14em] uppercase flex items-center justify-center gap-1.5 text-white"
+                      style={{ background: `linear-gradient(180deg, ${t.light}, ${t.main})` }}>
                       <Icon name="event" size={17} /> Agenda
-                    </button>
+                    </a>
                     {occasion.location ? (
                       <a href={mapsUrl(occasion.location)} target="_blank" rel="noreferrer"
                         className="rounded-full py-3 inv-jost text-[11.5px] font-semibold tracking-[0.14em] uppercase flex items-center justify-center gap-1.5"
                         style={{ color: t.ink, border: `1px solid ${t.goldInk}66` }}>
                         <Icon name="near_me" size={17} /> Itinéraire
                       </a>
-                    ) : <span />}
+                    ) : null}
                   </div>
                 </motion.section>
               )}
@@ -306,14 +284,6 @@ export default function RsvpPage() {
       </LayoutGroup>
     </div>
   )
-}
-
-function saveBlob(blob, name) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = name
-  document.body.appendChild(a); a.click(); a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 /** Inclinaison 3D de la carte au doigt / à la souris. */

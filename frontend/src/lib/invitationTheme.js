@@ -42,9 +42,15 @@ export function hashtag(name) {
   return '#' + raw.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w&]/g, '').toUpperCase().slice(0, 22)
 }
 
-/** Début de l'événement (date + heure si connue). */
+/**
+ * Début de l'événement (date + heure si connue), en heure locale « murale » :
+ * l'organisateur saisit l'heure du lieu (18h00) et le serveur la stocke sans
+ * fuseau. On ignore donc le décalage de l'ISO pour afficher 18h00 partout.
+ */
 export function startOf(occasion) {
-  return occasion.starts_at ? new Date(occasion.starts_at) : new Date(occasion.date + 'T00:00:00')
+  const [y, mo, d] = occasion.date.split('-').map(Number)
+  const t = occasion.starts_at && /T(\d{2}):(\d{2})/.exec(occasion.starts_at)
+  return t ? new Date(y, mo - 1, d, +t[1], +t[2]) : new Date(y, mo - 1, d)
 }
 
 const pad = (n, l = 2) => String(n).padStart(l, '0')
@@ -68,24 +74,38 @@ export function longDate(occasion) {
   return occasion.starts_at ? `${day} · ${pad(d.getHours())}h${pad(d.getMinutes())}` : day
 }
 
-const icsDate = (d) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`
-const icsText = (s = '') => String(s).replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n')
-const ymd = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`
+const stamp = (d, withTime) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` + (withTime ? `T${pad(d.getHours())}${pad(d.getMinutes())}00` : '')
 
-/** Fichier .ics (ajout à l'agenda du téléphone). */
-export function calendarFile(occasion, url) {
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+const isAndroid = () => /Android/i.test(navigator.userAgent)
+
+/**
+ * Lien du bouton « Agenda » : ouvre l'application d'agenda de l'appareil avec
+ * l'événement pré-rempli.
+ *  - Android : intention système « nouvel événement » (Google Agenda, Samsung
+ *    Calendar…), repli sur Google Agenda web si aucune application ne répond ;
+ *  - iPhone / iPad / ordinateur : le fichier .ics du serveur, que Calendrier
+ *    (iOS, macOS) ou Outlook ouvrent directement.
+ */
+export function calendarHref(occasion, { icsUrl, inviteUrl, table }) {
+  if (!isAndroid() || isIOS()) return icsUrl
+
   const start = startOf(occasion)
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Signiq//Invitation//FR', 'BEGIN:VEVENT',
-    `UID:${start.getTime()}-${Math.random().toString(36).slice(2)}@signiq`, `DTSTAMP:${icsDate(new Date())}`]
-  if (occasion.starts_at) {
-    lines.push(`DTSTART:${icsDate(start)}`, `DTEND:${icsDate(new Date(start.getTime() + 5 * 3600e3))}`)
-  } else {
-    lines.push(`DTSTART;VALUE=DATE:${ymd(start)}`, `DTEND;VALUE=DATE:${ymd(new Date(start.getTime() + 864e5))}`)
-  }
-  lines.push(`SUMMARY:${icsText(occasion.name)}`)
-  if (occasion.location) lines.push(`LOCATION:${icsText(occasion.location)}`)
-  lines.push(`DESCRIPTION:${icsText(`Votre invitation : ${url}`)}`, 'END:VEVENT', 'END:VCALENDAR')
-  return new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' })
+  const timed = !!occasion.starts_at
+  const end = new Date(start.getTime() + (timed ? 5 * 3600e3 : 864e5))
+  const details = [table && `Votre place : ${table}`, `Votre invitation : ${inviteUrl}`].filter(Boolean).join('\n')
+  const enc = encodeURIComponent
+
+  const web = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    + `&text=${enc(occasion.name)}&dates=${stamp(start, timed)}/${stamp(end, timed)}`
+    + (occasion.location ? `&location=${enc(occasion.location)}` : '')
+    + `&details=${enc(details)}`
+
+  return 'intent://#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.item/event;'
+    + `S.title=${enc(occasion.name)};l.beginTime=${start.getTime()};l.endTime=${end.getTime()};`
+    + (timed ? '' : 'B.allDay=true;')
+    + (occasion.location ? `S.eventLocation=${enc(occasion.location)};` : '')
+    + `S.description=${enc(details)};S.browser_fallback_url=${enc(web)};end`
 }
 
 export const mapsUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`

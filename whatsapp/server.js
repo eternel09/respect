@@ -202,18 +202,6 @@ app.post('/preview-invitation', async (req, res) => {
   }
 })
 
-// Carton composé d'un invité (PDF, image en repli), sans envoi : téléchargé
-// par l'invité depuis sa page personnelle.
-app.post('/render-invitation', async (req, res) => {
-  try {
-    const { buffer, mime } = await buildInvitationMedia(req.body)
-    res.type(mime === 'application/pdf' ? 'pdf' : 'png').send(buffer)
-  } catch (e) {
-    console.error('[invitation] rendu:', e.message)
-    res.status(500).json({ message: "Échec du rendu de l'invitation." })
-  }
-})
-
 // Planche A4 de cartes (format carte de visite) — impression au même design
 app.post('/print-cards', async (req, res) => {
   const { org, orgLogo, cardDesign, layout, members } = req.body

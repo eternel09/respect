@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Page personnelle de l'invité — ouverte via le lien reçu dans l'invitation
  * (`/confirmer/{token}`). Aucun compte requis : le jeton UUID de l'invité fait
- * foi. Montre l'invitation en ligne (QR d'accès, carton à télécharger), la
+ * foi. Montre l'invitation en ligne (QR d'accès, ajout à l'agenda), la
  * vidéo du couple, et enregistre la réponse (présent / décliné).
  */
 class RsvpController extends Controller
@@ -48,26 +48,80 @@ class RsvpController extends Controller
     }
 
     /**
-     * Le carton de l'invité (PDF, ou image si l'événement n'a qu'un fond
-     * image), identique à la pièce jointe envoyée par WhatsApp.
+     * L'événement au format agenda (.ics), servi « inline » : sur iPhone, son
+     * ouverture affiche directement « Ajouter au calendrier » ; sur ordinateur,
+     * l'application d'agenda par défaut l'importe.
+     * Heures « flottantes » (sans fuseau) : l'organisateur saisit l'heure
+     * locale de l'événement, l'agenda de l'invité la garde telle quelle.
      */
-    public function invitation(string $token, InvitationComposer $composer): Response
+    public function calendar(string $token, InvitationComposer $composer): Response
     {
         $guest = $this->find($token);
+        $occasion = $guest->occasion;
 
-        $file = $composer->render($guest);
-        if (! $file) {
-            return response()->json(['message' => 'Invitation momentanément indisponible. Réessayez dans un instant.'], 503);
+        $lines = [
+            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Signiq//Invitation//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            'UID:' . $guest->token . '@signiq',
+            'DTSTAMP:' . now()->utc()->format('Ymd\THis\Z'),
+        ];
+
+        if ($occasion->starts_at) {
+            $start = $occasion->date->copy()->setTimeFrom($occasion->starts_at);
+            $lines[] = 'DTSTART:' . $start->format('Ymd\THis');
+            $lines[] = 'DTEND:' . $start->copy()->addHours(5)->format('Ymd\THis');
+        } else {
+            $lines[] = 'DTSTART;VALUE=DATE:' . $occasion->date->format('Ymd');
+            $lines[] = 'DTEND;VALUE=DATE:' . $occasion->date->copy()->addDay()->format('Ymd');
         }
 
-        $ext = $file['mime'] === 'application/pdf' ? 'pdf' : 'png';
-        $name = \Illuminate\Support\Str::slug('invitation ' . $guest->occasion->name . ' ' . $guest->name) . '.' . $ext;
+        $details = array_filter([
+            $composer->tableLabel($guest) ? 'Votre place : ' . $composer->tableLabel($guest) : null,
+            ($url = $composer->guestUrl($guest)) ? 'Votre invitation : ' . $url : null,
+        ]);
 
-        return response($file['body'], 200, [
-            'Content-Type'        => $file['mime'],
-            'Content-Disposition' => 'attachment; filename="' . $name . '"',
+        $lines[] = 'SUMMARY:' . $this->icsText($occasion->name);
+        if ($occasion->location) {
+            $lines[] = 'LOCATION:' . $this->icsText($occasion->location);
+        }
+        if ($details) {
+            $lines[] = 'DESCRIPTION:' . $this->icsText(implode("\n", $details));
+        }
+        if (! empty($url)) {
+            $lines[] = 'URL:' . $url;
+        }
+        // Rappel la veille.
+        array_push($lines, 'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' . $this->icsText($occasion->name), 'TRIGGER:-P1D', 'END:VALARM');
+        array_push($lines, 'END:VEVENT', 'END:VCALENDAR');
+
+        $name = \Illuminate\Support\Str::slug($occasion->name) ?: 'invitation';
+
+        return response(implode("\r\n", array_map([$this, 'icsFold'], $lines)) . "\r\n", 200, [
+            'Content-Type'        => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'inline; filename="' . $name . '.ics"',
             'Cache-Control'       => 'private, no-store',
         ]);
+    }
+
+    private function icsText(string $text): string
+    {
+        return str_replace(['\\', ';', ',', "\r\n", "\n"], ['\\\\', '\\;', '\\,', '\\n', '\\n'], $text);
+    }
+
+    /** Lignes de 75 octets maximum (RFC 5545), sans couper un caractère UTF-8. */
+    private function icsFold(string $line): string
+    {
+        $out = '';
+        while (strlen($line) > 75) {
+            $cut = 75;
+            while ($cut > 0 && (ord($line[$cut]) & 0xC0) === 0x80) {
+                $cut--;
+            }
+            $out .= substr($line, 0, $cut) . "\r\n ";
+            $line = substr($line, $cut);
+        }
+
+        return $out . $line;
     }
 
     /** Enregistre la réponse de l'invité. */

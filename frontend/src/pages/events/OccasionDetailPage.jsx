@@ -18,7 +18,7 @@ const INVITE = {
 // Mode d'envoi des invitations WhatsApp (réglage par événement).
 const DELIVERY = [
   ['pdf',  'picture_as_pdf', 'Carton PDF',  'Le carton personnalisé (nom, table, QR) en pièce jointe.'],
-  ['link', 'link',           'Lien',        'Un message léger avec le lien personnel de l\'invité : carton en ligne, QR d\'accès, PDF à télécharger et confirmation.'],
+  ['link', 'link',           'Lien',        'Un message léger avec le lien personnel de l\'invité : invitation animée en ligne, QR d\'accès, ajout à l\'agenda et confirmation.'],
   ['both', 'library_add',    'PDF + lien',  'Le carton en pièce jointe et le lien personnel dans le message.'],
 ]
 
@@ -436,7 +436,7 @@ export default function OccasionDetailPage() {
         <div className="bg-white rounded-2xl ring-1 ring-black/5 shadow-sm p-5 mb-6" data-testid="delivery-card">
           <h3 className="font-bold text-gray-900">Mode d'envoi des invitations</h3>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-            Choisissez ce que reçoit chaque invité sur WhatsApp. Le lien ouvre sa page personnelle, d'où il peut aussi télécharger son carton en PDF.
+            Choisissez ce que reçoit chaque invité sur WhatsApp. Le lien ouvre son invitation animée en ligne, avec son QR d'accès et l'ajout à son agenda.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Mode d'envoi">
             {DELIVERY.map(([k, icon, label, help]) => {

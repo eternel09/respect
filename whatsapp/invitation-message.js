@@ -33,7 +33,7 @@ function buildInvitationMessage(body) {
     if (!url) return { text: null, withMedia: false }
     lines.push(
       `📩 Votre invitation personnelle : ${url}`,
-      `Vous y trouverez votre carton à télécharger, votre QR d'accès à présenter à l'accueil le jour J, et pourrez confirmer votre présence. Au plaisir de vous y voir !`,
+      `Ouvrez-la pour découvrir votre invitation, confirmer votre présence et retrouver votre QR d'accès à présenter à l'accueil le jour J. Au plaisir de vous y voir !`,
     )
   } else {
     if (url) {

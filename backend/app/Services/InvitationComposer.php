@@ -4,14 +4,11 @@ namespace App\Services;
 
 use App\Models\Guest;
 use App\Models\Occasion;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
  * Composition d'une invitation (carton + QR + nom) pour un invité : données
- * envoyées au service de rendu (WhatsApp), lien personnel, et fichier
- * téléchargeable depuis la page publique de l'invité.
+ * envoyées au service WhatsApp et lien personnel de l'invité.
  */
 class InvitationComposer
 {
@@ -23,11 +20,6 @@ class InvitationComposer
         'concert'      => 'Concert',
         'autre'        => 'Invitation',
     ];
-
-    // Durée de conservation d'une invitation rendue (évite de relancer le rendu
-    // à chaque téléchargement) ; la clé change dès que l'événement, le nom ou
-    // la table de l'invité changent (pas sa réponse RSVP).
-    private const CACHE_MINUTES = 60;
 
     public function __construct(private QrCodeService $qr) {}
 
@@ -65,40 +57,6 @@ class InvitationComposer
         $guest->loadMissing('table', 'occasion.organization');
 
         return $this->payload($guest->occasion, $guest->name, $this->tableLabel($guest), $guest->token);
-    }
-
-    /**
-     * Fichier de l'invitation de l'invité, tel qu'envoyé en pièce jointe
-     * (PDF ; image en repli). Null si le service de rendu est injoignable.
-     *
-     * @return array{body: string, mime: string}|null
-     */
-    public function render(Guest $guest): ?array
-    {
-        $guest->loadMissing('table', 'occasion');
-        $key = 'invitation:' . $guest->id . ':' . md5(implode('|', [
-            $guest->occasion->updated_at?->timestamp, $guest->name, $this->tableLabel($guest),
-        ]));
-
-        $cached = Cache::get($key);
-        if ($cached) {
-            return ['body' => base64_decode($cached['body']), 'mime' => $cached['mime']];
-        }
-
-        try {
-            $res = $this->service()->timeout(90)->post('/render-invitation', $this->guestPayload($guest));
-        } catch (ConnectionException) {
-            return null;
-        }
-        if (! $res->successful()) {
-            return null;
-        }
-
-        $mime = str_contains((string) $res->header('Content-Type'), 'pdf') ? 'application/pdf' : 'image/png';
-        $file = ['body' => $res->body(), 'mime' => $mime];
-        Cache::put($key, ['body' => base64_encode($file['body']), 'mime' => $mime], now()->addMinutes(self::CACHE_MINUTES));
-
-        return $file;
     }
 
     /**
