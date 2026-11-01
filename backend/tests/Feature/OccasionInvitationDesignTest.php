@@ -63,7 +63,7 @@ class OccasionInvitationDesignTest extends TestCase
     public function test_defaults_follow_the_event_type(): void
     {
         $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
-            ->assertJsonPath('occasion.theme', ['palette' => 'auto', 'color' => null, 'font' => 'classique', 'seal' => null, 'card' => 'auto'])
+            ->assertJsonPath('occasion.theme', ['palette' => 'auto', 'color' => null, 'font' => 'classique', 'seal' => null, 'card' => 'auto', 'photo' => 'arch'])
             ->assertJsonPath('occasion.cover_url', null)
             ->assertJsonPath('occasion.carton', false);
     }
@@ -83,6 +83,15 @@ class OccasionInvitationDesignTest extends TestCase
         // Une palette nommée efface la couleur libre.
         $this->theme(['palette' => 'emeraude', 'color' => '#123456'])->assertOk()
             ->assertJsonPath('invitation_theme.color', null);
+    }
+
+    public function test_the_couple_photo_can_be_the_page_background(): void
+    {
+        $this->theme(['photo' => 'background'])->assertOk()->assertJsonPath('invitation_theme.photo', 'background');
+        $this->getJson("/api/rsvp/{$this->guest->token}")->assertJsonPath('occasion.theme.photo', 'background');
+
+        $this->theme(['photo' => 'both'])->assertOk()->assertJsonPath('invitation_theme.photo', 'both');
+        $this->theme(['photo' => 'mur'])->assertStatus(422)->assertJsonValidationErrors('photo');
     }
 
     public function test_invalid_design_values_are_rejected(): void

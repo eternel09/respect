@@ -27,6 +27,8 @@ class Occasion extends Model
     public const THEME_PALETTES = ['auto', 'bordeaux', 'emeraude', 'nuit', 'rose', 'noir', 'violet', 'terracotta', 'custom'];
     public const THEME_FONTS = ['classique', 'romantique', 'moderne'];
     public const THEME_CARDS = ['auto', 'carton', 'signiq'];
+    /** Photo de couverture : en arche sous la carte, en fond de page, ou les deux. */
+    public const THEME_PHOTO = ['arch', 'background', 'both'];
 
     /** Modes d'envoi des invitations : pièce jointe, lien personnel, ou les deux. */
     public const DELIVERY_MODES = ['pdf', 'link', 'both'];
@@ -165,6 +167,7 @@ class Occasion extends Model
             'font'    => in_array($theme['font'] ?? null, self::THEME_FONTS, true) ? $theme['font'] : 'classique',
             'seal'    => $theme['seal'] ?? null,
             'card'    => in_array($theme['card'] ?? null, self::THEME_CARDS, true) ? $theme['card'] : 'auto',
+            'photo'   => in_array($theme['photo'] ?? null, self::THEME_PHOTO, true) ? $theme['photo'] : 'arch',
         ];
     }
 

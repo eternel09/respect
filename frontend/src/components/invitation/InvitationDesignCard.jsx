@@ -4,6 +4,7 @@ import Icon from '../ui/Icon'
 import Envelope from './Envelope'
 import InviteCard from './InviteCard'
 import CartonCard from './CartonCard'
+import PhotoBackdrop from './PhotoBackdrop'
 import { FONT_SETS, PALETTES, eventNames, loadInvitationFonts, monogram, resolveTheme, sealOf, themeFor } from '../../lib/invitationTheme'
 
 const draftFrom = (o) => {
@@ -15,6 +16,7 @@ const draftFrom = (o) => {
     seal: th.seal || '',
     // « auto » = le carton s'il y en a un : on affiche le choix effectif.
     card: th.card && th.card !== 'auto' ? th.card : (o.invitation_bg_url ? 'carton' : 'signiq'),
+    photo: th.photo || 'arch',
   }
 }
 
@@ -64,6 +66,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         font: draft.font,
         seal: draft.seal.trim() || null,
         card: draft.card,
+        photo: draft.photo,
       })
       onSaved({ invitation_theme: res.data.invitation_theme })
       setFlash({ ok: true, text: res.data.message })
@@ -212,7 +215,21 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
                 )}
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-1">Le couple, le lieu… affichée en arche sous la carte.</p>
+            {o.invitation_cover_url ? (
+              <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Affichage de la photo">
+                {[['arch', 'Arche sous la carte'], ['background', 'Fond de page'], ['both', 'Les deux']].map(([k, label]) => {
+                  const active = draft.photo === k
+                  return (
+                    <button key={k} type="button" role="radio" aria-checked={active} onClick={() => set({ photo: k })}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${active ? 'border-brand bg-brand/10 text-gray-900' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">La photo du couple : en arche sous la carte, en fond de page, ou les deux.</p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -230,7 +247,8 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         {/* Aperçu en direct */}
         <div className="rounded-2xl overflow-hidden flex flex-col items-center justify-center px-4 pt-6 pb-10"
           data-testid="design-preview"
-          style={{ background: `radial-gradient(130% 80% at 50% 0%, #fbf7f1 0%, ${t.ivory} 55%, #efe3d3 100%)`, color: t.ink, ...t.fontVars }}>
+          style={{ background: `radial-gradient(130% 80% at 50% 0%, #fbf7f1 0%, ${t.ivory} 55%, #efe3d3 100%)`, color: t.ink, ...t.fontVars, position: 'relative', isolation: 'isolate' }}>
+          {o.invitation_cover_url && draft.photo !== 'arch' && <PhotoBackdrop src={o.invitation_cover_url} ivory={t.ivory} fixed={false} />}
           <p className="inv-jost text-[10.5px] font-medium tracking-[0.42em] uppercase">Une lettre pour vous</p>
           <p className="inv-script text-[34px] leading-tight mt-1 mb-8 text-center">{sample?.name || 'Marie Exemple'}</p>
           <div className="pointer-events-none" style={{ width: 'min(80vw, 330px)' }}>
