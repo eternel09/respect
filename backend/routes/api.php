@@ -68,8 +68,8 @@ Route::post('/register/network/{token}', [NetworkJoinController::class, 'store']
 // Confirmation de présence (RSVP) — page publique ouverte par l'invité via son jeton
 Route::get('/rsvp/{token}', [RsvpController::class, 'show'])->middleware('throttle:60,1');
 Route::post('/rsvp/{token}', [RsvpController::class, 'store'])->middleware('throttle:20,1');
-// Carton de l'invité à télécharger depuis sa page (rendu coûteux : limité).
-Route::get('/rsvp/{token}/invitation', [RsvpController::class, 'invitation'])->middleware('throttle:10,1');
+// L'événement au format agenda (.ics), pour le bouton « Agenda » de la page invité.
+Route::get('/rsvp/{token}/calendar.ics', [RsvpController::class, 'calendar'])->middleware('throttle:30,1');
 
 // Billetterie publique — vitrine, achat, suivi et e-billets (par jeton)
 Route::get('/public/occasions/{occasion}/tickets', [\App\Http\Controllers\Api\TicketOrderController::class, 'storefront'])->middleware('throttle:60,1');

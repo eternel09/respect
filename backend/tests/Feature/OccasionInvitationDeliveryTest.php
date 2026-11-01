@@ -12,8 +12,8 @@ use Tests\TestCase;
 
 /**
  * Envoi de l'invitation par lien, en option du PDF : mode choisi par événement
- * (pdf | link | both), page personnelle de l'invité (QR d'accès + carton à
- * télécharger).
+ * (pdf | link | both), page personnelle de l'invité (QR d'accès + ajout à
+ * l'agenda).
  */
 class OccasionInvitationDeliveryTest extends TestCase
 {
@@ -139,26 +139,36 @@ class OccasionInvitationDeliveryTest extends TestCase
             ->assertJsonPath('occasion.message', 'Votre présence nous honore.');
     }
 
-    public function test_guest_downloads_the_card(): void
+    public function test_calendar_event_keeps_the_local_time_and_links_the_invitation(): void
     {
-        Http::fake(['*/render-invitation' => Http::response('%PDF-1.7 carton', 200, ['Content-Type' => 'application/pdf'])]);
+        $table = \App\Models\OccasionTable::create(['organization_id' => $this->occasion->organization_id, 'occasion_id' => $this->occasion->id, 'label' => '3', 'seats' => 8]);
+        $this->guest->update(['occasion_table_id' => $table->id]);
+        $this->occasion->update(['date' => '2026-12-10', 'starts_at' => '2026-12-10 18:00:00', 'location' => 'Salle Bella, Kinshasa']);
 
-        $res = $this->get("/api/rsvp/{$this->guest->token}/invitation")->assertOk();
-        $this->assertSame('application/pdf', $res->headers->get('Content-Type'));
-        $this->assertStringContainsString('attachment; filename="invitation-mariage-ana-paul-m-kalala.pdf"', $res->headers->get('Content-Disposition'));
-        $this->assertSame('%PDF-1.7 carton', $res->getContent());
+        $res = $this->get("/api/rsvp/{$this->guest->token}/calendar.ics")->assertOk();
+        $this->assertStringStartsWith('text/calendar', $res->headers->get('Content-Type'));
+        $this->assertStringStartsWith('inline;', $res->headers->get('Content-Disposition')); // ouvert par l'agenda, pas téléchargé
 
-        // Rendu mis en cache : un second téléchargement ne relance pas le service.
-        $this->get("/api/rsvp/{$this->guest->token}/invitation")->assertOk();
-        Http::assertSentCount(1);
-        Http::assertSent(fn ($r) => $r['guestName'] === 'M. Kalala' && isset($r['qrDataUri']));
+        $ics = str_replace("\r\n ", '', $res->getContent()); // lignes repliées
+        $this->assertStringContainsString("DTSTART:20261210T180000\r\n", $ics);  // 18h00 telle que saisie
+        $this->assertStringContainsString("DTEND:20261210T230000\r\n", $ics);
+        $this->assertStringContainsString('SUMMARY:Mariage Ana & Paul', $ics);
+        $this->assertStringContainsString('LOCATION:Salle Bella\, Kinshasa', $ics);
+        $this->assertStringContainsString("Votre place : Table 3\\nVotre invitation : https://signiq.saas.cd/confirmer/{$this->guest->token}", $ics);
+        $this->assertStringContainsString('TRIGGER:-P1D', $ics);
+        foreach (explode("\r\n", $res->getContent()) as $line) {
+            $this->assertLessThanOrEqual(75, strlen($line));
+        }
     }
 
-    public function test_download_reports_an_unavailable_renderer_and_unknown_tokens(): void
+    public function test_calendar_event_without_a_time_is_all_day(): void
     {
-        Http::fake(['*' => Http::response(['message' => 'boom'], 500)]);
+        $this->occasion->update(['date' => '2026-12-10', 'starts_at' => null]);
 
-        $this->getJson("/api/rsvp/{$this->guest->token}/invitation")->assertStatus(503);
-        $this->getJson('/api/rsvp/00000000-0000-0000-0000-000000000000/invitation')->assertNotFound();
+        $ics = $this->get("/api/rsvp/{$this->guest->token}/calendar.ics")->assertOk()->getContent();
+        $this->assertStringContainsString("DTSTART;VALUE=DATE:20261210\r\n", $ics);
+        $this->assertStringContainsString("DTEND;VALUE=DATE:20261211\r\n", $ics);
+
+        $this->get('/api/rsvp/00000000-0000-0000-0000-000000000000/calendar.ics')->assertNotFound();
     }
 }
