@@ -21,6 +21,70 @@ export const THEMES = {
 }
 export const themeFor = (type) => THEMES[type] || THEMES.autre
 
+/** Palettes proposées à l'organisateur (couleur principale ; le reste en découle). */
+export const PALETTES = {
+  bordeaux:   { label: 'Bordeaux',    main: '#7a1626' },
+  emeraude:   { label: 'Émeraude',    main: '#1f5c4a' },
+  nuit:       { label: 'Bleu nuit',   main: '#1e3a5f' },
+  rose:       { label: 'Rose poudré', main: '#a85a6e' },
+  noir:       { label: 'Noir & or',   main: '#1d1a17' },
+  violet:     { label: 'Prune',       main: '#5b2a86' },
+  terracotta: { label: 'Terracotta',  main: '#9c4a2c' },
+}
+
+/** Styles de polices : titres (script) et textes (serif). */
+export const FONT_SETS = {
+  classique:  { label: 'Classique',  script: "'Great Vibes'",       serif: "'Cormorant Garamond'", family: 'Great+Vibes' },
+  romantique: { label: 'Romantique', script: "'Pinyon Script'",     serif: "'Cormorant Garamond'", family: 'Pinyon+Script' },
+  moderne:    { label: 'Moderne',    script: "'Playfair Display'",  serif: "'Playfair Display'",   family: 'Playfair+Display:ital,wght@0,400;0,500;1,400;1,500', italic: true },
+}
+
+const hexToRgb = (hex) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))
+const rgbToHex = (rgb) => '#' + rgb.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('')
+const scale = (hex, k) => rgbToHex(hexToRgb(hex).map(v => v * k))
+const luminance = (hex) => {
+  const [r, g, b] = hexToRgb(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/**
+ * Couleurs dérivées d'une couleur principale. Une couleur trop claire est
+ * assombrie jusqu'à rester lisible en blanc (carte, enveloppe, boutons).
+ */
+export function paletteFrom(main) {
+  let m = /^#[0-9a-f]{6}$/i.test(main || '') ? main.toLowerCase() : '#7a1626'
+  for (let i = 0; i < 12 && luminance(m) > 0.2; i++) m = scale(m, 0.88)
+  return { main: m, dark: scale(m, 0.7), light: scale(m, 1.17), ink: scale(m, 0.74) }
+}
+
+/**
+ * Thème complet d'une invitation : couleur du type d'événement par défaut,
+ * remplacée par la palette ou la couleur choisies par l'organisateur, et
+ * style de polices (variables CSS à poser sur la page).
+ */
+export function resolveTheme(occasion) {
+  const base = themeFor(occasion.type)
+  const custom = occasion.theme || {}
+  const main = custom.palette === 'custom' ? custom.color : PALETTES[custom.palette]?.main
+  const fonts = FONT_SETS[custom.font] || FONT_SETS.classique
+  return {
+    ...base,
+    ...(main ? paletteFrom(main) : {}),
+    fontVars: {
+      '--inv-script': fonts.script,
+      '--inv-serif': fonts.serif,
+      '--inv-script-style': fonts.italic ? 'italic' : 'normal',
+    },
+  }
+}
+
+/** Monogramme du cachet : texte choisi par l'organisateur, sinon les initiales. */
+export function sealOf(occasion) {
+  const seal = (occasion.theme?.seal || '').trim()
+  if (!seal) return monogram(occasion.name)
+  return seal.length === 2 ? [seal[0], seal[1]] : [seal]
+}
+
 const TYPE_PREFIX = /^(mariage|gala|soirée|anniversaire|concert|cérémonie|ceremonie)\s+(de\s+|du\s+|des\s+|d['’]\s*)?/i
 
 /** « Mariage Ana & Paul » → { title: 'Ana & Paul', couple: ['Ana', 'Paul'] }. */
@@ -112,11 +176,15 @@ export function googleCalendarUrl(occasion, { inviteUrl, table }) {
 
 export const mapsUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
 
-/** Polices de l'invitation, chargées seulement sur cette page. */
-export function loadInvitationFonts() {
-  if (document.getElementById('inv-fonts')) return
-  const link = document.createElement('link')
-  link.id = 'inv-fonts'; link.rel = 'stylesheet'
-  link.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Great+Vibes&family=Jost:wght@400;500;600&display=swap'
-  document.head.appendChild(link)
+/** Polices de l'invitation, chargées seulement sur ces pages (+ le style choisi). */
+export function loadInvitationFonts(fontKey) {
+  const add = (id, href) => {
+    if (document.getElementById(id)) return
+    const link = document.createElement('link')
+    link.id = id; link.rel = 'stylesheet'; link.href = href
+    document.head.appendChild(link)
+  }
+  add('inv-fonts', 'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Great+Vibes&family=Jost:wght@400;500;600&display=swap')
+  const set = FONT_SETS[fontKey]
+  if (set && fontKey !== 'classique') add(`inv-fonts-${fontKey}`, `https://fonts.googleapis.com/css2?family=${set.family}&display=swap`)
 }

@@ -106,6 +106,7 @@ class OccasionController extends Controller
         if ($occasion->invitation_bg_path) {
             Storage::disk('public')->delete($occasion->invitation_bg_path);
         }
+        \App\Services\InvitationCartonService::forget($occasion);
 
         $occasion->invitation_bg_path = $path;
         $occasion->save();
@@ -121,6 +122,7 @@ class OccasionController extends Controller
     {
         if ($occasion->invitation_bg_path) {
             Storage::disk('public')->delete($occasion->invitation_bg_path);
+            \App\Services\InvitationCartonService::forget($occasion);
             $occasion->invitation_bg_path = null;
             $occasion->save();
         }
@@ -218,6 +220,91 @@ class OccasionController extends Controller
             'invitation_delivery' => $occasion->invitationDelivery(),
             'invitation_links_available' => \App\Services\InvitationComposer::publicBaseUrl() !== null,
         ]);
+    }
+
+    /**
+     * Design de l'invitation en ligne : palette (ou couleur libre), polices,
+     * texte du cachet, carte affichée (carton du client ou carte Signiq).
+     */
+    public function updateInvitationTheme(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $data = $request->validate([
+            'palette' => ['required', 'in:' . implode(',', Occasion::THEME_PALETTES)],
+            'color'   => ['nullable', 'required_if:palette,custom', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'font'    => ['required', 'in:' . implode(',', Occasion::THEME_FONTS)],
+            'seal'    => ['nullable', 'string', 'max:3'],
+            'card'    => ['required', 'in:' . implode(',', Occasion::THEME_CARDS)],
+        ], [
+            'palette.in'        => 'Palette inconnue.',
+            'color.required_if' => 'Choisissez une couleur.',
+            'color.regex'       => 'Couleur invalide (format #RRGGBB).',
+            'font.in'           => 'Style de polices inconnu.',
+            'seal.max'          => 'Le cachet accepte 3 caractères au plus.',
+            'card.in'           => 'Carte inconnue.',
+        ]);
+
+        $seal = trim((string) ($data['seal'] ?? ''));
+        $occasion->invitation_theme = [
+            'palette' => $data['palette'],
+            'color'   => $data['palette'] === 'custom' ? strtolower($data['color']) : null,
+            'font'    => $data['font'],
+            'seal'    => $seal !== '' ? mb_strtoupper($seal) : null,
+            'card'    => $data['card'],
+        ];
+        $occasion->save();
+
+        return response()->json([
+            'message'          => 'Design de l’invitation enregistré.',
+            'invitation_theme' => $occasion->invitationTheme(),
+        ]);
+    }
+
+    /** Photo de couverture de l'invitation en ligne (couple, lieu…) : une image. */
+    public function uploadInvitationCover(Request $request, Occasion $occasion, InvitationImageService $images): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $request->validate([
+            'cover' => ['required', 'file', 'max:30720'],
+        ], [
+            'cover.required' => 'Sélectionnez une photo.',
+            'cover.max'      => 'Fichier trop lourd (30 Mo maximum).',
+        ]);
+
+        $file = $request->file('cover');
+        if (strtolower((string) $file->getClientOriginalExtension()) === 'pdf'
+            || $file->getMimeType() === 'application/pdf') {
+            return response()->json(['message' => 'Utilisez une photo (JPG, PNG, WEBP ou HEIC).'], 422);
+        }
+
+        // Normalise en JPEG (redimensionné) ; 422 si illisible / format non géré.
+        $path = $images->process($file);
+
+        if ($occasion->invitation_cover_path) {
+            Storage::disk('public')->delete($occasion->invitation_cover_path);
+        }
+        $occasion->invitation_cover_path = $path;
+        $occasion->save();
+
+        return response()->json([
+            'message'              => 'Photo de couverture enregistrée.',
+            'invitation_cover_url' => $occasion->invitationCoverUrl(),
+        ]);
+    }
+
+    public function removeInvitationCover(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        if ($occasion->invitation_cover_path) {
+            Storage::disk('public')->delete($occasion->invitation_cover_path);
+            $occasion->invitation_cover_path = null;
+            $occasion->save();
+        }
+
+        return response()->json(['message' => 'Photo de couverture retirée.']);
     }
 
     /**

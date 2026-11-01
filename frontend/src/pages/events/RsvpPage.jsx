@@ -5,9 +5,10 @@ import api, { API_BASE, apiErrorMessage } from '../../lib/axios'
 import Icon from '../../components/ui/Icon'
 import Envelope from '../../components/invitation/Envelope'
 import InviteCard from '../../components/invitation/InviteCard'
+import CartonCard from '../../components/invitation/CartonCard'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
-import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, monogram, startOf, themeFor } from '../../lib/invitationTheme'
+import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, resolveTheme, sealOf, startOf } from '../../lib/invitationTheme'
 
 const seenKey = (token) => `inv-open:${token}`
 const readSeen = (token) => { try { return localStorage.getItem(seenKey(token)) === '1' } catch { return false } }
@@ -37,7 +38,23 @@ export default function RsvpPage() {
   const envRef = useRef(null)
   const rsvpRef = useRef(null)
 
-  useEffect(loadInvitationFonts, [])
+  // Carton du client (s'il remplace la carte) : préchargé pour connaître ses
+  // proportions ; en cas d'échec, la carte Signiq reprend sa place.
+  const [carton, setCarton] = useState(null) // { src, ratio } | 'failed'
+
+  const fontKey = data?.occasion?.theme?.font
+  useEffect(() => { loadInvitationFonts(fontKey) }, [fontKey])
+
+  const hasCarton = !!data?.occasion?.carton
+  useEffect(() => {
+    if (!hasCarton) return
+    const src = `${API_BASE}/rsvp/${token}/carton`
+    const img = new Image()
+    img.onload = () => setCarton({ src, ratio: img.naturalWidth / img.naturalHeight })
+    img.onerror = () => setCarton('failed')
+    img.src = src
+    return () => { img.onload = null; img.onerror = null }
+  }, [hasCarton, token])
 
   const load = useCallback(() => {
     api.get(`/rsvp/${token}`)
@@ -92,7 +109,7 @@ export default function RsvpPage() {
   )
 
   const { guest, occasion } = data
-  const t = themeFor(occasion.type)
+  const t = resolveTheme(occasion)
   const { title, couple } = eventNames(occasion.name)
   const confirmed = result?.status === 'confirmed'
   const declined = result?.status === 'declined'
@@ -100,7 +117,11 @@ export default function RsvpPage() {
   const phrase = couple
     ? (occasion.type === 'mariage' ? 'ont la joie de vous convier à leur mariage' : 'ont le plaisir de vous convier')
     : `${occasion.organization} a le plaisir de vous convier`
-  const card = <InviteCard occasion={occasion} guest={guest} theme={t} />
+  const showCarton = occasion.carton && carton !== 'failed'
+  const card = (full) => showCarton
+    ? <CartonCard src={carton?.src || `${API_BASE}/rsvp/${token}/carton`} ratio={carton?.ratio} full={full} theme={t}
+        onError={() => setCarton('failed')} />
+    : <InviteCard occasion={occasion} guest={guest} theme={t} />
 
   // Apparition en cascade du faire-part, puis au défilement.
   const rise = (i) => reduced ? {} : {
@@ -115,7 +136,7 @@ export default function RsvpPage() {
 
   return (
     <div className="relative min-h-svh overflow-x-hidden"
-      style={{ background: `radial-gradient(130% 80% at 50% 0%, #fbf7f1 0%, ${t.ivory} 55%, #efe3d3 100%)`, color: t.ink }}>
+      style={{ background: `radial-gradient(130% 80% at 50% 0%, #fbf7f1 0%, ${t.ivory} 55%, #efe3d3 100%)`, color: t.ink, ...t.fontVars }}>
       {/* Bokeh doré */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         {BOKEH.map(([x, y, s, d], i) => (
@@ -145,8 +166,8 @@ export default function RsvpPage() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ y: 420, opacity: 0, transition: { duration: 0.75, ease: [0.55, 0, 0.75, 0.2] } }}
                 transition={{ duration: 1, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}>
-                <Envelope theme={t} mono={monogram(occasion.name)} opening={stage === 'opening'} onOpen={open}>
-                  <motion.div layoutId="invite-card">{card}</motion.div>
+                <Envelope theme={t} mono={sealOf(occasion)} opening={stage === 'opening'} onOpen={open}>
+                  <motion.div layoutId="invite-card">{card(false)}</motion.div>
                 </Envelope>
               </motion.div>
 
@@ -161,8 +182,15 @@ export default function RsvpPage() {
             <motion.main key="content" className="relative z-10 mx-auto max-w-md px-4 pt-8 pb-12 text-center">
               <motion.div layoutId="invite-card" className="mx-auto" style={{ width: 'min(92vw, 384px)' }}
                 transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}>
-                <Tilt disabled={reduced}>{card}</Tilt>
+                <Tilt disabled={reduced}>{card(true)}</Tilt>
               </motion.div>
+
+              {occasion.cover_url && (
+                <motion.div {...rise(0)} className="mx-auto mt-10 rounded-t-full p-[3px]"
+                  style={{ width: 'min(64vw, 240px)', background: t.gold, boxShadow: '0 18px 40px -18px rgba(60,10,20,.45)' }}>
+                  <img src={occasion.cover_url} alt="" className="block w-full aspect-[3/4] object-cover rounded-t-full" />
+                </motion.div>
+              )}
 
               <motion.p {...rise(0)} className="mt-9 inv-jost text-[11.5px] font-medium tracking-[0.34em] uppercase" style={{ color: t.ink }}>
                 {couple && occasion.type === 'mariage' ? 'Avec leurs familles' : t.label}

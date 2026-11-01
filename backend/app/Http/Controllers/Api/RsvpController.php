@@ -43,7 +43,30 @@ class RsvpController extends Controller
                 // Mot des hôtes (le même que dans le message WhatsApp).
                 'message'       => $occasion->invitation_message,
                 'organization'  => $occasion->organization->name,
+                // Design propre à l'événement : palette, polices, cachet, carte.
+                'theme'         => $occasion->invitationTheme(),
+                'cover_url'     => $occasion->invitationCoverUrl(),
+                // Le carton du client sort de l'enveloppe (servi par /rsvp/{token}/carton).
+                'carton'        => $occasion->showsCartonOnline(),
             ],
+        ]);
+    }
+
+    /**
+     * Carton du client tel qu'il sort de l'enveloppe : l'image téléversée, ou
+     * le modèle PDF composé au nom de l'invité. 404 si l'événement n'en a pas
+     * (ou s'il ne peut être rendu) : la page garde alors la carte Signiq.
+     */
+    public function carton(string $token, \App\Services\InvitationCartonService $cartons): Response
+    {
+        $guest = $this->find($token);
+        abort_unless($guest->occasion->showsCartonOnline(), 404);
+
+        $path = $cartons->pathFor($guest);
+        abort_if($path === null, 404);
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->response($path, null, [
+            'Cache-Control' => 'private, max-age=600',
         ]);
     }
 

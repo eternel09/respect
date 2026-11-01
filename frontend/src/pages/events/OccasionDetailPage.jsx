@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon'
 import api, { apiErrorMessage, downloadFile } from '../../lib/axios'
 import { OCC_TYPES, OCC_MODULES } from '../../lib/occasions'
 import { useAuth } from '../../context/AuthContext'
+import InvitationDesignCard from '../../components/invitation/InvitationDesignCard'
 
 const fmtDate = (d) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : null
@@ -494,6 +495,12 @@ export default function OccasionDetailPage() {
             </p>
           )}
         </div>
+        )}
+
+        {/* Design de l'invitation en ligne (palette, polices, cachet, carte, photo) */}
+        {has('guests') && (
+          <InvitationDesignCard occasion={o} guests={guests} setFlash={setFlash}
+            onSaved={(patch) => setData(d => ({ ...d, occasion: { ...d.occasion, ...patch } }))} />
         )}
 
         {/* Message d'accompagnement WhatsApp (ajouté à la légende automatique) */}
