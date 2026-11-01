@@ -24,6 +24,10 @@ class OccasionResource extends JsonResource
             // n'est envoyé que si le site a une adresse publique (FRONTEND_URL).
             'invitation_delivery'        => $this->invitationDelivery(),
             'invitation_links_available' => \App\Services\InvitationComposer::publicBaseUrl() !== null,
+            // Rappel WhatsApp le jour J (avec le lien de l'invitation).
+            'day_reminder'      => (bool) $this->day_reminder,
+            'day_reminder_at'   => config('occasions.day_reminder.at'),
+            'reminded_count'    => $this->whenCounted('reminded_count'),
             'invitation_bg_url' => $this->invitationBgUrl(),
             'invitation_is_pdf' => $this->invitationIsPdf(),
             'ticket_design_url' => $this->ticketDesignUrl(),

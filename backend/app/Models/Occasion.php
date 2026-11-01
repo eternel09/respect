@@ -28,6 +28,7 @@ class Occasion extends Model
         'ends_at'            => 'datetime',
         'invites_sending_at' => 'datetime',
         'features'           => 'array',
+        'day_reminder'       => 'boolean',
     ];
 
     /** Modules activés par défaut pour un type d'événement (config/occasions.php). */

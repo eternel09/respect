@@ -34,4 +34,14 @@ return [
 
     // Repli si un type inconnu ou aucune valeur par défaut.
     'fallback' => ['guests'],
+
+    // Rappel WhatsApp le jour J (option par événement) : envoyé à partir de
+    // cette heure, dans ce fuseau — celui où l'organisateur saisit les heures
+    // de ses événements. Le planificateur rattrape les envois jusqu'à
+    // `until` (WhatsApp déconnecté à 9 h, gros volume d'invités…).
+    'day_reminder' => [
+        'at'       => env('OCCASION_REMINDER_AT', '09:00'),
+        'until'    => env('OCCASION_REMINDER_UNTIL', '13:00'),
+        'timezone' => env('OCCASION_REMINDER_TZ', 'Africa/Kinshasa'),
+    ],
 ];

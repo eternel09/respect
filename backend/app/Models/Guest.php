@@ -22,6 +22,7 @@ class Guest extends Model
         'confirmed_at'  => 'datetime',
         'checked_in_at' => 'datetime',
         'declined'      => 'boolean',
+        'reminded_at'   => 'datetime',
     ];
 
     // Défauts hydratés dès la création (miroir des defaults SQL).

@@ -47,4 +47,24 @@ function buildInvitationMessage(body) {
   return { text: (custom ? `${custom}\n\n` : '') + lines.join('\n'), withMedia: mode !== 'link' }
 }
 
-module.exports = { buildInvitationMessage, deliveryMode }
+/**
+ * Rappel du jour J (envoyé le matin de l'événement) : texte seul avec le
+ * lien de l'invitation, où l'invité retrouve son QR d'accès et l'itinéraire.
+ * Null sans lien : le rappel n'a de sens qu'avec lui.
+ */
+function buildReminderMessage(body) {
+  const url = String(body.invitationUrl || '').trim()
+  if (!url) return null
+  const when = body.timeText ? `aujourd'hui à ${body.timeText}` : "aujourd'hui"
+  const where = body.location ? ` · ${body.location}` : ''
+  const table = body.tableLabel ? `\n🍽️ Votre place : ${body.tableLabel}` : ''
+
+  return [
+    `🔔 C'est le grand jour ! ${body.guestName}, ${body.eventName} vous attend.`,
+    `📅 ${when.charAt(0).toUpperCase() + when.slice(1)}${where}${table}`,
+    `📩 Votre invitation et votre QR d'accès : ${url}`,
+    `Présentez votre QR à l'accueil. À tout à l'heure !`,
+  ].join('\n')
+}
+
+module.exports = { buildInvitationMessage, buildReminderMessage, deliveryMode }

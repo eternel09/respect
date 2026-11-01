@@ -213,6 +213,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         // Message d'accompagnement WhatsApp (ajouté à la légende automatique)
         Route::put('/occasions/{occasion}/invitation-message', [OccasionController::class, 'updateInvitationMessage']);
         Route::put('/occasions/{occasion}/invitation-delivery', [OccasionController::class, 'updateInvitationDelivery']);
+        Route::put('/occasions/{occasion}/day-reminder', [OccasionController::class, 'updateDayReminder']);
         // Aperçu composé (fond + QR + nom d'un invité d'exemple) — ne renvoie qu'une image
         Route::get('/occasions/{occasion}/invitation-preview', [OccasionInvitationController::class, 'preview']);
         // Vidéo du couple (montrée sur la page de confirmation RSVP)
