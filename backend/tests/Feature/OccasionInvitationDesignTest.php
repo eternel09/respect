@@ -63,7 +63,7 @@ class OccasionInvitationDesignTest extends TestCase
     public function test_defaults_follow_the_event_type(): void
     {
         $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
-            ->assertJsonPath('occasion.theme', ['palette' => 'auto', 'color' => null, 'font' => 'classique', 'seal' => null, 'card' => 'auto', 'photo' => 'arch', 'sparkles' => true])
+            ->assertJsonPath('occasion.theme', ['template' => 'enveloppe', 'palette' => 'auto', 'color' => null, 'font' => 'classique', 'seal' => null, 'card' => 'auto', 'photo' => 'arch', 'sparkles' => true])
             ->assertJsonPath('occasion.cover_url', null)
             ->assertJsonPath('occasion.carton', false);
     }
@@ -172,6 +172,72 @@ class OccasionInvitationDesignTest extends TestCase
             ->assertJsonPath('occasion.theme.sparkles', false)
             ->assertJsonPath('occasion.carton', false);
         $this->get("/api/rsvp/{$this->guest->token}/carton")->assertNotFound();
+    }
+
+    // ── Modèle « faire-part » ────────────────────────────────────
+
+    public function test_the_faire_part_template_and_its_texts(): void
+    {
+        $this->theme(['template' => 'faire-part'])->assertOk()->assertJsonPath('invitation_theme.template', 'faire-part');
+
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [
+            'families'    => 'Grâce Iyambe & Dorcas Ekofo',
+            'verse'       => 'Ainsi ils ne sont plus deux, mais une seule chair.',
+            'verse_ref'   => 'Matthieu 19 : 6',
+            'ceremony'    => 'Mariage religieux',
+            'program'     => [
+                ['time' => '19h00', 'label' => 'Arrivée des invités', 'icon' => 'start'],
+                ['time' => '20h00', 'label' => 'Entrée des mariés', 'icon' => 'entree'],
+            ],
+            'dress_title' => 'Black & Gold',
+            'dress_text'  => 'Tenue noire rehaussée d’une touche d’or.',
+        ])->assertOk()->assertJsonPath('invitation_content.program.1.icon', 'entree');
+
+        $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
+            ->assertJsonPath('occasion.theme.template', 'faire-part')
+            ->assertJsonPath('occasion.content.families', 'Grâce Iyambe & Dorcas Ekofo')
+            ->assertJsonPath('occasion.content.verse_ref', 'Matthieu 19 : 6')
+            ->assertJsonPath('occasion.content.program.0.label', 'Arrivée des invités')
+            ->assertJsonPath('occasion.content.dress_title', 'Black & Gold')
+            ->assertJsonPath('occasion.content.closing', null)
+            ->assertJsonPath('occasion.photos', []);
+    }
+
+    public function test_invalid_program_is_rejected(): void
+    {
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [
+            'program' => [['time' => '19h', 'label' => '', 'icon' => 'licorne']],
+        ])->assertStatus(422)->assertJsonValidationErrors(['program.0.label', 'program.0.icon']);
+
+        $this->theme(['template' => 'parchemin'])->assertStatus(422)->assertJsonValidationErrors('template');
+    }
+
+    public function test_photo_gallery_holds_four_photos(): void
+    {
+        $url = "/api/occasions/{$this->occasion->id}/invitation-photos";
+        foreach (range(1, 4) as $i) {
+            $this->asAdmin()->post($url, ['photo' => UploadedFile::fake()->image("p{$i}.jpg", 800, 1000)])->assertOk();
+        }
+        $this->asAdmin()->post($url, ['photo' => UploadedFile::fake()->image('p5.jpg')], ['Accept' => 'application/json'])
+            ->assertStatus(422);
+        $this->assertCount(4, $this->getJson("/api/rsvp/{$this->guest->token}")->json('occasion.photos'));
+
+        $first = $this->occasion->fresh()->invitation_photos[0];
+        $this->asAdmin()->deleteJson("{$url}/0")->assertOk()->assertJsonCount(3, 'invitation_photos');
+        Storage::disk('public')->assertMissing($first);
+        $this->asAdmin()->deleteJson("{$url}/7")->assertNotFound();
+    }
+
+    public function test_another_organization_cannot_edit_the_faire_part(): void
+    {
+        $intruder = User::factory()->create(['organization_id' => Organization::factory()->create()->id, 'role' => 'admin']);
+        $token = $intruder->createToken('t')->plainTextToken;
+
+        $this->withToken($token)->putJson("/api/occasions/{$this->occasion->id}/invitation-content", ['families' => 'X'])->assertNotFound();
+        $this->withToken($token)->post("/api/occasions/{$this->occasion->id}/invitation-photos", [
+            'photo' => UploadedFile::fake()->image('p.jpg'),
+        ], ['Accept' => 'application/json'])->assertNotFound();
+        $this->assertNull($this->occasion->fresh()->invitation_content);
     }
 
     public function test_no_carton_means_404(): void

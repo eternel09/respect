@@ -27,6 +27,11 @@ class Occasion extends Model
     public const THEME_PALETTES = ['auto', 'bordeaux', 'emeraude', 'nuit', 'rose', 'noir', 'violet', 'terracotta', 'custom'];
     public const THEME_FONTS = ['classique', 'romantique', 'moderne'];
     public const THEME_CARDS = ['auto', 'carton', 'signiq', 'none'];
+    /** Modèles d'invitation en ligne : enveloppe animée, ou faire-part qui se lit en défilant. */
+    public const THEME_TEMPLATES = ['enveloppe', 'faire-part'];
+    /** Pictogrammes du programme (faire-part). */
+    public const PROGRAM_ICONS = ['start', 'ceremonie', 'entree', 'presentation', 'bal', 'discours', 'cadeaux', 'buffet', 'gateau', 'photo', 'danse', 'fin'];
+    public const MAX_INVITATION_PHOTOS = 4;
     /** Photo de couverture : en arche sous la carte, en fond de page, ou les deux. */
     public const THEME_PHOTO = ['arch', 'background', 'both'];
 
@@ -41,6 +46,8 @@ class Occasion extends Model
         'features'           => 'array',
         'day_reminder'       => 'boolean',
         'invitation_theme'   => 'array',
+        'invitation_content' => 'array',
+        'invitation_photos'  => 'array',
     ];
 
     /** Modules activés par défaut pour un type d'événement (config/occasions.php). */
@@ -162,6 +169,7 @@ class Occasion extends Model
         $theme = $this->invitation_theme ?? [];
 
         return [
+            'template' => in_array($theme['template'] ?? null, self::THEME_TEMPLATES, true) ? $theme['template'] : 'enveloppe',
             'palette' => in_array($theme['palette'] ?? null, self::THEME_PALETTES, true) ? $theme['palette'] : 'auto',
             'color'   => $theme['color'] ?? null,
             'font'    => in_array($theme['font'] ?? null, self::THEME_FONTS, true) ? $theme['font'] : 'classique',
@@ -171,6 +179,37 @@ class Occasion extends Model
             // Paillettes dorées (étoiles flottantes, gerbes à l'ouverture et à la confirmation).
             'sparkles' => (bool) ($theme['sparkles'] ?? true),
         ];
+    }
+
+    /** Textes du modèle « faire-part » (vides = textes par défaut ou section masquée). */
+    public function invitationContent(): array
+    {
+        $c = $this->invitation_content ?? [];
+        $str = fn (string $k) => isset($c[$k]) && trim((string) $c[$k]) !== '' ? trim((string) $c[$k]) : null;
+
+        return [
+            'families'    => $str('families'),
+            'verse'       => $str('verse'),
+            'verse_ref'   => $str('verse_ref'),
+            'intro'       => $str('intro'),
+            'ceremony'    => $str('ceremony'),
+            'program'     => array_values(array_map(fn ($i) => [
+                'time'  => (string) ($i['time'] ?? ''),
+                'label' => (string) ($i['label'] ?? ''),
+                'icon'  => in_array($i['icon'] ?? null, self::PROGRAM_ICONS, true) ? $i['icon'] : 'start',
+            ], is_array($c['program'] ?? null) ? $c['program'] : [])),
+            'dress_title' => $str('dress_title'),
+            'dress_text'  => $str('dress_text'),
+            'closing'     => $str('closing'),
+        ];
+    }
+
+    /** Photos du couple (galerie du faire-part) : URL publiques, dans l'ordre. */
+    public function invitationPhotoUrls(): array
+    {
+        $disk = Storage::disk('public');
+
+        return array_values(array_map(fn ($p) => $disk->url($p), $this->invitation_photos ?? []));
     }
 
     /** La page en ligne montre-t-elle le carton du client (plutôt que la carte Signiq) ? */

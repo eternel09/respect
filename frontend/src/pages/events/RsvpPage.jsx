@@ -7,6 +7,7 @@ import Envelope from '../../components/invitation/Envelope'
 import InviteCard from '../../components/invitation/InviteCard'
 import CartonCard from '../../components/invitation/CartonCard'
 import PhotoBackdrop from '../../components/invitation/PhotoBackdrop'
+import FairePart from '../../components/invitation/FairePart'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
 import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, resolveTheme, sealOf, startOf } from '../../lib/invitationTheme'
@@ -44,7 +45,11 @@ export default function RsvpPage() {
   const [carton, setCarton] = useState(null) // { src, ratio } | 'failed'
 
   const fontKey = data?.occasion?.theme?.font
-  useEffect(() => { loadInvitationFonts(fontKey) }, [fontKey])
+  const isFairePart = data?.occasion?.theme?.template === 'faire-part'
+  useEffect(() => {
+    loadInvitationFonts(fontKey)
+    if (isFairePart) loadInvitationFonts('moderne') // monogramme en didone (Playfair Display)
+  }, [fontKey, isFairePart])
 
   const hasCarton = !!data?.occasion?.carton
   useEffect(() => {
@@ -139,6 +144,16 @@ export default function RsvpPage() {
     initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 },
     viewport: { once: true, margin: '-60px' }, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
   }
+
+  // Modèle « faire-part » : pas d'enveloppe, un faire-part qui se lit en défilant.
+  if (isFairePart) return (
+    <div className="relative min-h-svh overflow-x-hidden" style={{ background: '#ece8e1', ...t.fontVars }}>
+      {sparkles && <ParticleField ref={fx} kind="sparkles" colors={t.sparkles} density={0.5} calm={!!reduced} />}
+      <FairePart occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
+        confirmed={confirmed} declined={declined} busy={busy} err={err} respond={respond}
+        rsvpRef={rsvpRef} t={t} reduced={reduced} />
+    </div>
+  )
 
   return (
     <div className="relative min-h-svh overflow-x-hidden"

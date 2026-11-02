@@ -32,6 +32,8 @@ class OccasionResource extends JsonResource
             // Design de l'invitation en ligne (palette, polices, cachet, carte) + couverture.
             'invitation_theme'     => $this->invitationTheme(),
             'invitation_cover_url' => $this->invitationCoverUrl(),
+            'invitation_content'   => $this->invitationContent(),
+            'invitation_photos'    => $this->invitationPhotoUrls(),
             'invitation_is_pdf' => $this->invitationIsPdf(),
             'ticket_design_url' => $this->ticketDesignUrl(),
             'rsvp_video_url'    => $this->rsvpVideoUrl(),

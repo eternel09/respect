@@ -231,6 +231,7 @@ class OccasionController extends Controller
         abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
 
         $data = $request->validate([
+            'template' => ['nullable', 'in:' . implode(',', Occasion::THEME_TEMPLATES)],
             'palette' => ['required', 'in:' . implode(',', Occasion::THEME_PALETTES)],
             'color'   => ['nullable', 'required_if:palette,custom', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'font'    => ['required', 'in:' . implode(',', Occasion::THEME_FONTS)],
@@ -239,6 +240,7 @@ class OccasionController extends Controller
             'photo'   => ['nullable', 'in:' . implode(',', Occasion::THEME_PHOTO)],
             'sparkles' => ['nullable', 'boolean'],
         ], [
+            'template.in'       => 'Modèle inconnu.',
             'palette.in'        => 'Palette inconnue.',
             'color.required_if' => 'Choisissez une couleur.',
             'color.regex'       => 'Couleur invalide (format #RRGGBB).',
@@ -250,6 +252,7 @@ class OccasionController extends Controller
 
         $seal = trim((string) ($data['seal'] ?? ''));
         $occasion->invitation_theme = [
+            'template' => $data['template'] ?? 'enveloppe',
             'palette' => $data['palette'],
             'color'   => $data['palette'] === 'custom' ? strtolower($data['color']) : null,
             'font'    => $data['font'],
@@ -263,6 +266,98 @@ class OccasionController extends Controller
         return response()->json([
             'message'          => 'Design de l’invitation enregistré.',
             'invitation_theme' => $occasion->invitationTheme(),
+        ]);
+    }
+
+    /**
+     * Textes du modèle « faire-part » : familles, verset, mot d'invitation,
+     * cérémonie, programme horaire, dress code, mot de la fin.
+     */
+    public function updateInvitationContent(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $data = $request->validate([
+            'families'          => ['nullable', 'string', 'max:160'],
+            'verse'             => ['nullable', 'string', 'max:400'],
+            'verse_ref'         => ['nullable', 'string', 'max:60'],
+            'intro'             => ['nullable', 'string', 'max:600'],
+            'ceremony'          => ['nullable', 'string', 'max:60'],
+            'program'           => ['nullable', 'array', 'max:12'],
+            'program.*.time'    => ['required', 'string', 'max:12'],
+            'program.*.label'   => ['required', 'string', 'max:60'],
+            'program.*.icon'    => ['required', 'in:' . implode(',', Occasion::PROGRAM_ICONS)],
+            'dress_title'       => ['nullable', 'string', 'max:60'],
+            'dress_text'        => ['nullable', 'string', 'max:600'],
+            'closing'           => ['nullable', 'string', 'max:600'],
+        ], [
+            'program.max'              => 'Le programme accepte 12 étapes au plus.',
+            'program.*.time.required'  => 'Indiquez l’heure de chaque étape.',
+            'program.*.label.required' => 'Indiquez le nom de chaque étape.',
+            'program.*.icon.in'        => 'Pictogramme inconnu.',
+        ]);
+
+        $data['program'] = array_values(array_map(
+            fn ($i) => ['time' => trim($i['time']), 'label' => trim($i['label']), 'icon' => $i['icon']],
+            $data['program'] ?? [],
+        ));
+        $occasion->invitation_content = $data;
+        $occasion->save();
+
+        return response()->json([
+            'message'            => 'Textes du faire-part enregistrés.',
+            'invitation_content' => $occasion->invitationContent(),
+        ]);
+    }
+
+    /** Ajoute une photo du couple à la galerie du faire-part (4 au plus). */
+    public function addInvitationPhoto(Request $request, Occasion $occasion, InvitationImageService $images): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $request->validate([
+            'photo' => ['required', 'file', 'max:30720'],
+        ], [
+            'photo.required' => 'Sélectionnez une photo.',
+            'photo.max'      => 'Fichier trop lourd (30 Mo maximum).',
+        ]);
+
+        $photos = $occasion->invitation_photos ?? [];
+        if (count($photos) >= Occasion::MAX_INVITATION_PHOTOS) {
+            return response()->json(['message' => 'La galerie accepte ' . Occasion::MAX_INVITATION_PHOTOS . ' photos au plus.'], 422);
+        }
+
+        $file = $request->file('photo');
+        if (strtolower((string) $file->getClientOriginalExtension()) === 'pdf'
+            || $file->getMimeType() === 'application/pdf') {
+            return response()->json(['message' => 'Utilisez une photo (JPG, PNG, WEBP ou HEIC).'], 422);
+        }
+
+        $photos[] = $images->process($file);
+        $occasion->invitation_photos = $photos;
+        $occasion->save();
+
+        return response()->json([
+            'message'           => 'Photo ajoutée.',
+            'invitation_photos' => $occasion->invitationPhotoUrls(),
+        ]);
+    }
+
+    public function removeInvitationPhoto(Request $request, Occasion $occasion, int $index): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $photos = $occasion->invitation_photos ?? [];
+        abort_unless(isset($photos[$index]), 404);
+
+        Storage::disk('public')->delete($photos[$index]);
+        array_splice($photos, $index, 1);
+        $occasion->invitation_photos = $photos;
+        $occasion->save();
+
+        return response()->json([
+            'message'           => 'Photo retirée.',
+            'invitation_photos' => $occasion->invitationPhotoUrls(),
         ]);
     }
 
