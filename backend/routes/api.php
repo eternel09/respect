@@ -219,6 +219,10 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ConfineEventAgent::class
         Route::put('/occasions/{occasion}/invitation-theme', [OccasionController::class, 'updateInvitationTheme']);
         Route::post('/occasions/{occasion}/invitation-cover', [OccasionController::class, 'uploadInvitationCover']);
         Route::delete('/occasions/{occasion}/invitation-cover', [OccasionController::class, 'removeInvitationCover']);
+        // Modèle « faire-part » : textes et galerie de photos du couple
+        Route::put('/occasions/{occasion}/invitation-content', [OccasionController::class, 'updateInvitationContent']);
+        Route::post('/occasions/{occasion}/invitation-photos', [OccasionController::class, 'addInvitationPhoto']);
+        Route::delete('/occasions/{occasion}/invitation-photos/{index}', [OccasionController::class, 'removeInvitationPhoto'])->whereNumber('index');
         // Aperçu composé (fond + QR + nom d'un invité d'exemple) — ne renvoie qu'une image
         Route::get('/occasions/{occasion}/invitation-preview', [OccasionInvitationController::class, 'preview']);
         // Vidéo du couple (montrée sur la page de confirmation RSVP)

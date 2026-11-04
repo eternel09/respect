@@ -46,6 +46,9 @@ class RsvpController extends Controller
                 // Design propre à l'événement : palette, polices, cachet, carte.
                 'theme'         => $occasion->invitationTheme(),
                 'cover_url'     => $occasion->invitationCoverUrl(),
+                // Modèle « faire-part » : textes et photos du couple.
+                'content'       => $occasion->invitationContent(),
+                'photos'        => $occasion->invitationPhotoUrls(),
                 // Le carton du client sort de l'enveloppe (servi par /rsvp/{token}/carton).
                 'carton'        => $occasion->showsCartonOnline(),
             ],

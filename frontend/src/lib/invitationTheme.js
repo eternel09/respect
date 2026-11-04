@@ -21,6 +21,22 @@ export const THEMES = {
 }
 export const themeFor = (type) => THEMES[type] || THEMES.autre
 
+/** Pictogrammes du programme (police Material Symbols, tracé fin). */
+export const PROGRAM_ICONS = {
+  start:        ['celebration', 'Accueil'],
+  ceremonie:    ['church', 'Cérémonie'],
+  entree:       ['favorite', 'Entrée'],
+  presentation: ['diversity_1', 'Présentation'],
+  bal:          ['music_note', 'Ouverture de bal'],
+  discours:     ['mic', 'Discours'],
+  cadeaux:      ['redeem', 'Cadeaux'],
+  buffet:       ['restaurant', 'Buffet'],
+  gateau:       ['cake', 'Gâteau'],
+  photo:        ['photo_camera', 'Photos'],
+  danse:        ['wine_bar', 'Musique & danse'],
+  fin:          ['nights_stay', 'Fin de soirée'],
+}
+
 /** Palettes proposées à l'organisateur (couleur principale ; le reste en découle). */
 export const PALETTES = {
   bordeaux:   { label: 'Bordeaux',    main: '#7a1626' },
@@ -187,4 +203,14 @@ export function loadInvitationFonts(fontKey) {
   add('inv-fonts', 'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Great+Vibes&family=Jost:wght@400;500;600&display=swap')
   const set = FONT_SETS[fontKey]
   if (set && fontKey !== 'classique') add(`inv-fonts-${fontKey}`, `https://fonts.googleapis.com/css2?family=${set.family}&display=swap`)
+}
+
+/** Textes du modèle « faire-part » tels qu'édités dans le back-office (chaînes vides = défaut). */
+export const contentFrom = (o) => {
+  const c = o.invitation_content || {}
+  return {
+    families: c.families || '', ceremony: c.ceremony || '', verse: c.verse || '', verse_ref: c.verse_ref || '',
+    intro: c.intro || '', program: c.program || [], dress_title: c.dress_title || '', dress_text: c.dress_text || '',
+    closing: c.closing || '',
+  }
 }

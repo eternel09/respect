@@ -7,6 +7,7 @@ import Envelope from '../../components/invitation/Envelope'
 import InviteCard from '../../components/invitation/InviteCard'
 import CartonCard from '../../components/invitation/CartonCard'
 import PhotoBackdrop from '../../components/invitation/PhotoBackdrop'
+import FairePart from '../../components/invitation/FairePart'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
 import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, resolveTheme, sealOf, startOf } from '../../lib/invitationTheme'
@@ -44,7 +45,11 @@ export default function RsvpPage() {
   const [carton, setCarton] = useState(null) // { src, ratio } | 'failed'
 
   const fontKey = data?.occasion?.theme?.font
-  useEffect(() => { loadInvitationFonts(fontKey) }, [fontKey])
+  const isFairePart = data?.occasion?.theme?.template === 'faire-part'
+  useEffect(() => {
+    loadInvitationFonts(fontKey)
+    if (isFairePart) loadInvitationFonts('moderne') // monogramme en didone (Playfair Display)
+  }, [fontKey, isFairePart])
 
   const hasCarton = !!data?.occasion?.carton
   useEffect(() => {
@@ -118,6 +123,8 @@ export default function RsvpPage() {
   const phrase = couple
     ? (occasion.type === 'mariage' ? 'ont la joie de vous convier à leur mariage' : 'ont le plaisir de vous convier')
     : `${occasion.organization} a le plaisir de vous convier`
+  const noCard = occasion.theme?.card === 'none'
+  const sparkles = occasion.theme?.sparkles !== false
   const photoMode = occasion.theme?.photo || 'arch'
   const photoBg = !!occasion.cover_url && photoMode !== 'arch'
   const photoArch = !!occasion.cover_url && photoMode !== 'background'
@@ -138,6 +145,16 @@ export default function RsvpPage() {
     viewport: { once: true, margin: '-60px' }, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
   }
 
+  // Modèle « faire-part » : pas d'enveloppe, un faire-part qui se lit en défilant.
+  if (isFairePart) return (
+    <div className="relative min-h-svh overflow-x-hidden" style={{ background: '#ece8e1', ...t.fontVars }}>
+      {sparkles && <ParticleField ref={fx} kind="sparkles" colors={t.sparkles} density={0.5} calm={!!reduced} />}
+      <FairePart occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
+        confirmed={confirmed} declined={declined} busy={busy} err={err} respond={respond}
+        rsvpRef={rsvpRef} t={t} reduced={reduced} />
+    </div>
+  )
+
   return (
     <div className="relative min-h-svh overflow-x-hidden"
       style={{ background: `radial-gradient(130% 80% at 50% 0%, #fbf7f1 0%, ${t.ivory} 55%, #efe3d3 100%)`, color: t.ink, ...t.fontVars }}>
@@ -152,7 +169,7 @@ export default function RsvpPage() {
               animation: reduced ? 'none' : `inv-bokeh ${9 + d}s ease-in-out ${-d * 1.7}s infinite` }} />
         ))}
       </div>
-      <ParticleField ref={fx} kind="sparkles" colors={t.sparkles} density={0.9} calm={!!reduced} />
+      {sparkles && <ParticleField ref={fx} kind="sparkles" colors={t.sparkles} density={0.9} calm={!!reduced} />}
 
       <LayoutGroup>
         <AnimatePresence mode="popLayout" initial={false}>
@@ -173,7 +190,7 @@ export default function RsvpPage() {
                 exit={{ y: 420, opacity: 0, transition: { duration: 0.75, ease: [0.55, 0, 0.75, 0.2] } }}
                 transition={{ duration: 1, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}>
                 <Envelope theme={t} mono={sealOf(occasion)} opening={stage === 'opening'} onOpen={open}>
-                  <motion.div layoutId="invite-card">{card(false)}</motion.div>
+                  {!noCard && <motion.div layoutId="invite-card">{card(false)}</motion.div>}
                 </Envelope>
               </motion.div>
 
@@ -186,10 +203,12 @@ export default function RsvpPage() {
             </motion.section>
           ) : (
             <motion.main key="content" className="relative z-10 mx-auto max-w-md px-4 pt-8 pb-12 text-center">
-              <motion.div layoutId="invite-card" className="mx-auto" style={{ width: 'min(92vw, 384px)' }}
-                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}>
-                <Tilt disabled={reduced}>{card(true)}</Tilt>
-              </motion.div>
+              {!noCard && (
+                <motion.div layoutId="invite-card" className="mx-auto" style={{ width: 'min(92vw, 384px)' }}
+                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}>
+                  <Tilt disabled={reduced}>{card(true)}</Tilt>
+                </motion.div>
+              )}
 
               {photoArch && (
                 <motion.div {...rise(0)} className="mx-auto mt-10 rounded-t-full p-[3px]"

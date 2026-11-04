@@ -5,11 +5,14 @@ import Envelope from './Envelope'
 import InviteCard from './InviteCard'
 import CartonCard from './CartonCard'
 import PhotoBackdrop from './PhotoBackdrop'
-import { FONT_SETS, PALETTES, eventNames, loadInvitationFonts, monogram, resolveTheme, sealOf, themeFor } from '../../lib/invitationTheme'
+import FairePart from './FairePart'
+import FairePartEditor from './FairePartEditor'
+import { FONT_SETS, PALETTES, contentFrom, eventNames, loadInvitationFonts, monogram, resolveTheme, sealOf, themeFor } from '../../lib/invitationTheme'
 
 const draftFrom = (o) => {
   const th = o.invitation_theme || {}
   return {
+    template: th.template || 'enveloppe',
     palette: th.palette || 'auto',
     color: th.color || PALETTES.bordeaux.main,
     font: th.font || 'classique',
@@ -17,8 +20,14 @@ const draftFrom = (o) => {
     // « auto » = le carton s'il y en a un : on affiche le choix effectif.
     card: th.card && th.card !== 'auto' ? th.card : (o.invitation_bg_url ? 'carton' : 'signiq'),
     photo: th.photo || 'arch',
+    sparkles: th.sparkles !== false,
   }
 }
+
+const TEMPLATES = [
+  ['enveloppe', 'mail', 'Enveloppe', "Une enveloppe scellée qui s'ouvre au toucher ; la carte en sort."],
+  ['faire-part', 'article', 'Faire-part', 'Un faire-part qui se lit en défilant : photos, programme, thème, table.'],
+]
 
 const Label = ({ children }) => <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{children}</p>
 
@@ -42,18 +51,30 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
   if (lastSaved !== savedKey) { setLastSaved(savedKey); setDraft(saved) }
   const dirty = savedKey !== JSON.stringify(draft)
 
+  // Textes du faire-part : même principe, brouillon conservé jusqu'à l'enregistrement.
+  const savedContentKey = JSON.stringify(contentFrom(o))
+  const savedContent = useMemo(() => JSON.parse(savedContentKey), [savedContentKey])
+  const [content, setContent] = useState(savedContent)
+  const [lastSavedContent, setLastSavedContent] = useState(savedContentKey)
+  if (lastSavedContent !== savedContentKey) { setLastSavedContent(savedContentKey); setContent(savedContent) }
+  const fairePart = draft.template === 'faire-part'
+
   // Toutes les polices proposées : les boutons s'affichent dans leur style.
   useEffect(() => { Object.keys(FONT_SETS).forEach(k => loadInvitationFonts(k)) }, [])
 
   const sample = guests[0]
-  const preview = { ...o, theme: { ...draft, color: draft.palette === 'custom' ? draft.color : null } }
+  const preview = {
+    ...o, theme: { ...draft, color: draft.palette === 'custom' ? draft.color : null },
+    content, photos: o.invitation_photos || [], cover_url: o.invitation_cover_url, organization: o.name,
+  }
   const t = resolveTheme(preview)
   const { title, couple } = eventNames(o.name)
   const hasCarton = !!o.invitation_bg_url
   const cartonSrc = !hasCarton ? null
     : o.invitation_is_pdf ? (sample?.token ? `${API_BASE}/rsvp/${sample.token}/carton` : null)
     : o.invitation_bg_url
-  const card = draft.card === 'carton' && cartonSrc
+  const card = draft.card === 'none' ? null
+    : draft.card === 'carton' && cartonSrc
     ? <CartonCard src={cartonSrc} full={false} theme={t} />
     : <InviteCard occasion={o} guest={{ name: sample?.name || 'Marie Exemple', table: null, qr: null }} theme={t} />
 
@@ -61,12 +82,14 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
     setSaving(true); setFlash(null)
     try {
       const res = await api.put(`/occasions/${o.id}/invitation-theme`, {
+        template: draft.template,
         palette: draft.palette,
         color: draft.palette === 'custom' ? draft.color : null,
         font: draft.font,
         seal: draft.seal.trim() || null,
         card: draft.card,
         photo: draft.photo,
+        sparkles: draft.sparkles,
       })
       onSaved({ invitation_theme: res.data.invitation_theme })
       setFlash({ ok: true, text: res.data.message })
@@ -118,7 +141,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         <div>
           <h3 className="font-bold text-gray-900">Design de l'invitation en ligne</h3>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-            Ce que voient vos invités en ouvrant leur lien : couleurs, polices, cachet de l'enveloppe, carte qui en sort et photo.
+            Ce que voient vos invités en ouvrant leur lien : le modèle (enveloppe ou faire-part), les couleurs, les polices, les photos et les textes.
           </p>
         </div>
         {sample?.token && (
@@ -131,6 +154,25 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-5 min-w-0">
+          <div>
+            <Label>Modèle</Label>
+            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Modèle d'invitation">
+              {TEMPLATES.map(([k, icon, label, help]) => {
+                const active = draft.template === k
+                return (
+                  <button key={k} type="button" role="radio" aria-checked={active} onClick={() => set({ template: k })}
+                    className={`text-left rounded-xl border p-3 transition ${active ? 'border-brand ring-2 ring-brand/30 bg-brand/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <span className="flex items-center gap-2 font-semibold text-sm text-gray-900">
+                      <Icon name={icon} size={18} className={active ? 'text-brand' : 'text-gray-400'} /> {label}
+                      {active && <Icon name="check_circle" size={16} className="ml-auto text-brand" />}
+                    </span>
+                    <span className="block text-xs text-gray-500 mt-1 leading-relaxed">{help}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div>
             <Label>Couleurs</Label>
             <div className="flex flex-wrap gap-2">
@@ -172,32 +214,35 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <Label>Cachet de l'enveloppe</Label>
+              <Label>{fairePart ? 'Monogramme' : "Cachet de l'enveloppe"}</Label>
               <input value={draft.seal} maxLength={3} onChange={e => set({ seal: e.target.value.toUpperCase() })}
                 placeholder={monogram(o.name).join('')}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-brand/30" />
               <p className="text-xs text-gray-400 mt-1">1 à 3 caractères. Vide : les initiales.</p>
             </div>
-            <div>
+            {!fairePart && <div>
               <Label>Carte qui sort de l'enveloppe</Label>
-              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Carte affichée">
-                {[['signiq', 'credit_card', 'Carte Signiq'], ['carton', 'image', 'Votre carton']].map(([k, icon, label]) => {
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Carte affichée">
+                {[['signiq', 'credit_card', 'Carte Signiq'], ['carton', 'image', 'Votre carton'], ['none', 'block', 'Aucune']].map(([k, icon, label]) => {
                   const active = draft.card === k
                   const disabled = k === 'carton' && !hasCarton
                   return (
                     <button key={k} type="button" role="radio" aria-checked={active} disabled={disabled}
                       onClick={() => set({ card: k })}
-                      className={`rounded-xl border px-2 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed ${active ? 'border-brand ring-2 ring-brand/30 bg-brand/5 text-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      className={`rounded-xl border px-1.5 py-2 text-xs font-medium flex flex-col items-center justify-center gap-0.5 text-center leading-tight transition disabled:opacity-40 disabled:cursor-not-allowed ${active ? 'border-brand ring-2 ring-brand/30 bg-brand/5 text-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                       <Icon name={icon} size={17} className={active ? 'text-brand' : 'text-gray-400'} /> {label}
                     </button>
                   )
                 })}
               </div>
               {!hasCarton && <p className="text-xs text-gray-400 mt-1">Téléversez votre carton (plus haut) pour l'utiliser ici.</p>}
-            </div>
+            </div>}
           </div>
 
-          <div>
+          {fairePart ? (
+            <FairePartEditor occasion={o} content={content} setContent={setContent} savedContent={savedContent}
+              onSaved={onSaved} setFlash={setFlash} />
+          ) : <div>
             <Label>Photo de couverture</Label>
             <div className="flex items-center gap-3">
               {o.invitation_cover_url
@@ -230,6 +275,18 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
             ) : (
               <p className="text-xs text-gray-400 mt-1">La photo du couple : en arche sous la carte, en fond de page, ou les deux.</p>
             )}
+          </div>}
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3.5">
+            <div>
+              <p className="font-semibold text-sm text-gray-900">Paillettes dorées</p>
+              <p className="text-xs text-gray-500 mt-0.5">Étoiles qui flottent sur la page et gerbes {fairePart ? 'à la confirmation' : "à l'ouverture de l'enveloppe et à la confirmation"}.</p>
+            </div>
+            <button type="button" role="switch" aria-checked={draft.sparkles} aria-label="Paillettes dorées"
+              onClick={() => set({ sparkles: !draft.sparkles })}
+              className={`relative h-6 w-11 flex-shrink-0 rounded-full transition ${draft.sparkles ? 'bg-brand' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${draft.sparkles ? 'translate-x-5' : ''}`} />
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -245,7 +302,16 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         </div>
 
         {/* Aperçu en direct */}
-        <div className="rounded-2xl overflow-hidden flex flex-col items-center justify-center px-4 pt-6 pb-10"
+        {fairePart ? (
+          <div className="rounded-2xl overflow-y-auto overscroll-contain h-[720px] lg:sticky lg:top-4 ring-1 ring-black/5"
+            data-testid="design-preview" style={{ background: '#ece8e1', ...t.fontVars }}>
+            <div className="pointer-events-none">
+              <FairePart occasion={preview} guest={{ name: sample?.name || 'Marie Exemple', qr: null }} token={sample?.token || ''}
+                tableLabel="Table 1" confirmed={false} declined={false} busy={false} err={null} respond={() => {}}
+                t={t} reduced />
+            </div>
+          </div>
+        ) : <div className="rounded-2xl overflow-hidden flex flex-col items-center justify-center px-4 pt-6 pb-10"
           data-testid="design-preview"
           style={{ background: `radial-gradient(130% 80% at 50% 0%, #fbf7f1 0%, ${t.ivory} 55%, #efe3d3 100%)`, color: t.ink, ...t.fontVars, position: 'relative', isolation: 'isolate' }}>
           {o.invitation_cover_url && draft.photo !== 'arch' && <PhotoBackdrop src={o.invitation_cover_url} ivory={t.ivory} fixed={false} />}
@@ -260,7 +326,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
             {couple ? <>{couple[0]} &amp; {couple[1]}</> : title}
           </p>
           <p className="inv-serif italic text-[15px] mt-1" style={{ color: t.muted }}>vous convient avec joie</p>
-        </div>
+        </div>}
       </div>
     </div>
   )
