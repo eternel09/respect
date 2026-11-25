@@ -7,6 +7,7 @@ import CartonCard from './CartonCard'
 import PhotoBackdrop from './PhotoBackdrop'
 import FairePart from './FairePart'
 import FairePartEditor from './FairePartEditor'
+import HeureDoree from './HeureDoree'
 import { FONT_SETS, PALETTES, contentFrom, eventNames, loadInvitationFonts, monogram, resolveTheme, sealOf, themeFor } from '../../lib/invitationTheme'
 
 const draftFrom = (o) => {
@@ -27,6 +28,7 @@ const draftFrom = (o) => {
 const TEMPLATES = [
   ['enveloppe', 'mail', 'Enveloppe', "Une enveloppe scellée qui s'ouvre au toucher ; la carte en sort."],
   ['faire-part', 'article', 'Faire-part', 'Un faire-part qui se lit en défilant : photos, programme, thème, table.'],
+  ['heure-doree', 'auto_awesome', 'Heure dorée', 'Enveloppe scellée de cire, photo plein écran, colonnes et rideaux dorés, votre histoire.'],
 ]
 
 const Label = ({ children }) => <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{children}</p>
@@ -58,6 +60,8 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
   const [lastSavedContent, setLastSavedContent] = useState(savedContentKey)
   if (lastSavedContent !== savedContentKey) { setLastSavedContent(savedContentKey); setContent(savedContent) }
   const fairePart = draft.template === 'faire-part'
+  const golden = draft.template === 'heure-doree'
+  const scrolling = fairePart || golden // modèles à textes et galerie, aperçu défilant
 
   // Toutes les polices proposées : les boutons s'affichent dans leur style.
   useEffect(() => { Object.keys(FONT_SETS).forEach(k => loadInvitationFonts(k)) }, [])
@@ -141,7 +145,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         <div>
           <h3 className="font-bold text-gray-900">Design de l'invitation en ligne</h3>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-            Ce que voient vos invités en ouvrant leur lien : le modèle (enveloppe ou faire-part), les couleurs, les polices, les photos et les textes.
+            Ce que voient vos invités en ouvrant leur lien : le modèle (enveloppe, faire-part ou heure dorée), les couleurs, les polices, les photos et les textes.
           </p>
         </div>
         {sample?.token && (
@@ -156,7 +160,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         <div className="space-y-5 min-w-0">
           <div>
             <Label>Modèle</Label>
-            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Modèle d'invitation">
+            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Modèle d'invitation">
               {TEMPLATES.map(([k, icon, label, help]) => {
                 const active = draft.template === k
                 return (
@@ -214,13 +218,13 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <Label>{fairePart ? 'Monogramme' : "Cachet de l'enveloppe"}</Label>
+              <Label>{fairePart ? 'Monogramme' : golden ? 'Sceau de cire' : "Cachet de l'enveloppe"}</Label>
               <input value={draft.seal} maxLength={3} onChange={e => set({ seal: e.target.value.toUpperCase() })}
                 placeholder={monogram(o.name).join('')}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-brand/30" />
               <p className="text-xs text-gray-400 mt-1">1 à 3 caractères. Vide : les initiales.</p>
             </div>
-            {!fairePart && <div>
+            {!scrolling && <div>
               <Label>Carte qui sort de l'enveloppe</Label>
               <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Carte affichée">
                 {[['signiq', 'credit_card', 'Carte Signiq'], ['carton', 'image', 'Votre carton'], ['none', 'block', 'Aucune']].map(([k, icon, label]) => {
@@ -239,8 +243,30 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
             </div>}
           </div>
 
-          {fairePart ? (
-            <FairePartEditor occasion={o} content={content} setContent={setContent} savedContent={savedContent}
+          {golden && (
+            <div>
+              <Label>Photo d'ouverture</Label>
+              <div className="flex items-center gap-3">
+                {o.invitation_cover_url
+                  ? <img src={o.invitation_cover_url} alt="" className="h-20 w-14 object-cover rounded-lg ring-1 ring-black/10" />
+                  : <div className="h-20 w-14 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300"><Icon name="add_a_photo" size={20} /></div>}
+                <div className="flex flex-wrap gap-2">
+                  <label className={`px-3 py-2 rounded-xl text-sm font-medium border border-gray-200 hover:bg-gray-50 cursor-pointer flex items-center gap-1.5 ${coverBusy ? 'opacity-60 pointer-events-none' : ''}`}>
+                    {coverBusy ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" /> : <Icon name="upload" size={16} />}
+                    {o.invitation_cover_url ? 'Changer' : 'Ajouter une photo'}
+                    <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={e => { uploadCover(e.target.files?.[0]); e.target.value = '' }} />
+                  </label>
+                  {o.invitation_cover_url && (
+                    <button type="button" onClick={removeCover} disabled={coverBusy}
+                      className="px-3 py-2 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">Retirer</button>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Affichée en plein écran à l'ouverture de l'enveloppe. Une photo en hauteur rend le mieux.</p>
+            </div>
+          )}
+          {scrolling ? (
+            <FairePartEditor occasion={o} template={draft.template} content={content} setContent={setContent} savedContent={savedContent}
               onSaved={onSaved} setFlash={setFlash} />
           ) : <div>
             <Label>Photo de couverture</Label>
@@ -280,7 +306,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
           <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 p-3.5">
             <div>
               <p className="font-semibold text-sm text-gray-900">Paillettes dorées</p>
-              <p className="text-xs text-gray-500 mt-0.5">Étoiles qui flottent sur la page et gerbes {fairePart ? 'à la confirmation' : "à l'ouverture de l'enveloppe et à la confirmation"}.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Étoiles qui flottent sur la page et gerbes {scrolling ? 'à la confirmation' : "à l'ouverture de l'enveloppe et à la confirmation"}.</p>
             </div>
             <button type="button" role="switch" aria-checked={draft.sparkles} aria-label="Paillettes dorées"
               onClick={() => set({ sparkles: !draft.sparkles })}
@@ -302,7 +328,16 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
         </div>
 
         {/* Aperçu en direct */}
-        {fairePart ? (
+        {golden ? (
+          <div className="rounded-2xl overflow-y-auto overscroll-contain h-[720px] lg:sticky lg:top-4 ring-1 ring-black/5"
+            data-testid="design-preview" style={{ background: '#efe8da', ...t.fontVars }}>
+            <div className="pointer-events-none">
+              <HeureDoree occasion={preview} guest={{ name: sample?.name || 'Marie Exemple', qr: null }} token={sample?.token || ''}
+                tableLabel="Table 1" confirmed={false} declined={false} busy={false} err={null} respond={() => {}}
+                t={t} reduced preview />
+            </div>
+          </div>
+        ) : fairePart ? (
           <div className="rounded-2xl overflow-y-auto overscroll-contain h-[720px] lg:sticky lg:top-4 ring-1 ring-black/5"
             data-testid="design-preview" style={{ background: '#ece8e1', ...t.fontVars }}>
             <div className="pointer-events-none">

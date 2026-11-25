@@ -23,16 +23,26 @@ const SAMPLE_PROGRAM = [
   { time: '23h00', label: 'Musique et danse', icon: 'danse' },
 ]
 
+/** Histoire type, proposée en un clic (modèle « heure dorée »). */
+const SAMPLE_STORY = [
+  { year: '2022', title: 'Notre rencontre', text: 'Le jour où nos chemins se sont croisés.' },
+  { year: '2024', title: 'L’aventure', text: 'Les voyages et les épreuves qui nous ont rapprochés.' },
+  { year: '2025', title: 'Le oui', text: 'Une question, une bague, et une évidence.' },
+]
+const MAX_STORY = 6
+
 /**
- * Modèle « faire-part » : textes (familles, verset, cérémonie, programme,
+ * Modèles « faire-part » et « heure dorée » : textes (familles, verset, cérémonie, programme,
  * thème / dress code, mots d'accueil et de fin) et photos du couple.
  */
-export default function FairePartEditor({ occasion: o, content, setContent, savedContent, onSaved, setFlash }) {
+export default function FairePartEditor({ occasion: o, template = 'faire-part', content, setContent, savedContent, onSaved, setFlash }) {
+  const golden = template === 'heure-doree'
   const [saving, setSaving] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
   const fileRef = useRef(null)
   const set = (patch) => setContent(c => ({ ...c, ...patch }))
   const setStep = (i, patch) => set({ program: content.program.map((s, j) => (j === i ? { ...s, ...patch } : s)) })
+  const setChapter = (i, patch) => set({ story: content.story.map((s, j) => (j === i ? { ...s, ...patch } : s)) })
   const dirty = JSON.stringify(content) !== JSON.stringify(savedContent)
   const photos = o.invitation_photos || []
 
@@ -42,6 +52,7 @@ export default function FairePartEditor({ occasion: o, content, setContent, save
       const res = await api.put(`/occasions/${o.id}/invitation-content`, {
         ...content,
         program: content.program.filter(s => s.time.trim() || s.label.trim()),
+        story: content.story.filter(s => s.title.trim() || s.text.trim() || s.year.trim()),
       })
       onSaved({ invitation_content: res.data.invitation_content })
       setFlash({ ok: true, text: res.data.message })
@@ -77,7 +88,7 @@ export default function FairePartEditor({ occasion: o, content, setContent, save
   return (
     <div className="space-y-5 rounded-2xl border border-gray-200 p-4" data-testid="faire-part-editor">
       <div>
-        <Label hint="3 en tête, la 4ᵉ en bas de page">Photos du couple</Label>
+        <Label hint={golden ? 'la 1ʳᵉ en grand à l’ouverture (sans photo de couverture), les suivantes dans la galerie' : '3 en tête, la 4ᵉ en bas de page'}>Photos du couple</Label>
         <div className="flex flex-wrap gap-2">
           {photos.map((src, i) => (
             <div key={src} className="relative">
@@ -98,11 +109,11 @@ export default function FairePartEditor({ occasion: o, content, setContent, save
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+      <div className={`grid gap-4 ${golden ? '' : 'sm:grid-cols-2'}`}>
+        {!golden && <div>
           <Label hint="ex. Grâce Iyambe & Dorcas Ekofo">Noms complets</Label>
           <input className={input} value={content.families} maxLength={160} onChange={e => set({ families: e.target.value })} placeholder="Prénoms et noms du couple" />
-        </div>
+        </div>}
         <div>
           <Label>Cérémonie</Label>
           <input className={input} value={content.ceremony} maxLength={60} onChange={e => set({ ceremony: e.target.value })} placeholder="ex. Mariage religieux" />
@@ -111,9 +122,9 @@ export default function FairePartEditor({ occasion: o, content, setContent, save
 
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
         <div>
-          <Label hint="facultatif">Verset ou citation</Label>
+          <Label hint={golden ? 'vide : texte par défaut' : 'facultatif'}>{golden ? 'Phrase d’accueil' : 'Verset ou citation'}</Label>
           <textarea className={input} rows={2} value={content.verse} maxLength={400} onChange={e => set({ verse: e.target.value })}
-            placeholder="Ainsi ils ne sont plus deux, mais une seule chair…" />
+            placeholder={golden ? 'Là où l’amour commence, l’éternité se dessine doucement.' : 'Ainsi ils ne sont plus deux, mais une seule chair…'} />
         </div>
         <div>
           <Label>Référence</Label>
@@ -121,9 +132,46 @@ export default function FairePartEditor({ occasion: o, content, setContent, save
         </div>
       </div>
 
+      {golden && (
+        <div>
+          <div className="flex items-center justify-between">
+            <Label hint="facultatif">Notre histoire</Label>
+            {!content.story.length && (
+              <button type="button" onClick={() => set({ story: SAMPLE_STORY })} className="text-xs font-semibold text-brand hover:underline mb-1.5">
+                Partir d'un exemple
+              </button>
+            )}
+          </div>
+          <div className="space-y-3">
+            {content.story.map((s, i) => (
+              <div key={i} className="rounded-xl bg-gray-50 p-2.5 space-y-2" data-testid="story-step">
+                <div className="flex gap-2 items-center">
+                  <input className={`${field} w-20 flex-shrink-0 bg-white`} value={s.year} maxLength={12} placeholder="2022" aria-label={`Année de l'étape ${i + 1} de l'histoire`}
+                    onChange={e => setChapter(i, { year: e.target.value })} />
+                  <input className={`${field} flex-1 min-w-0 bg-white`} value={s.title} maxLength={60} placeholder="Notre rencontre" aria-label={`Titre de l'étape ${i + 1} de l'histoire`}
+                    onChange={e => setChapter(i, { title: e.target.value })} />
+                  <button type="button" onClick={() => set({ story: content.story.filter((_, j) => j !== i) })}
+                    className="h-9 w-9 flex-shrink-0 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center" aria-label={`Supprimer l'étape ${i + 1} de l'histoire`}>
+                    <Icon name="delete" size={18} />
+                  </button>
+                </div>
+                <textarea className={`${input} bg-white`} rows={2} value={s.text} maxLength={400} placeholder="Racontez ce moment en quelques lignes."
+                  aria-label={`Récit de l'étape ${i + 1} de l'histoire`} onChange={e => setChapter(i, { text: e.target.value })} />
+              </div>
+            ))}
+          </div>
+          {content.story.length < MAX_STORY && (
+            <button type="button" onClick={() => set({ story: [...content.story, { year: '', title: '', text: '' }] })}
+              className="mt-2 text-sm font-semibold text-brand flex items-center gap-1 hover:underline">
+              <Icon name="add" size={17} /> Ajouter un moment
+            </button>
+          )}
+        </div>
+      )}
+
       <div>
         <div className="flex items-center justify-between">
-          <Label hint="facultatif">Programme</Label>
+          <Label hint="facultatif">{golden ? 'Le déroulé' : 'Programme'}</Label>
           {!content.program.length && (
             <button type="button" onClick={() => set({ program: SAMPLE_PROGRAM })} className="text-xs font-semibold text-brand hover:underline mb-1.5">
               Partir d'un programme type
@@ -137,10 +185,15 @@ export default function FairePartEditor({ occasion: o, content, setContent, save
                 onChange={e => setStep(i, { time: e.target.value })} />
               <input className={`${field} flex-1 min-w-0`} value={s.label} maxLength={60} placeholder="Entrée des mariés" aria-label={`Étape ${i + 1}`}
                 onChange={e => setStep(i, { label: e.target.value })} />
-              <select className={`${field} w-36 flex-shrink-0 px-2`} value={s.icon} aria-label={`Pictogramme de l'étape ${i + 1}`}
-                onChange={e => setStep(i, { icon: e.target.value })}>
-                {Object.entries(PROGRAM_ICONS).map(([k, [, label]]) => <option key={k} value={k}>{label}</option>)}
-              </select>
+              {golden ? (
+                <input className={`${field} w-40 flex-shrink-0`} value={s.note || ''} maxLength={80} placeholder="Sous-titre (facultatif)" aria-label={`Sous-titre de l'étape ${i + 1}`}
+                  onChange={e => setStep(i, { note: e.target.value })} />
+              ) : (
+                <select className={`${field} w-36 flex-shrink-0 px-2`} value={s.icon} aria-label={`Pictogramme de l'étape ${i + 1}`}
+                  onChange={e => setStep(i, { icon: e.target.value })}>
+                  {Object.entries(PROGRAM_ICONS).map(([k, [, label]]) => <option key={k} value={k}>{label}</option>)}
+                </select>
+              )}
               <button type="button" onClick={() => set({ program: content.program.filter((_, j) => j !== i) })}
                 className="h-9 w-9 flex-shrink-0 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center" aria-label={`Supprimer l'étape ${i + 1}`}>
                 <Icon name="delete" size={18} />
@@ -170,12 +223,12 @@ export default function FairePartEditor({ occasion: o, content, setContent, save
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label hint="vide : texte par défaut">Mot d'invitation</Label>
+          <Label hint="vide : texte par défaut">{golden ? 'Mot de la réponse (RSVP)' : "Mot d'invitation"}</Label>
           <textarea className={input} rows={2} value={content.intro} maxLength={600} onChange={e => set({ intro: e.target.value })}
-            placeholder="Un jour mémorable, venez célébrer avec nous ; nous avons dit oui à l'amour." />
+            placeholder={golden ? 'Votre présence rendrait cette journée encore plus belle. Merci de nous confirmer votre venue.' : "Un jour mémorable, venez célébrer avec nous ; nous avons dit oui à l'amour."} />
         </div>
         <div>
-          <Label hint="vide : texte par défaut">Mot de la fin</Label>
+          <Label hint={golden ? 'facultatif' : 'vide : texte par défaut'}>Mot de la fin</Label>
           <textarea className={input} rows={2} value={content.closing} maxLength={600} onChange={e => set({ closing: e.target.value })}
             placeholder="Nous sommes ravis de vous convier… Votre soutien et votre amour sont essentiels pour nous." />
         </div>

@@ -287,6 +287,11 @@ class OccasionController extends Controller
             'program.*.time'    => ['required', 'string', 'max:12'],
             'program.*.label'   => ['required', 'string', 'max:60'],
             'program.*.icon'    => ['required', 'in:' . implode(',', Occasion::PROGRAM_ICONS)],
+            'program.*.note'    => ['nullable', 'string', 'max:80'],
+            'story'             => ['nullable', 'array', 'max:' . Occasion::MAX_STORY_STEPS],
+            'story.*.year'      => ['nullable', 'string', 'max:12'],
+            'story.*.title'     => ['required', 'string', 'max:60'],
+            'story.*.text'      => ['nullable', 'string', 'max:400'],
             'dress_title'       => ['nullable', 'string', 'max:60'],
             'dress_text'        => ['nullable', 'string', 'max:600'],
             'closing'           => ['nullable', 'string', 'max:600'],
@@ -295,11 +300,17 @@ class OccasionController extends Controller
             'program.*.time.required'  => 'Indiquez l’heure de chaque étape.',
             'program.*.label.required' => 'Indiquez le nom de chaque étape.',
             'program.*.icon.in'        => 'Pictogramme inconnu.',
+            'story.max'                => 'L’histoire accepte ' . Occasion::MAX_STORY_STEPS . ' étapes au plus.',
+            'story.*.title.required'   => 'Donnez un titre à chaque étape de votre histoire.',
         ]);
 
         $data['program'] = array_values(array_map(
-            fn ($i) => ['time' => trim($i['time']), 'label' => trim($i['label']), 'icon' => $i['icon']],
+            fn ($i) => ['time' => trim($i['time']), 'label' => trim($i['label']), 'icon' => $i['icon'], 'note' => trim((string) ($i['note'] ?? ''))],
             $data['program'] ?? [],
+        ));
+        $data['story'] = array_values(array_map(
+            fn ($i) => ['year' => trim((string) ($i['year'] ?? '')), 'title' => trim($i['title']), 'text' => trim((string) ($i['text'] ?? ''))],
+            $data['story'] ?? [],
         ));
         $occasion->invitation_content = $data;
         $occasion->save();

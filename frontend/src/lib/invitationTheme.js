@@ -210,7 +210,8 @@ export const contentFrom = (o) => {
   const c = o.invitation_content || {}
   return {
     families: c.families || '', ceremony: c.ceremony || '', verse: c.verse || '', verse_ref: c.verse_ref || '',
-    intro: c.intro || '', program: c.program || [], dress_title: c.dress_title || '', dress_text: c.dress_text || '',
-    closing: c.closing || '',
+    intro: c.intro || '', dress_title: c.dress_title || '', dress_text: c.dress_text || '', closing: c.closing || '',
+    program: (c.program || []).map(p => ({ time: p.time || '', label: p.label || '', icon: p.icon || 'start', note: p.note || '' })),
+    story: (c.story || []).map(s => ({ year: s.year || '', title: s.title || '', text: s.text || '' })),
   }
 }

@@ -27,8 +27,14 @@ class Occasion extends Model
     public const THEME_PALETTES = ['auto', 'bordeaux', 'emeraude', 'nuit', 'rose', 'noir', 'violet', 'terracotta', 'custom'];
     public const THEME_FONTS = ['classique', 'romantique', 'moderne'];
     public const THEME_CARDS = ['auto', 'carton', 'signiq', 'none'];
-    /** Modèles d'invitation en ligne : enveloppe animée, ou faire-part qui se lit en défilant. */
-    public const THEME_TEMPLATES = ['enveloppe', 'faire-part'];
+    /**
+     * Modèles d'invitation en ligne : enveloppe animée, faire-part qui se lit
+     * en défilant, ou « heure dorée » (enveloppe gaufrée, photo plein écran,
+     * colonnes et rideaux dorés, histoire du couple).
+     */
+    public const THEME_TEMPLATES = ['enveloppe', 'faire-part', 'heure-doree'];
+    /** Étapes de l'histoire du couple (modèle « heure dorée »). */
+    public const MAX_STORY_STEPS = 6;
     /** Pictogrammes du programme (faire-part). */
     public const PROGRAM_ICONS = ['start', 'ceremonie', 'entree', 'presentation', 'bal', 'discours', 'cadeaux', 'buffet', 'gateau', 'photo', 'danse', 'fin'];
     public const MAX_INVITATION_PHOTOS = 4;
@@ -197,7 +203,13 @@ class Occasion extends Model
                 'time'  => (string) ($i['time'] ?? ''),
                 'label' => (string) ($i['label'] ?? ''),
                 'icon'  => in_array($i['icon'] ?? null, self::PROGRAM_ICONS, true) ? $i['icon'] : 'start',
+                'note'  => isset($i['note']) && trim((string) $i['note']) !== '' ? trim((string) $i['note']) : null,
             ], is_array($c['program'] ?? null) ? $c['program'] : [])),
+            'story'       => array_values(array_map(fn ($i) => [
+                'year'  => (string) ($i['year'] ?? ''),
+                'title' => (string) ($i['title'] ?? ''),
+                'text'  => (string) ($i['text'] ?? ''),
+            ], is_array($c['story'] ?? null) ? $c['story'] : [])),
             'dress_title' => $str('dress_title'),
             'dress_text'  => $str('dress_text'),
             'closing'     => $str('closing'),

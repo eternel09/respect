@@ -203,6 +203,34 @@ class OccasionInvitationDesignTest extends TestCase
             ->assertJsonPath('occasion.photos', []);
     }
 
+    public function test_the_heure_doree_template_with_story_and_program_notes(): void
+    {
+        $this->theme(['template' => 'heure-doree'])->assertOk()->assertJsonPath('invitation_theme.template', 'heure-doree');
+
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [
+            'program' => [['time' => '16h00', 'label' => 'Cérémonie', 'icon' => 'ceremonie', 'note' => 'Deux cœurs ne font plus qu’un']],
+            'story'   => [
+                ['year' => '2022', 'title' => 'Notre rencontre', 'text' => 'Un après-midi de pluie, dans une galerie d’art.'],
+                ['year' => '2025', 'title' => 'Le oui', 'text' => ''],
+            ],
+        ])->assertOk()->assertJsonPath('invitation_content.story.1.title', 'Le oui');
+
+        $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
+            ->assertJsonPath('occasion.theme.template', 'heure-doree')
+            ->assertJsonPath('occasion.content.program.0.note', 'Deux cœurs ne font plus qu’un')
+            ->assertJsonPath('occasion.content.story.0.year', '2022')
+            ->assertJsonPath('occasion.content.story.1.text', '');
+    }
+
+    public function test_story_needs_titles_and_is_capped(): void
+    {
+        $url = "/api/occasions/{$this->occasion->id}/invitation-content";
+        $this->asAdmin()->putJson($url, ['story' => [['year' => '2020', 'title' => '']]])
+            ->assertStatus(422)->assertJsonValidationErrors('story.0.title');
+        $this->asAdmin()->putJson($url, ['story' => array_fill(0, 7, ['title' => 'x'])])
+            ->assertStatus(422)->assertJsonValidationErrors('story');
+    }
+
     public function test_invalid_program_is_rejected(): void
     {
         $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [
