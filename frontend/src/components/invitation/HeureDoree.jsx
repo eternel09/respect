@@ -25,6 +25,15 @@ const IVORY = '#faf7f1'
 const BEIGE = '#f1eadc'
 const BROWN = '#5e4b3c'
 const G = ['#8a6420', '#d9b45a', '#f6e2a1', '#c99a3e', '#9a7228']
+/** Visuels : planches de Redouté détourées (CC0) et textures maison (voir public/invitations/CREDITS.md). */
+const ART = '/invitations'
+const ROSE = {
+  white: `${ART}/florals/rose-white.webp`, china: `${ART}/florals/rose-china.webp`, blush: `${ART}/florals/rose-blush-branch.webp`,
+  wild: `${ART}/florals/rose-wild.webp`, villosa: `${ART}/florals/rose-villosa.webp`,
+}
+const LEAF = `${ART}/textures/gold-leaf.webp`
+/** Papier coton : texture adoucie par un voile ivoire. */
+const PAPER = `linear-gradient(rgba(250,247,241,.62), rgba(250,247,241,.62)), url("${ART}/textures/paper-ivory.webp")`
 const seenKey = (token) => `inv-open:${token}`
 const readSeen = (token) => { try { return localStorage.getItem(seenKey(token)) === '1' } catch { return false } }
 const writeSeen = (token) => { try { localStorage.setItem(seenKey(token), '1') } catch { /* stockage indisponible */ } }
@@ -39,24 +48,44 @@ const view = (reduced, delay = 0) => reduced ? {} : {
 /** Dégradé doré réutilisable dans les SVG (id unique par dessin). */
 const GoldDefs = ({ id, vertical = false }) => (
   <defs>
-    <linearGradient id={id} x1="0" y1="0" x2={vertical ? 0 : 1} y2={vertical ? 1 : 0}>
+    <linearGradient id={`${id}-g`} x1="0" y1="0" x2={vertical ? 0 : 1} y2={vertical ? 1 : 0}>
       <stop offset="0" stopColor={G[0]} /><stop offset=".28" stopColor={G[1]} /><stop offset=".5" stopColor={G[2]} />
       <stop offset=".72" stopColor={G[3]} /><stop offset="1" stopColor={G[4]} />
     </linearGradient>
+    {/* vraie feuille d'or, modelée par le dégradé */}
+    <pattern id={id} width="1" height="1" patternContentUnits="objectBoundingBox">
+      <image href={LEAF} width="1" height="1" preserveAspectRatio="xMidYMid slice" />
+      <rect width="1" height="1" fill={`url(#${id}-g)`} opacity=".55" />
+    </pattern>
   </defs>
 )
 
+/** Planche botanique détourée, posée avec une ombre douce ; éclot à l'entrée dans l'écran puis ondule. */
+function Flora({ src, className = '', style, flip = false, rotate = 0, delay = 0, reduced, sway = true, eager = false }) {
+  return (
+    <motion.img src={src} alt="" aria-hidden draggable={false} loading={eager ? 'eager' : 'lazy'} decoding="async"
+      className={`pointer-events-none select-none absolute h-auto ${className}`}
+      style={{ ...style, filter: 'drop-shadow(0 10px 14px rgba(70,50,20,.22)) drop-shadow(0 2px 3px rgba(70,50,20,.18))', scaleX: flip ? -1 : 1 }}
+      initial={reduced ? false : { opacity: 0, scale: 0.86, rotate: rotate - 8 }}
+      whileInView={{ opacity: 1, scale: 1, rotate }}
+      animate={reduced || !sway ? undefined : { rotate: [rotate, rotate + 1.6, rotate - 1.2, rotate] }}
+      viewport={{ once: true, margin: '-20px' }}
+      transition={{ opacity: { duration: 1.2, delay }, scale: { duration: 1.4, delay, ease: [0.22, 1, 0.36, 1] },
+        rotate: sway && !reduced ? { duration: 9, delay: delay + 1.4, repeat: Infinity, ease: 'easeInOut' } : { duration: 1.4, delay } }} />
+  )
+}
+
 /** Dorure à la feuille : texte en dégradé or, parcouru d'un reflet. */
 const FOIL = {
-  backgroundImage: 'linear-gradient(105deg, #6e4c12 0%, #a77d2c 20%, #d6ae52 36%, #f3dc94 45%, #b8893a 54%, #7a5616 70%, #b88a34 86%, #6e4c12 100%)',
-  backgroundSize: '240% 100%', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent',
+  backgroundImage: `linear-gradient(105deg, rgba(96,64,12,.88) 0%, rgba(150,108,34,.62) 20%, rgba(214,174,82,.3) 36%, rgba(255,244,205,.18) 45%, rgba(170,124,48,.45) 54%, rgba(110,76,18,.78) 70%, rgba(170,126,50,.5) 86%, rgba(96,64,12,.88) 100%), url("${LEAF}")`,
+  backgroundSize: '240% 100%, 260px', backgroundPosition: '100% 50%, 0 0', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent',
   filter: 'drop-shadow(0 1px 0 rgba(255,250,236,.85))',
 }
 function Foil({ children, on, color, reduced, className = '', delay = 0 }) {
   if (!on) return <span className={className} style={{ color }}>{children}</span>
   return (
     <motion.span className={`inline-block px-[.14em] -mx-[.14em] py-[.06em] -my-[.06em] ${className}`} style={FOIL}
-      animate={reduced ? undefined : { backgroundPosition: ['100% 50%', '0% 50%'] }}
+      animate={reduced ? undefined : { backgroundPosition: ['100% 50%, 0px 0px', '0% 50%, 0px 0px'] }}
       transition={{ duration: 5.5, delay, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}>
       {children}
     </motion.span>
@@ -139,7 +168,7 @@ function Intro({ occasion, opening, onOpen, reduced }) {
   const { couple, title } = eventNames(occasion.name)
   return (
     <motion.section key="intro" className="fixed inset-0 z-30 overflow-hidden" data-testid="heure-doree-intro"
-      style={{ backgroundColor: IVORY, backgroundImage: `radial-gradient(120% 90% at 50% 40%, transparent 60%, rgba(160,140,100,.12)), ${EMBOSS}`, perspective: 1400 }}
+      style={{ backgroundColor: IVORY, backgroundImage: `radial-gradient(120% 90% at 50% 40%, transparent 60%, rgba(160,140,100,.14)), ${EMBOSS}, ${PAPER}`, backgroundSize: 'auto, auto, auto, 512px', perspective: 1400 }}
       exit={reduced ? { opacity: 0 } : { y: '-100%', transition: { duration: 0.9, ease: [0.65, 0, 0.35, 1] } }}>
       {/* Rabat en V, bordé d'un fil plus sombre */}
       <motion.div aria-hidden className="absolute inset-x-0 top-0 h-[50%] origin-top"
@@ -148,9 +177,16 @@ function Intro({ occasion, opening, onOpen, reduced }) {
         <div className="absolute inset-0" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 6%, 50% 100%, 0 6%)', background: '#e6dcc8', backfaceVisibility: 'hidden' }} />
         <div className="absolute inset-0" style={{
           clipPath: 'polygon(0 0, 100% 0, 100% 5.2%, 50% 98.6%, 0 5.2%)',
-          backgroundColor: '#f6f1e6', backgroundImage: EMBOSS,
+          backgroundColor: '#f6f1e6', backgroundImage: `${EMBOSS}, ${PAPER}`, backgroundSize: 'auto, auto, 512px',
           filter: 'drop-shadow(0 8px 8px rgba(120,95,50,.16))', backfaceVisibility: 'hidden',
         }} />
+      </motion.div>
+
+      {/* Roses posées sur l'enveloppe */}
+      <motion.div aria-hidden className="absolute inset-0 pointer-events-none" style={{ zIndex: 3 }}
+        animate={opening ? { opacity: 0, scale: 1.06 } : { opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: opening ? 0.3 : 0 }}>
+        <Flora src={ROSE.china} eager reduced={reduced} rotate={198} delay={0.2} className="w-[56%] max-w-[300px] -right-[16%] -top-[7%]" />
+        <Flora src={ROSE.white} eager reduced={reduced} rotate={24} delay={0.5} className="w-[46%] max-w-[260px] -left-[21%] -bottom-[19%]" />
       </motion.div>
 
       {/* Sceau : un reflet le balaie ; à l'ouverture il se brise en deux */}
@@ -200,21 +236,9 @@ function Intro({ occasion, opening, onOpen, reduced }) {
   )
 }
 
-/** Fleur blanche (roses de jardin) pour les guirlandes. */
-const Bloom = ({ x, y, r = 6 }) => (
-  <g>
-    {[0, 72, 144, 216, 288].map(a => (
-      <ellipse key={a} cx={x} cy={y - r * 0.55} rx={r * 0.55} ry={r * 0.7} fill="#fffdf8" stroke="#e8dfcf" strokeWidth=".6" transform={`rotate(${a} ${x} ${y})`} />
-    ))}
-    <circle cx={x} cy={y} r={r * 0.42} fill="#f4ead2" stroke="#e3d3ad" strokeWidth=".5" />
-  </g>
-)
-const Leaf = ({ x, y, a }) => <ellipse cx={x} cy={y} rx="6" ry="2.4" fill="#86a07a" transform={`rotate(${a} ${x} ${y})`} />
-
-/** Grande colonne corinthienne dorée, guirlande de roses blanches enroulée. */
+/** Grande colonne corinthienne en feuille d'or. */
 function Column({ flip }) {
   const id = `col-gold${flip ? 'r' : 'l'}`
-  const vine = [[16, 56], [36, 70], [46, 92], [26, 112], [14, 132], [34, 150], [46, 172], [24, 192], [16, 214]]
   return (
     <svg viewBox="0 0 64 300" className="w-full h-auto" style={{ transform: flip ? 'scaleX(-1)' : undefined }} aria-hidden>
       <GoldDefs id={id} />
@@ -231,20 +255,6 @@ function Column({ flip }) {
       <rect x="11" y="262" width="42" height="9" rx="1" fill={`url(#${id})`} />
       <rect x="6" y="271" width="52" height="11" rx="1" fill={`url(#${id})`} />
       <rect x="2" y="282" width="60" height="14" rx="1" fill={`url(#${id})`} />
-      {/* guirlande : la tige se dessine, puis les roses éclosent une à une */}
-      <motion.path d={`M${vine.map(([x, y]) => `${x} ${y}`).join(' L')}`} stroke="#86a07a" strokeWidth="1.4" fill="none"
-        variants={{ hidden: { pathLength: 0 }, shown: { pathLength: 1, transition: { duration: 1.4, delay: 0.7, ease: 'easeInOut' } } }} />
-      {vine.map(([x, y], i) => (
-        <motion.g key={i} style={{ originX: 0.5, originY: 0.5 }}
-          variants={{ hidden: { scale: 0, opacity: 0 }, shown: { scale: 1, opacity: 1, transition: { delay: 0.9 + i * 0.12, type: 'spring', stiffness: 220, damping: 14 } } }}>
-          <Leaf x={x - 7} y={y + 5} a={-30} /><Leaf x={x + 7} y={y - 3} a={30} />
-          <Bloom x={x} y={y} r={i % 3 === 0 ? 8 : 6} />
-        </motion.g>
-      ))}
-      <motion.g style={{ originX: 0.5, originY: 1 }}
-        variants={{ hidden: { scale: 0, opacity: 0 }, shown: { scale: 1, opacity: 1, transition: { delay: 0.6, type: 'spring', stiffness: 180, damping: 13 } } }}>
-        <Bloom x={10} y={238} r={7} /><Bloom x={22} y={250} r={9} /><Leaf x={34} y={246} a={20} /><Bloom x={42} y={256} r={6} />
-      </motion.g>
     </svg>
   )
 }
@@ -337,28 +347,18 @@ function Drape({ side }) {
 
 /** Rideaux de théâtre dorés qui s'ouvrent quand la section entre dans l'écran. */
 function TheatreCurtains() {
-  const pleats = `repeating-linear-gradient(90deg, ${G[0]} 0px, ${G[3]} 9px, ${G[2]} 15px, ${G[1]} 22px, ${G[0]} 32px)`
+  const pleats = `repeating-linear-gradient(90deg, rgba(70,42,6,.55) 0px, rgba(201,154,62,.15) 9px, rgba(255,240,196,.35) 15px, rgba(201,154,62,.1) 22px, rgba(70,42,6,.55) 32px), url("${LEAF}")`
   return ['left', 'right'].map(side => (
     <motion.div key={side} aria-hidden data-testid={`curtain-${side}`}
       className={`absolute inset-y-0 z-10 w-1/2 ${side === 'left' ? 'left-0' : 'right-0'}`}
       style={{ backgroundImage: `linear-gradient(180deg, rgba(60,38,6,.35), transparent 22%, transparent 75%, rgba(60,38,6,.45)), ${pleats}`,
+        backgroundSize: 'auto, auto, 300px',
         boxShadow: side === 'left' ? 'inset -14px 0 20px -8px rgba(50,30,5,.55)' : 'inset 14px 0 20px -8px rgba(50,30,5,.55)' }}
       initial={{ x: 0 }} whileInView={{ x: side === 'left' ? '-104%' : '104%' }}
       viewport={{ once: true, amount: 0.35 }} transition={{ duration: 2, delay: 0.25, ease: [0.7, 0, 0.25, 1] }}>
       <span className={`absolute inset-y-0 w-[3px] ${side === 'left' ? 'right-0' : 'left-0'}`} style={{ background: `linear-gradient(180deg, ${G[2]}, ${G[1]})` }} />
     </motion.div>
   ))
-}
-
-/** Bouquet de roses blanches (coin bas des rideaux). */
-function Bouquet({ side }) {
-  return (
-    <svg viewBox="0 0 70 60" aria-hidden className={`absolute bottom-0 w-[58px] ${side === 'left' ? 'left-0' : 'right-0'}`}
-      style={{ transform: side === 'left' ? 'scaleX(-1)' : undefined }}>
-      <Leaf x={20} y={40} a={-30} /><Leaf x={44} y={22} a={40} /><Leaf x={56} y={44} a={10} />
-      <Bloom x={30} y={30} r={11} /><Bloom x={50} y={36} r={9} /><Bloom x={38} y={48} r={8} /><Bloom x={18} y={48} r={7} />
-    </svg>
-  )
 }
 
 /** Volute d'angle du cadre baroque. */
@@ -375,6 +375,8 @@ const Scroll = ({ className, style }) => (
 function BaroqueFrame({ children, reduced }) {
   return (
     <div className="relative mx-auto max-w-[390px] pt-[92px]">
+      <Flora src={ROSE.blush} reduced={reduced} rotate={-14} className="z-10 w-[36%] -left-[14%] -bottom-[21%]" />
+      <Flora src={ROSE.china} reduced={reduced} rotate={12} flip delay={0.25} className="z-10 w-[32%] -right-[12%] -bottom-[22%]" />
       <svg viewBox="0 0 300 126" className="absolute left-1/2 top-0 -translate-x-1/2 w-[92%]" aria-hidden>
         <GoldDefs id="frame-gold" />
         <path d="M16 126 Q16 74 68 64 Q110 57 128 34 Q140 17 150 17 Q160 17 172 34 Q190 57 232 64 Q284 74 284 126"
@@ -591,7 +593,7 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
   const toRsvp = () => rsvpRef?.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
 
   return (
-    <div className="relative text-center" data-testid="heure-doree" style={{ backgroundColor: IVORY, color: ink }}>
+    <div className="relative text-center overflow-x-clip" data-testid="heure-doree" style={{ backgroundColor: IVORY, backgroundImage: PAPER, backgroundSize: 'auto, 512px', color: ink }}>
       <AnimatePresence>
         {stage !== 'open' && !preview && <Intro occasion={occasion} opening={stage === 'opening'} onOpen={open} reduced={reduced} />}
       </AnimatePresence>
@@ -653,9 +655,11 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
             {dateLong}
           </motion.p>
         </motion.div>
+        <Flora src={ROSE.blush} reduced={reduced} rotate={16} delay={2} className="z-[1] w-[40%] max-w-[230px] -left-[14%] -bottom-[6%]" />
+        <Flora src={ROSE.white} reduced={reduced} rotate={-18} flip delay={2.3} className="z-[1] w-[38%] max-w-[220px] -right-[13%] -bottom-[8%]" />
         {!occasion.is_expired && (
           <motion.button type="button" onClick={toRsvp}
-            className="absolute left-1/2 -translate-x-1/2 bottom-[7%] inv-serif text-[14px] whitespace-nowrap pb-0.5 flex flex-col items-center"
+            className="absolute z-[2] left-1/2 -translate-x-1/2 bottom-[7%] inv-serif text-[14px] whitespace-nowrap pb-0.5 flex flex-col items-center"
             style={{ color: ink, textShadow: `0 0 12px ${IVORY}` }}
             initial={reduced ? false : { opacity: 0 }} animate={stage === 'open' ? { opacity: 1 } : {}} transition={{ duration: 1, delay: 2.2 }}>
             <span className="pb-0.5" style={{ ...caps, borderBottom: `1px solid ${ink}66` }}>Confirmer ma présence</span>
@@ -680,10 +684,15 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
         <motion.section className="mt-8 grid grid-cols-[24%_1fr_24%] items-center"
           initial={reduced ? false : 'hidden'} whileInView="shown" viewport={{ once: true, amount: 0.3 }}>
           {[false, true].map(flip => (
-            <motion.div key={String(flip)} className={`max-w-[110px] ${flip ? 'justify-self-end col-start-3 row-start-1' : 'justify-self-start'}`}
-              variants={{ hidden: { clipPath: 'inset(100% 0 0 0)' }, shown: { clipPath: 'inset(0% 0 0 0)', transition: { duration: 1.3, ease: [0.65, 0, 0.35, 1] } } }}>
-              <Column flip={flip} />
-            </motion.div>
+            <div key={String(flip)} className={`relative w-full max-w-[110px] ${flip ? 'justify-self-end col-start-3 row-start-1' : 'justify-self-start'}`}>
+              <motion.div variants={{ hidden: { clipPath: 'inset(100% 0 0 0)' }, shown: { clipPath: 'inset(0% 0 0 0)', transition: { duration: 1.3, ease: [0.65, 0, 0.35, 1] } } }}>
+                <Column flip={flip} />
+              </motion.div>
+              <Flora src={flip ? ROSE.china : ROSE.white} reduced={reduced} flip={flip} rotate={flip ? -10 : 10} delay={1.1}
+                className={`z-10 w-[150%] -top-[9%] ${flip ? '-right-[38%]' : '-left-[38%]'}`} />
+              <Flora src={flip ? ROSE.wild : ROSE.villosa} reduced={reduced} flip={!flip} rotate={flip ? 8 : -8} delay={1.5}
+                className={`z-10 w-[120%] -bottom-[4%] ${flip ? '-right-[30%]' : '-left-[30%]'}`} />
+            </div>
           ))}
           <motion.div className="min-w-0 px-1 col-start-2 row-start-1"
             variants={{ hidden: { opacity: 0, y: 20 }, shown: { opacity: 1, y: 0, transition: { duration: 0.9, delay: 0.4 } } }}>
@@ -727,7 +736,8 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
           {live && <TheatreCurtains />}
           <div className="relative z-20"><Valance /></div>
           <Drape side="left" /><Drape side="right" />
-          <Bouquet side="left" /><Bouquet side="right" />
+          <Flora src={ROSE.white} reduced={reduced} rotate={-10} className="z-[15] w-[34%] -left-[8%] -bottom-[3%]" />
+          <Flora src={ROSE.china} reduced={reduced} rotate={10} flip delay={0.2} className="z-[15] w-[32%] -right-[8%] -bottom-[4%]" />
           <div className="relative px-14 sm:px-20">
             <motion.div {...view(reduced)} className="-mt-3"><Heading color={ink}>Notre histoire</Heading></motion.div>
             <ol className="mt-6 space-y-10">
@@ -749,7 +759,10 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
           <motion.section {...view(reduced)} className="mt-12">
             <Heading color={ink}>Le déroulé</Heading>
             <p className="inv-serif text-[13px] -mt-1 opacity-70" style={caps}>Notre grand jour</p>
-            <div className="mt-6 mx-auto max-w-[360px] rounded-[4px] bg-white/85 px-6 py-7 text-left"
+            <div className="relative mx-auto max-w-[360px] mt-6">
+            <Flora src={ROSE.blush} reduced={reduced} rotate={-160} className="w-[44%] -right-[14%] -top-[17%]" />
+            <Flora src={ROSE.wild} reduced={reduced} rotate={14} flip delay={0.3} className="w-[36%] -left-[13%] -bottom-[15%]" />
+            <div className="relative rounded-[4px] bg-white/90 px-6 py-7 text-left"
               style={{ boxShadow: '0 14px 34px -22px rgba(90,60,20,.35)', border: `1px solid ${G[1]}33` }}>
               <ol className="relative pl-7">
                 <motion.span aria-hidden className="absolute left-[4px] top-3 bottom-3 w-px origin-top" style={{ background: `linear-gradient(180deg, ${G[3]}, ${ink}55)` }}
@@ -766,6 +779,7 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
                   </motion.li>
                 ))}
               </ol>
+            </div>
             </div>
           </motion.section>
         )}
