@@ -1,0 +1,64 @@
+{
+  "template": "heure-doree",
+  "kind": "wedding",
+  "lang": "fr",
+  "languages": ["fr", "en", "ln"],
+  "title": "Ana & Michaël",
+  "couple": { "groom": "Michaël", "bride": "Ana", "monogram": ["A", "M"] },
+  "event": {
+    "date": "2026-11-22",
+    "start": "16:00",
+    "end": "01:00",
+    "ceremony": { "fr": "Cérémonie", "en": "Ceremony", "ln": "Molulu" },
+    "venue": "Château de la Gombe",
+    "address": "Avenue du Fleuve 12, Gombe, Kinshasa",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=Ch%C3%A2teau%20de%20la%20Gombe%20Kinshasa",
+    "calendarUrl": "",
+    "dress": {
+      "title": { "fr": "Tenue de soirée", "en": "Black tie", "ln": "Bilamba ya fɛ́ti" },
+      "text": { "fr": "Ivoire, champagne et touches d’or.", "en": "Ivory, champagne and touches of gold.", "ln": "Langi ya mpɛ́mbɛ, shampanye mpe wolo." }
+    }
+  },
+  "texts": {
+    "quote": {
+      "fr": "Là où l’amour commence, l’éternité se déploie doucement.",
+      "en": "Where love begins, forever gently unfolds.",
+      "ln": "Esika bolingo ebandaka, libela efungwamaka malembe."
+    },
+    "rsvpIntro": { "fr": "Votre présence rendrait cette journée encore plus belle.", "en": "Your presence would make this day even more beautiful.", "ln": "Boyei na yo ekokómisa mokolo oyo kitoko koleka." },
+    "closing": { "fr": "Merci de faire partie de notre histoire.", "en": "Thank you for being part of our story.", "ln": "Matɔ́ndi mpo ozali na kati ya lisolo na biso." }
+  },
+  "hero": {
+    "image": "/invitations/heure-doree/hero-illustration.webp",
+    "alt": { "fr": "Les mariés de dos, main dans la main, vers une fontaine baroque", "en": "The couple from behind, hand in hand, walking to a baroque fountain" }
+  },
+  "gallery": [
+    { "src": "/storage/occasions/1/photos/ana-michael-1.webp", "alt": "Ana et Michaël au jardin" },
+    { "src": "/storage/occasions/1/photos/ana-michael-2.webp", "alt": "Fiançailles au bord du fleuve" },
+    { "src": "/storage/occasions/1/photos/ana-michael-3.webp", "alt": "Un éclat de rire" }
+  ],
+  "story": [
+    { "year": "2021", "title": { "fr": "Une rencontre inattendue", "en": "An unexpected meeting", "ln": "Bokutani ya likamwisi" }, "text": { "fr": "Un après-midi de pluie, un parapluie partagé, une longue conversation.", "en": "A rainy afternoon, a shared umbrella, a long conversation." } },
+    { "year": "2024", "title": { "fr": "L’aventure", "en": "The adventure", "ln": "Mobembo" }, "text": { "fr": "Un voyage improvisé qui nous a prouvé que nous pouvions tout traverser ensemble." } },
+    { "year": "2025", "title": { "fr": "Le oui", "en": "The yes", "ln": "Ee" }, "text": { "fr": "Un soir tranquille, une question, une bague, et une évidence." } }
+  ],
+  "schedule": [
+    { "time": "15:30", "title": { "fr": "Accueil des invités", "en": "Guests arrive", "ln": "Koyamba bapaya" }, "text": { "fr": "Rafraîchissements dans les jardins." } },
+    { "time": "16:00", "title": { "fr": "Cérémonie", "en": "Ceremony", "ln": "Molulu" }, "text": { "fr": "Sous la roseraie." } },
+    { "time": "19:00", "title": { "fr": "Dîner", "en": "Dinner", "ln": "Bilei ya mpokwa" }, "text": { "fr": "Dans la galerie des glaces." } },
+    { "time": "21:30", "title": { "fr": "Première danse", "en": "First dance", "ln": "Bobina ya liboso" } },
+    { "time": "22:00", "title": { "fr": "Soirée", "en": "Party", "ln": "Fɛ́ti" }, "text": { "fr": "Orchestre et piste de danse." } },
+    { "time": "01:00", "title": { "fr": "Au revoir", "en": "Farewell", "ln": "Tokomonana" } }
+  ],
+  "rsvp": {
+    "endpoint": "/api/rsvp/09e5d4cc-1545-41d7-b1e8-b3118f2b4fde",
+    "deadline": "2026-10-31",
+    "maxGuests": 2,
+    "guest": { "name": "Marie Kalala", "email": "", "phone": "+243810000000", "status": "pending", "partySize": null, "message": "" }
+  },
+  "pass": { "qr": "data:image/svg+xml;base64,…", "name": "Marie Kalala", "label": "Table 4" },
+  "music": { "src": "/storage/occasions/1/music/valse.mp3" },
+  "video": null,
+  "assets": {},
+  "app": { "name": "Signiq", "url": "https://signiq.cd" }
+}

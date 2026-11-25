@@ -23,6 +23,7 @@ class Guest extends Model
         'checked_in_at' => 'datetime',
         'declined'      => 'boolean',
         'reminded_at'   => 'datetime',
+        'party_size'    => 'integer',
     ];
 
     // Défauts hydratés dès la création (miroir des defaults SQL).

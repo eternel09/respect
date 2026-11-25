@@ -40,6 +40,8 @@ class Occasion extends Model
     /** Pictogrammes du programme (faire-part). */
     public const PROGRAM_ICONS = ['start', 'ceremonie', 'alliances', 'entree', 'presentation', 'bal', 'discours', 'cadeaux', 'buffet', 'gateau', 'photo', 'danse', 'horloge', 'fin'];
     public const MAX_INVITATION_PHOTOS = 4;
+    /** Nombre maximal de personnes par invitation (réponse « heure dorée »). */
+    public const MAX_PARTY_SIZE = 20;
     /** Photo de couverture : en arche sous la carte, en fond de page, ou les deux. */
     public const THEME_PHOTO = ['arch', 'background', 'both'];
 
@@ -232,6 +234,10 @@ class Occasion extends Model
             'dress_title' => $str('dress_title'),
             'dress_text'  => $str('dress_text'),
             'closing'     => $str('closing'),
+            // Réponse attendue avant cette date (AAAA-MM-JJ) ; places par invitation.
+            'rsvp_deadline' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($c['rsvp_deadline'] ?? '')) ? $c['rsvp_deadline'] : null,
+            'party_max'     => isset($c['party_max']) && (int) $c['party_max'] >= 1
+                ? min((int) $c['party_max'], self::MAX_PARTY_SIZE) : null,
         ];
     }
 
