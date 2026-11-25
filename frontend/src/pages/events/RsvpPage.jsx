@@ -86,10 +86,11 @@ export default function RsvpPage() {
     setTimeout(() => { setStage('revealed'); writeSeen(token) }, 2300)
   }
 
-  const respond = async (status) => {
+  const respond = async (status, extra = {}) => {
     setBusy(true)
     try {
-      const res = await api.post(`/rsvp/${token}`, { status })
+      const res = await api.post(`/rsvp/${token}`, { status, ...extra })
+      if ('message' in extra) setData(d => ({ ...d, guest: { ...d.guest, message: extra.message?.trim() || null } }))
       setResult({ status: res.data.status, table: res.data.table, message: res.data.message })
       if (status === 'confirm' && !reduced) {
         burstAt(rsvpRef.current, fx.current, 0.5, 0.3, 160)

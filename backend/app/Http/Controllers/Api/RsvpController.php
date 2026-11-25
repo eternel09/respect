@@ -29,6 +29,8 @@ class RsvpController extends Controller
                 'name'      => $guest->name,
                 'status'    => $this->status($guest),
                 'table'     => $guest->table?->label,
+                // Mot laissé aux hôtes avec la réponse (modifiable).
+                'message'   => $guest->rsvp_message,
                 // QR d'accès à présenter à l'accueil (même contenu que sur le carton).
                 'qr'        => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
             ],
@@ -40,6 +42,7 @@ class RsvpController extends Controller
                 'location'      => $occasion->location,
                 'is_expired'    => $occasion->isExpired(),
                 'video_url'     => $occasion->rsvpVideoUrl(),
+                'music_url'     => $occasion->invitationMusicUrl(),
                 // Mot des hôtes (le même que dans le message WhatsApp).
                 'message'       => $occasion->invitation_message,
                 'organization'  => $occasion->organization->name,
@@ -154,10 +157,16 @@ class RsvpController extends Controller
     public function store(string $token, Request $request): JsonResponse
     {
         $data = $request->validate([
-            'status' => ['required', 'in:confirm,decline'],
-        ]);
+            'status'  => ['required', 'in:confirm,decline'],
+            // Mot pour les hôtes (facultatif) ; absent = inchangé, vide = effacé.
+            'message' => ['nullable', 'string', 'max:500'],
+        ], ['message.max' => 'Votre mot ne peut dépasser 500 caractères.']);
 
         $guest = $this->find($token);
+        if ($request->has('message')) {
+            $message = trim((string) ($data['message'] ?? ''));
+            $guest->rsvp_message = $message !== '' ? $message : null;
+        }
 
         if ($data['status'] === 'confirm') {
             $guest->forceFill(['confirmed_at' => now(), 'declined' => false])->save();

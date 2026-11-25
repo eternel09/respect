@@ -42,6 +42,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
   const [draft, setDraft] = useState(() => draftFrom(o))
   const [saving, setSaving] = useState(false)
   const [coverBusy, setCoverBusy] = useState(false)
+  const [musicBusy, setMusicBusy] = useState(false)
   const coverRef = useRef(null)
   const set = (patch) => setDraft(d => ({ ...d, ...patch }))
 
@@ -116,6 +117,30 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
     } finally { setCoverBusy(false) }
   }
 
+  const uploadMusic = async (file) => {
+    if (!file) return
+    setMusicBusy(true); setFlash(null)
+    try {
+      const fd = new FormData(); fd.append('music', file)
+      const res = await api.post(`/occasions/${o.id}/invitation-music`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      onSaved({ invitation_music_url: res.data.invitation_music_url })
+      setFlash({ ok: true, text: res.data.message })
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du téléversement.') })
+    } finally { setMusicBusy(false) }
+  }
+
+  const removeMusic = async () => {
+    setMusicBusy(true); setFlash(null)
+    try {
+      const res = await api.delete(`/occasions/${o.id}/invitation-music`)
+      onSaved({ invitation_music_url: null })
+      setFlash({ ok: true, text: res.data.message })
+    } catch (e) {
+      setFlash({ ok: false, text: apiErrorMessage(e, 'Échec du retrait.') })
+    } finally { setMusicBusy(false) }
+  }
+
   const removeCover = async () => {
     setCoverBusy(true); setFlash(null)
     try {
@@ -164,7 +189,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
               {TEMPLATES.map(([k, icon, label, help]) => {
                 const active = draft.template === k
                 return (
-                  <button key={k} type="button" role="radio" aria-checked={active} onClick={() => set({ template: k })}
+                  <button key={k} type="button" role="radio" aria-checked={active} onClick={() => set({ template: k, ...(k === 'heure-doree' && draft.font === 'classique' ? { font: 'romantique' } : {}) })}
                     className={`text-left rounded-xl border p-3 transition ${active ? 'border-brand ring-2 ring-brand/30 bg-brand/5' : 'border-gray-200 hover:border-gray-300'}`}>
                     <span className="flex items-center gap-2 font-semibold text-sm text-gray-900">
                       <Icon name={icon} size={18} className={active ? 'text-brand' : 'text-gray-400'} /> {label}
@@ -263,6 +288,26 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-1">Affichée en plein écran à l'ouverture de l'enveloppe. Une photo en hauteur rend le mieux.</p>
+            </div>
+          )}
+          {golden && (
+            <div data-testid="music-field">
+              <Label>Musique d'ambiance</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                {o.invitation_music_url
+                  ? <audio src={o.invitation_music_url} controls preload="none" className="h-9 max-w-full" />
+                  : <span className="text-sm text-gray-400 flex items-center gap-1.5"><Icon name="music_note" size={18} /> Aucune musique</span>}
+                <label className={`px-3 py-2 rounded-xl text-sm font-medium border border-gray-200 hover:bg-gray-50 cursor-pointer flex items-center gap-1.5 ${musicBusy ? 'opacity-60 pointer-events-none' : ''}`}>
+                  {musicBusy ? <span className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" /> : <Icon name="upload" size={16} />}
+                  {o.invitation_music_url ? 'Changer' : 'Ajouter une musique'}
+                  <input type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav" className="hidden" onChange={e => { uploadMusic(e.target.files?.[0]); e.target.value = '' }} />
+                </label>
+                {o.invitation_music_url && (
+                  <button type="button" onClick={removeMusic} disabled={musicBusy}
+                    className="px-3 py-2 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">Retirer</button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Démarre quand l'invité ouvre l'enveloppe ; un bouton lui permet de la couper. MP3, M4A, AAC, OGG ou WAV, 15 Mo max.</p>
             </div>
           )}
           {scrolling ? (

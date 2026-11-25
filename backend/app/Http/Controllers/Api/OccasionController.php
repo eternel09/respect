@@ -321,6 +321,44 @@ class OccasionController extends Controller
         ]);
     }
 
+    /** Musique d'ambiance de l'invitation en ligne (lancée à l'ouverture de l'enveloppe). */
+    public function uploadInvitationMusic(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $request->validate([
+            'music' => ['required', 'file', 'mimes:mp3,m4a,aac,ogg,wav', 'max:15360'],
+        ], [
+            'music.required' => 'Sélectionnez un fichier audio.',
+            'music.mimes'    => 'Format non pris en charge : utilisez MP3, M4A, AAC, OGG ou WAV.',
+            'music.max'      => 'Fichier trop lourd (15 Mo maximum).',
+        ]);
+
+        if ($occasion->invitation_music_path) {
+            Storage::disk('public')->delete($occasion->invitation_music_path);
+        }
+        $occasion->invitation_music_path = $request->file('music')->store('invitation-music', 'public');
+        $occasion->save();
+
+        return response()->json([
+            'message'              => 'Musique enregistrée.',
+            'invitation_music_url' => $occasion->invitationMusicUrl(),
+        ]);
+    }
+
+    public function removeInvitationMusic(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        if ($occasion->invitation_music_path) {
+            Storage::disk('public')->delete($occasion->invitation_music_path);
+            $occasion->invitation_music_path = null;
+            $occasion->save();
+        }
+
+        return response()->json(['message' => 'Musique retirée.']);
+    }
+
     /** Ajoute une photo du couple à la galerie du faire-part (4 au plus). */
     public function addInvitationPhoto(Request $request, Occasion $occasion, InvitationImageService $images): JsonResponse
     {

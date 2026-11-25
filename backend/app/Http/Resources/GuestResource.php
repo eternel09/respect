@@ -22,6 +22,7 @@ class GuestResource extends JsonResource
             'invited_at'   => $this->invited_at?->toIso8601String(),
             'confirmed'    => $this->confirmed_at !== null,
             'declined'     => $this->declined,
+            'rsvp_message' => $this->rsvp_message,
             'checked_in'   => $this->checked_in_at !== null,
             'checked_in_at' => $this->checked_in_at?->toIso8601String(),
         ];

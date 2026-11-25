@@ -650,6 +650,12 @@ export default function OccasionDetailPage() {
                               : g.declined ? <Pill cls="bg-red-50 text-red-600">Décliné</Pill>
                               : <Pill cls="bg-cream text-gray-500 border border-gray-200">Sans réponse</Pill>}
                             {g.checked_in && <span className="ml-2"><Pill cls="bg-emerald-50 text-emerald-700">✓ Présent</Pill></span>}
+                            {g.rsvp_message && (
+                              <p className="mt-1.5 max-w-[260px] text-xs text-gray-500 italic flex items-start gap-1" data-testid="rsvp-message">
+                                <Icon name="chat_bubble" size={13} className="mt-0.5 flex-shrink-0 text-gray-400" />
+                                <span className="whitespace-pre-line">« {g.rsvp_message} »</span>
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-right whitespace-nowrap">
                             {g.phone && (

@@ -231,6 +231,48 @@ class OccasionInvitationDesignTest extends TestCase
             ->assertStatus(422)->assertJsonValidationErrors('story');
     }
 
+    public function test_guest_can_leave_a_message_with_the_answer(): void
+    {
+        $url = "/api/rsvp/{$this->guest->token}";
+        $this->postJson($url, ['status' => 'confirm', 'message' => '  Tous nos vœux de bonheur !  '])->assertOk();
+        $this->assertSame('Tous nos vœux de bonheur !', $this->guest->fresh()->rsvp_message);
+        $this->getJson($url)->assertJsonPath('guest.message', 'Tous nos vœux de bonheur !');
+
+        // Sans « message » : le mot est conservé ; vide : il est effacé.
+        $this->postJson($url, ['status' => 'decline'])->assertOk();
+        $this->assertSame('Tous nos vœux de bonheur !', $this->guest->fresh()->rsvp_message);
+        $this->postJson($url, ['status' => 'confirm', 'message' => ''])->assertOk();
+        $this->assertNull($this->guest->fresh()->rsvp_message);
+
+        $this->postJson($url, ['status' => 'confirm', 'message' => str_repeat('a', 501)])
+            ->assertStatus(422)->assertJsonValidationErrors('message');
+    }
+
+    public function test_hosts_see_the_guest_messages(): void
+    {
+        $this->guest->forceFill(['rsvp_message' => 'Félicitations !'])->save();
+
+        $this->asAdmin()->getJson("/api/occasions/{$this->occasion->id}")->assertOk()
+            ->assertJsonPath('guests.0.rsvp_message', 'Félicitations !');
+    }
+
+    public function test_background_music_upload_and_removal(): void
+    {
+        $url = "/api/occasions/{$this->occasion->id}/invitation-music";
+        $this->asAdmin()->post($url, ['music' => UploadedFile::fake()->create('valse.mp3', 400, 'audio/mpeg')], ['Accept' => 'application/json'])
+            ->assertOk();
+        $path = $this->occasion->fresh()->invitation_music_path;
+        Storage::disk('public')->assertExists($path);
+        $this->assertStringContainsString($path, $this->getJson("/api/rsvp/{$this->guest->token}")->json('occasion.music_url'));
+
+        $this->asAdmin()->post($url, ['music' => UploadedFile::fake()->create('virus.exe', 10)], ['Accept' => 'application/json'])
+            ->assertStatus(422);
+
+        $this->asAdmin()->deleteJson($url)->assertOk();
+        Storage::disk('public')->assertMissing($path);
+        $this->assertNull($this->occasion->fresh()->invitation_music_path);
+    }
+
     public function test_invalid_program_is_rejected(): void
     {
         $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [

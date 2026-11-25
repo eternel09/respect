@@ -239,6 +239,14 @@ class Occasion extends Model
             : null;
     }
 
+    /** URL publique de la musique d'ambiance de l'invitation en ligne, ou null. */
+    public function invitationMusicUrl(): ?string
+    {
+        return $this->invitation_music_path
+            ? Storage::disk('public')->url($this->invitation_music_path)
+            : null;
+    }
+
     /** URL publique de la vidéo du couple (RSVP), ou null. */
     public function rsvpVideoUrl(): ?string
     {
