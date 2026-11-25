@@ -31,6 +31,8 @@ class RsvpController extends Controller
                 'table'     => $guest->table?->label,
                 // Mot laissé aux hôtes avec la réponse (modifiable).
                 'message'   => $guest->rsvp_message,
+                // Nombre de personnes annoncé (lui compris).
+                'party_size' => $guest->party_size,
                 // QR d'accès à présenter à l'accueil (même contenu que sur le carton).
                 'qr'        => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
             ],
@@ -39,6 +41,7 @@ class RsvpController extends Controller
                 'type'          => $occasion->type,
                 'date'          => $occasion->date->toDateString(),
                 'starts_at'     => $occasion->starts_at?->toIso8601String(),
+                'ends_at'       => $occasion->ends_at?->toIso8601String(),
                 'location'      => $occasion->location,
                 'is_expired'    => $occasion->isExpired(),
                 'video_url'     => $occasion->rsvpVideoUrl(),
@@ -156,13 +159,25 @@ class RsvpController extends Controller
     /** Enregistre la réponse de l'invité. */
     public function store(string $token, Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'status'  => ['required', 'in:confirm,decline'],
-            // Mot pour les hôtes (facultatif) ; absent = inchangé, vide = effacé.
-            'message' => ['nullable', 'string', 'max:500'],
-        ], ['message.max' => 'Votre mot ne peut dépasser 500 caractères.']);
-
         $guest = $this->find($token);
+        $max = $guest->occasion->invitationContent()['party_max'] ?? \App\Models\Occasion::MAX_PARTY_SIZE;
+
+        $data = $request->validate([
+            'status'     => ['required', 'in:confirm,decline'],
+            // Mot pour les hôtes (facultatif) ; absent = inchangé, vide = effacé.
+            'message'    => ['nullable', 'string', 'max:500'],
+            // Nombre de personnes (lui compris), dans la limite des places de l'invitation.
+            'party_size' => ['nullable', 'integer', 'min:1', 'max:' . $max],
+        ], [
+            'message.max'    => 'Votre mot ne peut dépasser 500 caractères.',
+            'party_size.max' => $max > 1
+                ? "Votre invitation est valable pour {$max} personnes au plus."
+                : 'Votre invitation est valable pour une personne.',
+        ]);
+
+        if ($request->has('party_size')) {
+            $guest->party_size = $data['status'] === 'confirm' ? ($data['party_size'] ?? 1) : null;
+        }
         if ($request->has('message')) {
             $message = trim((string) ($data['message'] ?? ''));
             $guest->rsvp_message = $message !== '' ? $message : null;

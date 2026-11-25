@@ -31,12 +31,12 @@ const draftFrom = (o) => {
 const TEMPLATES = [
   ['enveloppe', 'mail', 'Enveloppe', "Une enveloppe scellée qui s'ouvre au toucher ; la carte en sort."],
   ['faire-part', 'article', 'Faire-part', 'Un faire-part qui se lit en défilant : photos, programme, thème, table.'],
-  ['heure-doree', 'auto_awesome', 'Heure dorée', 'Enveloppe scellée de cire, photo plein écran, colonnes et rideaux dorés, votre histoire.'],
+  ['heure-doree', 'auto_awesome', 'Heure dorée', 'Sceau de cire, photo en arche, colonnes fleuries, galerie animée, cadre baroque au lustre et carte personnelle avec QR.'],
   ['porcelaine', 'local_florist', 'Porcelaine', 'Portefeuille noué d’un ruban, pivoines bleues, plans des lieux, liste de cadeaux, questions.'],
   ['boheme', 'spa', 'Bohème', 'Aquarelle et fleurs séchées, photo en arche, Save the Date, programme illustré.'],
 ]
 // Modèles « site » : une page complète par modèle (aperçu défilant, musique).
-const SITES = { 'heure-doree': [HeureDoree, '#efe8da'], porcelaine: [Porcelaine, '#e9edf5'], boheme: [Boheme, '#efe9e2'] }
+const SITES = { 'heure-doree': [HeureDoree, '#F8F4EC'], porcelaine: [Porcelaine, '#e9edf5'], boheme: [Boheme, '#efe9e2'] }
 
 const Label = ({ children }) => <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{children}</p>
 
