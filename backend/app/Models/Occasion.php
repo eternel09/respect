@@ -27,10 +27,18 @@ class Occasion extends Model
     public const THEME_PALETTES = ['auto', 'bordeaux', 'emeraude', 'nuit', 'rose', 'noir', 'violet', 'terracotta', 'custom'];
     public const THEME_FONTS = ['classique', 'romantique', 'moderne'];
     public const THEME_CARDS = ['auto', 'carton', 'signiq', 'none'];
-    /** Modèles d'invitation en ligne : enveloppe animée, ou faire-part qui se lit en défilant. */
-    public const THEME_TEMPLATES = ['enveloppe', 'faire-part'];
+    /**
+     * Modèles d'invitation en ligne : enveloppe animée, faire-part qui se lit
+     * en défilant, ou « heure dorée » (enveloppe gaufrée, photo plein écran,
+     * colonnes et rideaux dorés, histoire du couple).
+     */
+    public const THEME_TEMPLATES = ['enveloppe', 'faire-part', 'heure-doree', 'porcelaine', 'boheme'];
+    /** Questions fréquentes (modèle « porcelaine »). */
+    public const MAX_FAQ = 6;
+    /** Étapes de l'histoire du couple (modèle « heure dorée »). */
+    public const MAX_STORY_STEPS = 6;
     /** Pictogrammes du programme (faire-part). */
-    public const PROGRAM_ICONS = ['start', 'ceremonie', 'entree', 'presentation', 'bal', 'discours', 'cadeaux', 'buffet', 'gateau', 'photo', 'danse', 'fin'];
+    public const PROGRAM_ICONS = ['start', 'ceremonie', 'alliances', 'entree', 'presentation', 'bal', 'discours', 'cadeaux', 'buffet', 'gateau', 'photo', 'danse', 'horloge', 'fin'];
     public const MAX_INVITATION_PHOTOS = 4;
     /** Photo de couverture : en arche sous la carte, en fond de page, ou les deux. */
     public const THEME_PHOTO = ['arch', 'background', 'both'];
@@ -197,7 +205,30 @@ class Occasion extends Model
                 'time'  => (string) ($i['time'] ?? ''),
                 'label' => (string) ($i['label'] ?? ''),
                 'icon'  => in_array($i['icon'] ?? null, self::PROGRAM_ICONS, true) ? $i['icon'] : 'start',
+                'note'  => isset($i['note']) && trim((string) $i['note']) !== '' ? trim((string) $i['note']) : null,
             ], is_array($c['program'] ?? null) ? $c['program'] : [])),
+            'story'       => array_values(array_map(fn ($i) => [
+                'year'  => (string) ($i['year'] ?? ''),
+                'title' => (string) ($i['title'] ?? ''),
+                'text'  => (string) ($i['text'] ?? ''),
+            ], is_array($c['story'] ?? null) ? $c['story'] : [])),
+            // Ligne sous les prénoms (ex. « Lac de Côme · Italie »).
+            'subtitle'    => $str('subtitle'),
+            // Second lieu (réception), avec sa carte.
+            'reception'   => [
+                'name'    => trim((string) ($c['reception']['name'] ?? '')) ?: null,
+                'time'    => trim((string) ($c['reception']['time'] ?? '')) ?: null,
+                'address' => trim((string) ($c['reception']['address'] ?? '')) ?: null,
+            ],
+            'travel'      => $str('travel'),
+            // Liste de cadeaux : mot, titulaire et IBAN du compte.
+            'gift_text'   => $str('gift_text'),
+            'gift_holder' => $str('gift_holder'),
+            'gift_iban'   => $str('gift_iban'),
+            'faq'         => array_values(array_map(fn ($i) => [
+                'q' => (string) ($i['q'] ?? ''),
+                'a' => (string) ($i['a'] ?? ''),
+            ], is_array($c['faq'] ?? null) ? $c['faq'] : [])),
             'dress_title' => $str('dress_title'),
             'dress_text'  => $str('dress_text'),
             'closing'     => $str('closing'),
@@ -224,6 +255,14 @@ class Occasion extends Model
     {
         return $this->invitation_cover_path
             ? Storage::disk('public')->url($this->invitation_cover_path)
+            : null;
+    }
+
+    /** URL publique de la musique d'ambiance de l'invitation en ligne, ou null. */
+    public function invitationMusicUrl(): ?string
+    {
+        return $this->invitation_music_path
+            ? Storage::disk('public')->url($this->invitation_music_path)
             : null;
     }
 

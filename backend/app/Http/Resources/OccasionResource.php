@@ -34,6 +34,7 @@ class OccasionResource extends JsonResource
             'invitation_cover_url' => $this->invitationCoverUrl(),
             'invitation_content'   => $this->invitationContent(),
             'invitation_photos'    => $this->invitationPhotoUrls(),
+            'invitation_music_url' => $this->invitationMusicUrl(),
             'invitation_is_pdf' => $this->invitationIsPdf(),
             'ticket_design_url' => $this->ticketDesignUrl(),
             'rsvp_video_url'    => $this->rsvpVideoUrl(),

@@ -284,22 +284,49 @@ class OccasionController extends Controller
             'intro'             => ['nullable', 'string', 'max:600'],
             'ceremony'          => ['nullable', 'string', 'max:60'],
             'program'           => ['nullable', 'array', 'max:12'],
-            'program.*.time'    => ['required', 'string', 'max:12'],
+            'program.*.time'    => ['required', 'string', 'max:24'],
             'program.*.label'   => ['required', 'string', 'max:60'],
             'program.*.icon'    => ['required', 'in:' . implode(',', Occasion::PROGRAM_ICONS)],
+            'program.*.note'    => ['nullable', 'string', 'max:200'],
+            'story'             => ['nullable', 'array', 'max:' . Occasion::MAX_STORY_STEPS],
+            'story.*.year'      => ['nullable', 'string', 'max:12'],
+            'story.*.title'     => ['required', 'string', 'max:60'],
+            'story.*.text'      => ['nullable', 'string', 'max:400'],
             'dress_title'       => ['nullable', 'string', 'max:60'],
             'dress_text'        => ['nullable', 'string', 'max:600'],
             'closing'           => ['nullable', 'string', 'max:600'],
+            'subtitle'          => ['nullable', 'string', 'max:80'],
+            'reception'         => ['nullable', 'array'],
+            'reception.name'    => ['nullable', 'string', 'max:80'],
+            'reception.time'    => ['nullable', 'string', 'max:20'],
+            'reception.address' => ['nullable', 'string', 'max:160'],
+            'travel'            => ['nullable', 'string', 'max:800'],
+            'gift_text'         => ['nullable', 'string', 'max:600'],
+            'gift_holder'       => ['nullable', 'string', 'max:80'],
+            'gift_iban'         => ['nullable', 'string', 'max:64'],
+            'faq'               => ['nullable', 'array', 'max:' . Occasion::MAX_FAQ],
+            'faq.*.q'           => ['required', 'string', 'max:120'],
+            'faq.*.a'           => ['required', 'string', 'max:600'],
         ], [
+            'faq.max'                  => 'Les questions fréquentes sont limitées à ' . Occasion::MAX_FAQ . '.',
+            'faq.*.q.required'         => 'Écrivez chaque question.',
+            'faq.*.a.required'         => 'Écrivez la réponse à chaque question.',
             'program.max'              => 'Le programme accepte 12 étapes au plus.',
             'program.*.time.required'  => 'Indiquez l’heure de chaque étape.',
             'program.*.label.required' => 'Indiquez le nom de chaque étape.',
             'program.*.icon.in'        => 'Pictogramme inconnu.',
+            'story.max'                => 'L’histoire accepte ' . Occasion::MAX_STORY_STEPS . ' étapes au plus.',
+            'story.*.title.required'   => 'Donnez un titre à chaque étape de votre histoire.',
         ]);
 
         $data['program'] = array_values(array_map(
-            fn ($i) => ['time' => trim($i['time']), 'label' => trim($i['label']), 'icon' => $i['icon']],
+            fn ($i) => ['time' => trim($i['time']), 'label' => trim($i['label']), 'icon' => $i['icon'], 'note' => trim((string) ($i['note'] ?? ''))],
             $data['program'] ?? [],
+        ));
+        $data['faq'] = array_values(array_map(fn ($i) => ['q' => trim($i['q']), 'a' => trim($i['a'])], $data['faq'] ?? []));
+        $data['story'] = array_values(array_map(
+            fn ($i) => ['year' => trim((string) ($i['year'] ?? '')), 'title' => trim($i['title']), 'text' => trim((string) ($i['text'] ?? ''))],
+            $data['story'] ?? [],
         ));
         $occasion->invitation_content = $data;
         $occasion->save();
@@ -308,6 +335,44 @@ class OccasionController extends Controller
             'message'            => 'Textes du faire-part enregistrés.',
             'invitation_content' => $occasion->invitationContent(),
         ]);
+    }
+
+    /** Musique d'ambiance de l'invitation en ligne (lancée à l'ouverture de l'enveloppe). */
+    public function uploadInvitationMusic(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        $request->validate([
+            'music' => ['required', 'file', 'mimes:mp3,m4a,aac,ogg,wav', 'max:15360'],
+        ], [
+            'music.required' => 'Sélectionnez un fichier audio.',
+            'music.mimes'    => 'Format non pris en charge : utilisez MP3, M4A, AAC, OGG ou WAV.',
+            'music.max'      => 'Fichier trop lourd (15 Mo maximum).',
+        ]);
+
+        if ($occasion->invitation_music_path) {
+            Storage::disk('public')->delete($occasion->invitation_music_path);
+        }
+        $occasion->invitation_music_path = $request->file('music')->store('invitation-music', 'public');
+        $occasion->save();
+
+        return response()->json([
+            'message'              => 'Musique enregistrée.',
+            'invitation_music_url' => $occasion->invitationMusicUrl(),
+        ]);
+    }
+
+    public function removeInvitationMusic(Request $request, Occasion $occasion): JsonResponse
+    {
+        abort_if($occasion->organization_id !== $request->user()->organization_id, 404);
+
+        if ($occasion->invitation_music_path) {
+            Storage::disk('public')->delete($occasion->invitation_music_path);
+            $occasion->invitation_music_path = null;
+            $occasion->save();
+        }
+
+        return response()->json(['message' => 'Musique retirée.']);
     }
 
     /** Ajoute une photo du couple à la galerie du faire-part (4 au plus). */

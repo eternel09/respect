@@ -203,6 +203,111 @@ class OccasionInvitationDesignTest extends TestCase
             ->assertJsonPath('occasion.photos', []);
     }
 
+    public function test_the_heure_doree_template_with_story_and_program_notes(): void
+    {
+        $this->theme(['template' => 'heure-doree'])->assertOk()->assertJsonPath('invitation_theme.template', 'heure-doree');
+
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [
+            'program' => [['time' => '16h00', 'label' => 'Cérémonie', 'icon' => 'ceremonie', 'note' => 'Deux cœurs ne font plus qu’un']],
+            'story'   => [
+                ['year' => '2022', 'title' => 'Notre rencontre', 'text' => 'Un après-midi de pluie, dans une galerie d’art.'],
+                ['year' => '2025', 'title' => 'Le oui', 'text' => ''],
+            ],
+        ])->assertOk()->assertJsonPath('invitation_content.story.1.title', 'Le oui');
+
+        $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
+            ->assertJsonPath('occasion.theme.template', 'heure-doree')
+            ->assertJsonPath('occasion.content.program.0.note', 'Deux cœurs ne font plus qu’un')
+            ->assertJsonPath('occasion.content.story.0.year', '2022')
+            ->assertJsonPath('occasion.content.story.1.text', '');
+    }
+
+    public function test_story_needs_titles_and_is_capped(): void
+    {
+        $url = "/api/occasions/{$this->occasion->id}/invitation-content";
+        $this->asAdmin()->putJson($url, ['story' => [['year' => '2020', 'title' => '']]])
+            ->assertStatus(422)->assertJsonValidationErrors('story.0.title');
+        $this->asAdmin()->putJson($url, ['story' => array_fill(0, 7, ['title' => 'x'])])
+            ->assertStatus(422)->assertJsonValidationErrors('story');
+    }
+
+    public function test_guest_can_leave_a_message_with_the_answer(): void
+    {
+        $url = "/api/rsvp/{$this->guest->token}";
+        $this->postJson($url, ['status' => 'confirm', 'message' => '  Tous nos vœux de bonheur !  '])->assertOk();
+        $this->assertSame('Tous nos vœux de bonheur !', $this->guest->fresh()->rsvp_message);
+        $this->getJson($url)->assertJsonPath('guest.message', 'Tous nos vœux de bonheur !');
+
+        // Sans « message » : le mot est conservé ; vide : il est effacé.
+        $this->postJson($url, ['status' => 'decline'])->assertOk();
+        $this->assertSame('Tous nos vœux de bonheur !', $this->guest->fresh()->rsvp_message);
+        $this->postJson($url, ['status' => 'confirm', 'message' => ''])->assertOk();
+        $this->assertNull($this->guest->fresh()->rsvp_message);
+
+        $this->postJson($url, ['status' => 'confirm', 'message' => str_repeat('a', 501)])
+            ->assertStatus(422)->assertJsonValidationErrors('message');
+    }
+
+    public function test_hosts_see_the_guest_messages(): void
+    {
+        $this->guest->forceFill(['rsvp_message' => 'Félicitations !'])->save();
+
+        $this->asAdmin()->getJson("/api/occasions/{$this->occasion->id}")->assertOk()
+            ->assertJsonPath('guests.0.rsvp_message', 'Félicitations !');
+    }
+
+    public function test_background_music_upload_and_removal(): void
+    {
+        $url = "/api/occasions/{$this->occasion->id}/invitation-music";
+        $this->asAdmin()->post($url, ['music' => UploadedFile::fake()->create('valse.mp3', 400, 'audio/mpeg')], ['Accept' => 'application/json'])
+            ->assertOk();
+        $path = $this->occasion->fresh()->invitation_music_path;
+        Storage::disk('public')->assertExists($path);
+        $this->assertStringContainsString($path, $this->getJson("/api/rsvp/{$this->guest->token}")->json('occasion.music_url'));
+
+        $this->asAdmin()->post($url, ['music' => UploadedFile::fake()->create('virus.exe', 10)], ['Accept' => 'application/json'])
+            ->assertStatus(422);
+
+        $this->asAdmin()->deleteJson($url)->assertOk();
+        Storage::disk('public')->assertMissing($path);
+        $this->assertNull($this->occasion->fresh()->invitation_music_path);
+    }
+
+    public function test_porcelaine_and_boheme_templates_with_practical_details(): void
+    {
+        $this->theme(['template' => 'porcelaine'])->assertOk()->assertJsonPath('invitation_theme.template', 'porcelaine');
+        $this->theme(['template' => 'boheme'])->assertOk()->assertJsonPath('invitation_theme.template', 'boheme');
+
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [
+            'subtitle'    => 'Lac de Côme · Italie',
+            'reception'   => ['name' => 'Grand Hôtel Tremezzo', 'time' => '18h30', 'address' => 'Via Regina 8, Tremezzo'],
+            'travel'      => "En voiture : autoroute A9.\nEn train : gare de Côme.",
+            'gift_text'   => 'Votre présence est notre plus beau cadeau.',
+            'gift_holder' => 'Ana et Paul Kalala',
+            'gift_iban'   => 'CD08 0001 2345 6789 0123 4567 890',
+            'faq'         => [['q' => 'Où dormir à proximité ?', 'a' => 'Plusieurs hôtels à 5 minutes.']],
+            'program'     => [['time' => 'De 11h00 à 14h00', 'label' => 'Mariage civil', 'icon' => 'ceremonie', 'note' => str_repeat('a', 150)]],
+        ])->assertOk();
+
+        $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
+            ->assertJsonPath('occasion.content.subtitle', 'Lac de Côme · Italie')
+            ->assertJsonPath('occasion.content.reception.name', 'Grand Hôtel Tremezzo')
+            ->assertJsonPath('occasion.content.gift_iban', 'CD08 0001 2345 6789 0123 4567 890')
+            ->assertJsonPath('occasion.content.faq.0.q', 'Où dormir à proximité ?')
+            ->assertJsonPath('occasion.content.program.0.time', 'De 11h00 à 14h00');
+
+        // Sans réception : les champs restent vides, jamais d'erreur.
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", ['subtitle' => ''])->assertOk()
+            ->assertJsonPath('invitation_content.reception', ['name' => null, 'time' => null, 'address' => null])
+            ->assertJsonPath('invitation_content.faq', []);
+    }
+
+    public function test_faq_needs_questions_and_answers(): void
+    {
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", ['faq' => [['q' => 'Parking ?', 'a' => '']]])
+            ->assertStatus(422)->assertJsonValidationErrors('faq.0.a');
+    }
+
     public function test_invalid_program_is_rejected(): void
     {
         $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [

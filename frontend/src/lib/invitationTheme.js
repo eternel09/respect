@@ -25,6 +25,7 @@ export const themeFor = (type) => THEMES[type] || THEMES.autre
 export const PROGRAM_ICONS = {
   start:        ['celebration', 'Accueil'],
   ceremonie:    ['church', 'Cérémonie'],
+  alliances:    ['diamond', 'Alliances'],
   entree:       ['favorite', 'Entrée'],
   presentation: ['diversity_1', 'Présentation'],
   bal:          ['music_note', 'Ouverture de bal'],
@@ -34,6 +35,7 @@ export const PROGRAM_ICONS = {
   gateau:       ['cake', 'Gâteau'],
   photo:        ['photo_camera', 'Photos'],
   danse:        ['wine_bar', 'Musique & danse'],
+  horloge:      ['schedule', 'Horloge'],
   fin:          ['nights_stay', 'Fin de soirée'],
 }
 
@@ -210,7 +212,27 @@ export const contentFrom = (o) => {
   const c = o.invitation_content || {}
   return {
     families: c.families || '', ceremony: c.ceremony || '', verse: c.verse || '', verse_ref: c.verse_ref || '',
-    intro: c.intro || '', program: c.program || [], dress_title: c.dress_title || '', dress_text: c.dress_text || '',
-    closing: c.closing || '',
+    intro: c.intro || '', dress_title: c.dress_title || '', dress_text: c.dress_text || '', closing: c.closing || '',
+    program: (c.program || []).map(p => ({ time: p.time || '', label: p.label || '', icon: p.icon || 'start', note: p.note || '' })),
+    story: (c.story || []).map(s => ({ year: s.year || '', title: s.title || '', text: s.text || '' })),
+    subtitle: c.subtitle || '', travel: c.travel || '',
+    reception: { name: c.reception?.name || '', time: c.reception?.time || '', address: c.reception?.address || '' },
+    gift_text: c.gift_text || '', gift_holder: c.gift_holder || '', gift_iban: c.gift_iban || '',
+    faq: (c.faq || []).map(f => ({ q: f.q || '', a: f.a || '' })),
   }
+}
+
+/** Charge une police Google une seule fois (modèles qui ont leur propre famille). */
+export function loadFont(id, family) {
+  if (document.getElementById(id)) return
+  const link = document.createElement('link')
+  link.id = id; link.rel = 'stylesheet'
+  link.href = `https://fonts.googleapis.com/css2?family=${family}&display=swap`
+  document.head.appendChild(link)
+}
+
+/** Monogramme en initiales (« A&P »), d'après le cachet choisi ou les prénoms. */
+export function initials(occasion) {
+  const s = sealOf(occasion)
+  return s.length === 2 ? `${s[0]}&${s[1]}` : s[0]
 }
