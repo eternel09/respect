@@ -71,7 +71,6 @@ Route::post('/rsvp/{token}', [RsvpController::class, 'store'])->middleware('thro
 // L'événement au format agenda (.ics), pour le bouton « Agenda » de la page invité.
 Route::get('/rsvp/{token}/calendar.ics', [RsvpController::class, 'calendar'])->middleware('throttle:30,1');
 Route::get('/rsvp/{token}/carton', [RsvpController::class, 'carton'])->middleware('throttle:30,1');
-Route::get('/rsvp/{token}/og', [RsvpController::class, 'og'])->middleware('throttle:60,1');
 
 // Billetterie publique — vitrine, achat, suivi et e-billets (par jeton)
 Route::get('/public/occasions/{occasion}/tickets', [\App\Http\Controllers\Api\TicketOrderController::class, 'storefront'])->middleware('throttle:60,1');

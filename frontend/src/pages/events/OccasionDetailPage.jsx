@@ -650,14 +650,6 @@ export default function OccasionDetailPage() {
                               : g.declined ? <Pill cls="bg-red-50 text-red-600">Décliné</Pill>
                               : <Pill cls="bg-cream text-gray-500 border border-gray-200">Sans réponse</Pill>}
                             {g.checked_in && <span className="ml-2"><Pill cls="bg-emerald-50 text-emerald-700">✓ Présent</Pill></span>}
-                            {g.confirmed && g.party_size > 1 && (
-                              <span className="ml-2" data-testid="rsvp-party"><Pill cls="bg-amber-50 text-amber-800">{g.party_size} pers.</Pill></span>
-                            )}
-                            {g.email && (
-                              <p className="mt-1 text-xs text-gray-500 flex items-center gap-1" data-testid="rsvp-email">
-                                <Icon name="mail" size={13} className="text-gray-400" /> <a href={`mailto:${g.email}`} className="hover:underline">{g.email}</a>
-                              </p>
-                            )}
                             {g.rsvp_message && (
                               <p className="mt-1.5 max-w-[260px] text-xs text-gray-500 italic flex items-start gap-1" data-testid="rsvp-message">
                                 <Icon name="chat_bubble" size={13} className="mt-0.5 flex-shrink-0 text-gray-400" />

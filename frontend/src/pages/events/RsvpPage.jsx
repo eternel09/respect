@@ -151,19 +151,7 @@ export default function RsvpPage() {
     viewport: { once: true, margin: '-60px' }, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
   }
 
-  // « Heure dorée » : modèle piloté par sa configuration (poussière d'or, langues, musique compris).
-  if (occasion.theme?.template === 'heure-doree') return (
-    <div className="min-h-svh" style={{ background: '#e9e1d0' }}>
-      <HeureDoree occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
-        confirmed={confirmed} declined={declined} reduced={reduced}
-        onAnswered={(res) => {
-          setResult({ status: res.status, table: res.table, message: res.message })
-          setData(d => ({ ...d, guest: { ...d.guest, message: res.payload?.message || null, party_size: res.payload?.party_size ?? d.guest.party_size, email: res.payload?.email || d.guest.email } }))
-        }} />
-    </div>
-  )
-
-  // Modèles « porcelaine », « bohème » : pages autonomes.
+  // Modèles « heure dorée », « porcelaine », « bohème » : pages autonomes.
   if (Site) return (
     <div className="relative min-h-svh overflow-x-hidden" style={{ background: { porcelaine: '#e9edf5', boheme: '#efe9e2' }[occasion.theme.template] || '#efe8da', ...t.fontVars }}>
       {sparkles && <ParticleField ref={fx} kind="sparkles" colors={t.sparkles} density={0.4} calm={!!reduced} />}

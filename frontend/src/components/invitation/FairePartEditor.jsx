@@ -57,7 +57,7 @@ const SAMPLE_STORY = [
 /** Champs proposés pour chaque modèle (un modèle n'affiche que ce qu'il utilise). */
 const FIELDS = {
   'faire-part':  ['photos', 'families', 'ceremony', 'verse', 'program', 'icons', 'dress', 'intro', 'closing'],
-  'heure-doree': ['photos', 'ceremony', 'verse', 'story', 'program', 'notes', 'dress', 'rsvp', 'intro', 'closing'],
+  'heure-doree': ['photos', 'ceremony', 'verse', 'story', 'program', 'notes', 'dress', 'intro', 'closing'],
   porcelaine:    ['subtitle', 'ceremony', 'reception', 'travel', 'program', 'notes', 'dress', 'gift', 'faq', 'intro', 'closing'],
   boheme:        ['photos', 'subtitle', 'families', 'verse', 'program', 'icons', 'notes', 'intro', 'closing'],
 }
@@ -107,8 +107,6 @@ export default function FairePartEditor({ occasion: o, template = 'faire-part', 
         program: content.program.filter(s => s.time.trim() || s.label.trim()),
         story: content.story.filter(s => s.title.trim() || s.text.trim() || s.year.trim()),
         faq: content.faq.filter(s => s.q.trim() || s.a.trim()),
-        rsvp_deadline: content.rsvp_deadline || null,
-        party_max: content.party_max === '' || content.party_max == null ? null : Number(content.party_max),
       })
       onSaved({ invitation_content: res.data.invitation_content })
       setFlash({ ok: true, text: res.data.message })
@@ -301,20 +299,6 @@ export default function FairePartEditor({ occasion: o, template = 'faire-part', 
           <div>
             <Label hint="facultatif">Dress code</Label>
             <textarea className={input} rows={2} value={content.dress_text} maxLength={600} onChange={e => set({ dress_text: e.target.value })} placeholder="Tenue noire rehaussée d'une touche d'or." />
-          </div>
-        </div>
-      )}
-
-      {has('rsvp') && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label hint="facultatif">Répondre avant le</Label>
-            <input type="date" className={input} value={content.rsvp_deadline} onChange={e => set({ rsvp_deadline: e.target.value })} aria-label="Date limite de réponse" />
-          </div>
-          <div>
-            <Label hint="vide : non précisé">Places par invitation</Label>
-            <input type="number" min={1} max={20} inputMode="numeric" className={input} value={content.party_max}
-              onChange={e => set({ party_max: e.target.value })} placeholder="2" aria-label="Nombre de personnes par invitation" />
           </div>
         </div>
       )}

@@ -23,9 +23,6 @@ class GuestResource extends JsonResource
             'confirmed'    => $this->confirmed_at !== null,
             'declined'     => $this->declined,
             'rsvp_message' => $this->rsvp_message,
-            // Réponse détaillée (modèle « heure dorée ») : personnes, e-mail.
-            'party_size'   => $this->party_size,
-            'email'        => $this->email,
             'checked_in'   => $this->checked_in_at !== null,
             'checked_in_at' => $this->checked_in_at?->toIso8601String(),
         ];

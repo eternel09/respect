@@ -219,7 +219,6 @@ export const contentFrom = (o) => {
     reception: { name: c.reception?.name || '', time: c.reception?.time || '', address: c.reception?.address || '' },
     gift_text: c.gift_text || '', gift_holder: c.gift_holder || '', gift_iban: c.gift_iban || '',
     faq: (c.faq || []).map(f => ({ q: f.q || '', a: f.a || '' })),
-    rsvp_deadline: c.rsvp_deadline || '', party_max: c.party_max ? String(c.party_max) : '',
   }
 }
 

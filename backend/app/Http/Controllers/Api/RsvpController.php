@@ -31,10 +31,6 @@ class RsvpController extends Controller
                 'table'     => $guest->table?->label,
                 // Mot laissé aux hôtes avec la réponse (modifiable).
                 'message'   => $guest->rsvp_message,
-                // Réponse détaillée : nombre de personnes, contact (pré-remplis).
-                'party_size' => $guest->party_size,
-                'email'     => $guest->email,
-                'phone'     => $guest->phone,
                 // QR d'accès à présenter à l'accueil (même contenu que sur le carton).
                 'qr'        => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
             ],
@@ -43,7 +39,6 @@ class RsvpController extends Controller
                 'type'          => $occasion->type,
                 'date'          => $occasion->date->toDateString(),
                 'starts_at'     => $occasion->starts_at?->toIso8601String(),
-                'ends_at'       => $occasion->ends_at?->toIso8601String(),
                 'location'      => $occasion->location,
                 'is_expired'    => $occasion->isExpired(),
                 'video_url'     => $occasion->rsvpVideoUrl(),
@@ -137,48 +132,6 @@ class RsvpController extends Controller
         ]);
     }
 
-    /**
-     * Aperçu du lien pour les messageries (WhatsApp, Telegram, Facebook…) :
-     * page HTML minimale avec les balises Open Graph. Le nginx du frontend y
-     * dirige les robots d'aperçu qui demandent `/confirmer/{token}` ; un
-     * humain qui l'ouvrirait est renvoyé vers l'invitation.
-     */
-    public function og(string $token, InvitationComposer $composer): Response
-    {
-        $guest = $this->find($token);
-        $occasion = $guest->occasion;
-        $front = rtrim((string) config('app.frontend_url'), '/');
-        $url = $composer->guestUrl($guest) ?? $front . '/confirmer/' . $guest->token;
-
-        $image = $occasion->invitationCoverUrl() ?? ($occasion->invitationPhotoUrls()[0] ?? null)
-            ?? $front . '/invitations/heure-doree/og-cover.jpg';
-        $date = $occasion->date->locale('fr')->isoFormat('D MMMM YYYY');
-        // « Mariage Ana & Paul » → « Ana & Paul · Invitation au mariage »
-        $names = trim((string) preg_replace("/^(mariage|gala|soirée|anniversaire|concert|cérémonie|ceremonie)\\s+(de\\s+|du\\s+|des\\s+|d['’]\\s*)?/iu", '', $occasion->name)) ?: $occasion->name;
-        $title = $names . ($occasion->type === 'mariage' ? ' · Invitation au mariage' : ' · Invitation');
-        $description = implode(' · ', array_filter([ucfirst($date), $occasion->location, 'Votre invitation personnelle']));
-
-        $e = fn (string $v) => htmlspecialchars($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $html = '<!doctype html><html lang="fr"><head><meta charset="utf-8">'
-            . '<title>' . $e($title) . '</title>'
-            . '<meta name="description" content="' . $e($description) . '">'
-            . '<meta property="og:type" content="website">'
-            . '<meta property="og:site_name" content="Signiq">'
-            . '<meta property="og:title" content="' . $e($title) . '">'
-            . '<meta property="og:description" content="' . $e($description) . '">'
-            . '<meta property="og:image" content="' . $e($image) . '">'
-            . '<meta property="og:url" content="' . $e($url) . '">'
-            . '<meta name="twitter:card" content="summary_large_image">'
-            . '<meta http-equiv="refresh" content="0;url=' . $e($url) . '">'
-            . '</head><body><a href="' . $e($url) . '">' . $e($title) . '</a></body></html>';
-
-        return response($html, 200, [
-            'Content-Type'  => 'text/html; charset=utf-8',
-            'Cache-Control' => 'public, max-age=600',
-            'X-Robots-Tag'  => 'noindex',
-        ]);
-    }
-
     private function icsText(string $text): string
     {
         return str_replace(['\\', ';', ',', "\r\n", "\n"], ['\\\\', '\\;', '\\,', '\\n', '\\n'], $text);
@@ -203,41 +156,13 @@ class RsvpController extends Controller
     /** Enregistre la réponse de l'invité. */
     public function store(string $token, Request $request): JsonResponse
     {
-        $guest = $this->find($token);
-        $max = $guest->occasion->invitationContent()['party_max'] ?? \App\Models\Occasion::MAX_PARTY_SIZE;
-
         $data = $request->validate([
-            'status'     => ['required', 'in:confirm,decline'],
+            'status'  => ['required', 'in:confirm,decline'],
             // Mot pour les hôtes (facultatif) ; absent = inchangé, vide = effacé.
-            'message'    => ['nullable', 'string', 'max:500'],
-            // Réponse détaillée (modèle « heure dorée ») : personnes et contact.
-            'party_size' => ['nullable', 'integer', 'min:1', 'max:' . $max],
-            'email'      => ['nullable', 'email', 'max:120'],
-            'phone'      => ['nullable', 'string', 'max:30'],
-        ], [
-            'message.max'    => 'Votre mot ne peut dépasser 500 caractères.',
-            'party_size.max' => $max > 1
-                ? "Cette invitation est valable pour {$max} personnes au plus."
-                : 'Cette invitation est valable pour une personne.',
-            'email.email'    => 'Adresse e-mail invalide.',
-        ]);
+            'message' => ['nullable', 'string', 'max:500'],
+        ], ['message.max' => 'Votre mot ne peut dépasser 500 caractères.']);
 
-        // Formulaire détaillé : un moyen de contact est requis (e-mail ou téléphone).
-        if ($request->hasAny(['email', 'phone'])) {
-            $email = trim((string) ($data['email'] ?? ''));
-            $phone = trim((string) ($data['phone'] ?? ''));
-            if ($email === '' && $phone === '' && ! $guest->phone) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['email' => 'Indiquez votre e-mail ou votre téléphone.']);
-            }
-            $guest->email = $email !== '' ? $email : null;
-            // Le numéro saisi par l'organisateur (envoi WhatsApp) reste prioritaire.
-            if ($phone !== '' && ! $guest->phone) {
-                $guest->phone = $phone;
-            }
-        }
-        if ($request->has('party_size')) {
-            $guest->party_size = $data['status'] === 'confirm' ? ($data['party_size'] ?? 1) : null;
-        }
+        $guest = $this->find($token);
         if ($request->has('message')) {
             $message = trim((string) ($data['message'] ?? ''));
             $guest->rsvp_message = $message !== '' ? $message : null;

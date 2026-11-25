@@ -307,11 +307,7 @@ class OccasionController extends Controller
             'faq'               => ['nullable', 'array', 'max:' . Occasion::MAX_FAQ],
             'faq.*.q'           => ['required', 'string', 'max:120'],
             'faq.*.a'           => ['required', 'string', 'max:600'],
-            'rsvp_deadline'     => ['nullable', 'date_format:Y-m-d'],
-            'party_max'         => ['nullable', 'integer', 'min:1', 'max:' . Occasion::MAX_PARTY_SIZE],
         ], [
-            'rsvp_deadline.date_format' => 'Date limite de réponse invalide.',
-            'party_max.max'             => 'Une invitation vaut ' . Occasion::MAX_PARTY_SIZE . ' personnes au plus.',
             'faq.max'                  => 'Les questions fréquentes sont limitées à ' . Occasion::MAX_FAQ . '.',
             'faq.*.q.required'         => 'Écrivez chaque question.',
             'faq.*.a.required'         => 'Écrivez la réponse à chaque question.',
