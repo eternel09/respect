@@ -273,6 +273,41 @@ class OccasionInvitationDesignTest extends TestCase
         $this->assertNull($this->occasion->fresh()->invitation_music_path);
     }
 
+    public function test_porcelaine_and_boheme_templates_with_practical_details(): void
+    {
+        $this->theme(['template' => 'porcelaine'])->assertOk()->assertJsonPath('invitation_theme.template', 'porcelaine');
+        $this->theme(['template' => 'boheme'])->assertOk()->assertJsonPath('invitation_theme.template', 'boheme');
+
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [
+            'subtitle'    => 'Lac de Côme · Italie',
+            'reception'   => ['name' => 'Grand Hôtel Tremezzo', 'time' => '18h30', 'address' => 'Via Regina 8, Tremezzo'],
+            'travel'      => "En voiture : autoroute A9.\nEn train : gare de Côme.",
+            'gift_text'   => 'Votre présence est notre plus beau cadeau.',
+            'gift_holder' => 'Ana et Paul Kalala',
+            'gift_iban'   => 'CD08 0001 2345 6789 0123 4567 890',
+            'faq'         => [['q' => 'Où dormir à proximité ?', 'a' => 'Plusieurs hôtels à 5 minutes.']],
+            'program'     => [['time' => 'De 11h00 à 14h00', 'label' => 'Mariage civil', 'icon' => 'ceremonie', 'note' => str_repeat('a', 150)]],
+        ])->assertOk();
+
+        $this->getJson("/api/rsvp/{$this->guest->token}")->assertOk()
+            ->assertJsonPath('occasion.content.subtitle', 'Lac de Côme · Italie')
+            ->assertJsonPath('occasion.content.reception.name', 'Grand Hôtel Tremezzo')
+            ->assertJsonPath('occasion.content.gift_iban', 'CD08 0001 2345 6789 0123 4567 890')
+            ->assertJsonPath('occasion.content.faq.0.q', 'Où dormir à proximité ?')
+            ->assertJsonPath('occasion.content.program.0.time', 'De 11h00 à 14h00');
+
+        // Sans réception : les champs restent vides, jamais d'erreur.
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", ['subtitle' => ''])->assertOk()
+            ->assertJsonPath('invitation_content.reception', ['name' => null, 'time' => null, 'address' => null])
+            ->assertJsonPath('invitation_content.faq', []);
+    }
+
+    public function test_faq_needs_questions_and_answers(): void
+    {
+        $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", ['faq' => [['q' => 'Parking ?', 'a' => '']]])
+            ->assertStatus(422)->assertJsonValidationErrors('faq.0.a');
+    }
+
     public function test_invalid_program_is_rejected(): void
     {
         $this->asAdmin()->putJson("/api/occasions/{$this->occasion->id}/invitation-content", [

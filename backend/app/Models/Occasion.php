@@ -32,11 +32,13 @@ class Occasion extends Model
      * en défilant, ou « heure dorée » (enveloppe gaufrée, photo plein écran,
      * colonnes et rideaux dorés, histoire du couple).
      */
-    public const THEME_TEMPLATES = ['enveloppe', 'faire-part', 'heure-doree'];
+    public const THEME_TEMPLATES = ['enveloppe', 'faire-part', 'heure-doree', 'porcelaine', 'boheme'];
+    /** Questions fréquentes (modèle « porcelaine »). */
+    public const MAX_FAQ = 6;
     /** Étapes de l'histoire du couple (modèle « heure dorée »). */
     public const MAX_STORY_STEPS = 6;
     /** Pictogrammes du programme (faire-part). */
-    public const PROGRAM_ICONS = ['start', 'ceremonie', 'entree', 'presentation', 'bal', 'discours', 'cadeaux', 'buffet', 'gateau', 'photo', 'danse', 'fin'];
+    public const PROGRAM_ICONS = ['start', 'ceremonie', 'alliances', 'entree', 'presentation', 'bal', 'discours', 'cadeaux', 'buffet', 'gateau', 'photo', 'danse', 'horloge', 'fin'];
     public const MAX_INVITATION_PHOTOS = 4;
     /** Photo de couverture : en arche sous la carte, en fond de page, ou les deux. */
     public const THEME_PHOTO = ['arch', 'background', 'both'];
@@ -210,6 +212,23 @@ class Occasion extends Model
                 'title' => (string) ($i['title'] ?? ''),
                 'text'  => (string) ($i['text'] ?? ''),
             ], is_array($c['story'] ?? null) ? $c['story'] : [])),
+            // Ligne sous les prénoms (ex. « Lac de Côme · Italie »).
+            'subtitle'    => $str('subtitle'),
+            // Second lieu (réception), avec sa carte.
+            'reception'   => [
+                'name'    => trim((string) ($c['reception']['name'] ?? '')) ?: null,
+                'time'    => trim((string) ($c['reception']['time'] ?? '')) ?: null,
+                'address' => trim((string) ($c['reception']['address'] ?? '')) ?: null,
+            ],
+            'travel'      => $str('travel'),
+            // Liste de cadeaux : mot, titulaire et IBAN du compte.
+            'gift_text'   => $str('gift_text'),
+            'gift_holder' => $str('gift_holder'),
+            'gift_iban'   => $str('gift_iban'),
+            'faq'         => array_values(array_map(fn ($i) => [
+                'q' => (string) ($i['q'] ?? ''),
+                'a' => (string) ($i['a'] ?? ''),
+            ], is_array($c['faq'] ?? null) ? $c['faq'] : [])),
             'dress_title' => $str('dress_title'),
             'dress_text'  => $str('dress_text'),
             'closing'     => $str('closing'),

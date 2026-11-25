@@ -9,6 +9,8 @@ import CartonCard from '../../components/invitation/CartonCard'
 import PhotoBackdrop from '../../components/invitation/PhotoBackdrop'
 import FairePart from '../../components/invitation/FairePart'
 import HeureDoree from '../../components/invitation/HeureDoree'
+import Porcelaine from '../../components/invitation/Porcelaine'
+import Boheme from '../../components/invitation/Boheme'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
 import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, resolveTheme, sealOf, startOf } from '../../lib/invitationTheme'
@@ -47,7 +49,8 @@ export default function RsvpPage() {
 
   const fontKey = data?.occasion?.theme?.font
   const isFairePart = data?.occasion?.theme?.template === 'faire-part'
-  const isHeureDoree = data?.occasion?.theme?.template === 'heure-doree'
+  // Modèles « site » : page autonome, chacun avec son ouverture et son décor.
+  const Site = { 'heure-doree': HeureDoree, porcelaine: Porcelaine, boheme: Boheme }[data?.occasion?.theme?.template]
   useEffect(() => {
     loadInvitationFonts(fontKey)
     if (isFairePart) loadInvitationFonts('moderne') // monogramme en didone (Playfair Display)
@@ -148,12 +151,12 @@ export default function RsvpPage() {
     viewport: { once: true, margin: '-60px' }, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
   }
 
-  // Modèle « heure dorée » : enveloppe gaufrée, photo plein écran, décors dorés.
-  if (isHeureDoree) return (
-    <div className="relative min-h-svh overflow-x-hidden" style={{ background: '#efe8da', ...t.fontVars }}>
+  // Modèles « heure dorée », « porcelaine », « bohème » : pages autonomes.
+  if (Site) return (
+    <div className="relative min-h-svh overflow-x-hidden" style={{ background: { porcelaine: '#e9edf5', boheme: '#efe9e2' }[occasion.theme.template] || '#efe8da', ...t.fontVars }}>
       {sparkles && <ParticleField ref={fx} kind="sparkles" colors={t.sparkles} density={0.4} calm={!!reduced} />}
       <div className="relative z-10 mx-auto max-w-[520px] shadow-[0_0_60px_rgba(0,0,0,.08)]">
-        <HeureDoree occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
+        <Site occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
           confirmed={confirmed} declined={declined} busy={busy} err={err} respond={respond}
           rsvpRef={rsvpRef} t={t} reduced={reduced} />
       </div>
