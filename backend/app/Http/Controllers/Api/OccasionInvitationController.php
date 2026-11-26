@@ -266,7 +266,7 @@ class OccasionInvitationController extends Controller
             'eventName' => $occasion->name,
             'guestName' => $guest->name,
             'dateText' => $this->composer->dateText($occasion),
-            'location' => $occasion->location,
+            'location' => $occasion->fullLocation(),
             'tableLabel' => $this->composer->tableLabel($guest),
             'delivery' => $delivery,
             // Page personnelle de l'invité : carton en ligne, QR d'accès,

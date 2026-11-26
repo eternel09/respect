@@ -188,9 +188,25 @@ export function googleCalendarUrl(occasion, { inviteUrl, table }) {
 
   return 'https://calendar.google.com/calendar/event?action=TEMPLATE'
     + `&text=${enc(occasion.name)}&dates=${stamp(start, timed)}/${stamp(end, timed)}`
-    + (occasion.location ? `&location=${enc(occasion.location)}` : '')
+    + (placeOf(occasion) ? `&location=${enc(placeOf(occasion))}` : '')
     + `&details=${enc(details)}`
 }
+
+/**
+ * Salle et adresse de l'événement : l'adresse saisie à part si elle existe,
+ * sinon ce qui suit la première virgule du lieu (anciens événements).
+ */
+export function venueOf(occasion) {
+  const location = (occasion?.location || '').trim()
+  const address = (occasion?.address || '').trim()
+  if (address) return { venue: location, address }
+  const [venue = '', ...rest] = location.split(',')
+  return { venue: venue.trim(), address: rest.map(s => s.trim()).filter(Boolean).join(', ') }
+}
+
+/** Lieu complet (salle + adresse) pour Maps et l'agenda. */
+export const placeOf = (occasion) =>
+  [occasion?.location, occasion?.address].map(s => (s || '').trim()).filter(Boolean).join(', ')
 
 export const mapsUrl = (location) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
 

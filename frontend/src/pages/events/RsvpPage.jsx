@@ -14,7 +14,7 @@ import Porcelaine from '../../components/invitation/Porcelaine'
 import Boheme from '../../components/invitation/Boheme'
 import Countdown from '../../components/invitation/Countdown'
 import ParticleField from '../../components/invitation/ParticleField'
-import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, resolveTheme, sealOf, startOf } from '../../lib/invitationTheme'
+import { calendarHref, eventNames, googleCalendarUrl, hashtag, isAndroid, loadInvitationFonts, longDate, mapsUrl, placeOf, resolveTheme, sealOf, startOf } from '../../lib/invitationTheme'
 
 const seenKey = (token) => `inv-open:${token}`
 const readSeen = (token) => { try { return localStorage.getItem(seenKey(token)) === '1' } catch { return false } }
@@ -260,7 +260,7 @@ export default function RsvpPage() {
               <motion.div {...rise(3)}>
                 <Ornament color={t.goldInk} />
                 <p className="inv-jost font-medium text-[15px] tracking-[0.16em] uppercase" style={{ color: t.ink }}>{longDate(occasion)}</p>
-                {occasion.location && <p className="inv-jost text-[14px] mt-1.5" style={{ color: t.muted }}>{occasion.location}</p>}
+                {placeOf(occasion) && <p className="inv-jost text-[14px] mt-1.5" style={{ color: t.muted }}>{placeOf(occasion)}</p>}
                 {occasion.message && (
                   <p className="inv-serif italic text-[18px] leading-relaxed mt-6 px-2 whitespace-pre-line" style={{ color: t.ink }}>« {occasion.message} »</p>
                 )}
@@ -327,15 +327,15 @@ export default function RsvpPage() {
                   <p className="inv-serif italic text-[17px] mt-4" style={{ color: t.muted }}>À présenter à l'accueil le jour J.</p>
                   <p className="inv-jost text-[14px] font-medium mt-1" style={{ color: t.ink }}>{guest.name}{tableLabel && ` · ${tableLabel}`}</p>
 
-                  <div className={`mt-6 grid gap-3 ${occasion.location ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  <div className={`mt-6 grid gap-3 ${placeOf(occasion) ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <a href={calendarHref(token, API_BASE)}
                       aria-label="Ajouter l'événement à mon agenda"
                       className="rounded-full py-3 inv-jost text-[11.5px] font-semibold tracking-[0.14em] uppercase flex items-center justify-center gap-1.5 text-white"
                       style={{ background: `linear-gradient(180deg, ${t.light}, ${t.main})` }}>
                       <Icon name="event" size={17} /> Agenda
                     </a>
-                    {occasion.location ? (
-                      <a href={mapsUrl(occasion.location)} target="_blank" rel="noreferrer"
+                    {placeOf(occasion) ? (
+                      <a href={mapsUrl(placeOf(occasion))} target="_blank" rel="noreferrer"
                         className="rounded-full py-3 inv-jost text-[11.5px] font-semibold tracking-[0.14em] uppercase flex items-center justify-center gap-1.5"
                         style={{ color: t.ink, border: `1px solid ${t.goldInk}66` }}>
                         <Icon name="near_me" size={17} /> Itinéraire

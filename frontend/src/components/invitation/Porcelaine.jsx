@@ -4,7 +4,7 @@ import Icon from '../ui/Icon'
 import MusicButton from './MusicButton'
 import { API_BASE } from '../../lib/axios'
 import useMusic from '../../lib/useMusic'
-import { calendarHref, eventNames, googleCalendarUrl, initials, isAndroid, loadFont, mapsUrl, startOf } from '../../lib/invitationTheme'
+import { calendarHref, eventNames, googleCalendarUrl, initials, isAndroid, loadFont, mapsUrl, startOf, venueOf } from '../../lib/invitationTheme'
 
 /**
  * Modèle « Porcelaine » (bleu de Delft) de l'invitation en ligne : un
@@ -126,7 +126,7 @@ function Cover({ occasion, reduced, playing }) {
   const { couple, title } = eventNames(occasion.name)
   const c = occasion.content || {}
   const d = startOf(occasion)
-  const place = c.subtitle || (occasion.location || '').split(',').slice(-1)[0]?.trim()
+  const place = c.subtitle || (occasion.address || occasion.location || '').split(',').slice(-1)[0]?.trim()
   return (
     <section id="pz-home" className="scroll-mt-14 relative overflow-hidden" style={{ background: PAPER, minHeight: 640 }}>
       <motion.svg viewBox="0 0 390 760" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full" aria-hidden
@@ -425,7 +425,7 @@ export default function Porcelaine({ occasion, guest, token, tableLabel, confirm
   const { title, couple } = eventNames(occasion.name)
   const date = startOf(occasion)
   const time = occasion.starts_at ? `${pad(date.getHours())}h${pad(date.getMinutes())}` : null
-  const [venue, ...rest] = (occasion.location || '').split(',')
+  const { venue, address } = venueOf(occasion)
   const hasGift = !!(c.gift_text || c.gift_iban)
   const mono = initials(occasion)
 
@@ -507,9 +507,9 @@ export default function Porcelaine({ occasion, guest, token, tableLabel, confirm
           <p className="mt-1 italic" style={{ fontFamily: BODONI, fontSize: 30 }}>{date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           <p className="text-[14px] opacity-75">{date.toLocaleDateString('fr-FR', { weekday: 'long' })}{time && ` · ${time}`}</p>
         </motion.div>
-        {occasion.location && (
+        {(venue || address) && (
           <motion.div {...view(reduced)} className="mt-8">
-            <Venue label={c.ceremony || 'Cérémonie'} name={venue.trim()} time={time} address={rest.join(',').trim()} preview={preview} />
+            <Venue label={c.ceremony || 'Cérémonie'} name={venue} time={time} address={address} preview={preview} />
           </motion.div>
         )}
         {c.reception?.name && (

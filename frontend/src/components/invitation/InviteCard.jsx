@@ -1,4 +1,4 @@
-import { cardDate, eventNames, hashtag } from '../../lib/invitationTheme'
+import { cardDate, eventNames, hashtag, placeOf } from '../../lib/invitationTheme'
 
 const goldText = (t) => ({ backgroundImage: t.gold, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' })
 
@@ -78,8 +78,8 @@ export default function InviteCard({ occasion, guest, theme: t }) {
         {/* Lieu, table, pastille */}
         <div className="flex items-end justify-between mt-[3cqw] gap-[2cqw]" style={{ fontFamily: 'Jost, sans-serif' }}>
           <div className="min-w-0 text-[2.3cqw] leading-snug">
-            {occasion.location && (
-              <p className="truncate"><b className="font-semibold uppercase tracking-[.12em] mr-[1.2cqw]" style={{ color: t.goldLight }}>Lieu</b>{occasion.location}</p>
+            {placeOf(occasion) && (
+              <p className="truncate"><b className="font-semibold uppercase tracking-[.12em] mr-[1.2cqw]" style={{ color: t.goldLight }}>Lieu</b>{placeOf(occasion)}</p>
             )}
             <p className="mt-[1cqw] truncate">
               <span className="inline-block rounded-full px-[1.8cqw] py-[.3cqw] mr-[1.2cqw] text-[1.9cqw] font-semibold uppercase tracking-[.12em] text-[#4a2a08]" style={{ background: t.gold }}>

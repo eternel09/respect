@@ -15,7 +15,7 @@ class Occasion extends Model
 
     protected $fillable = [
         'organization_id', 'created_by', 'name', 'type', 'date',
-        'starts_at', 'ends_at', 'location', 'description', 'invitation_message', 'features',
+        'starts_at', 'ends_at', 'location', 'address', 'description', 'invitation_message', 'features',
         'invitation_delivery',
     ];
 
@@ -71,6 +71,14 @@ class Occasion extends Model
     }
 
     /** Modules actifs : ceux enregistrés, sinon le défaut du type (rétro-compat). */
+    /** Lieu complet (salle + adresse), pour l'agenda, le carton et WhatsApp. */
+    public function fullLocation(): ?string
+    {
+        $parts = array_filter([trim((string) $this->location), trim((string) $this->address)], 'strlen');
+
+        return $parts ? implode(', ', $parts) : null;
+    }
+
     public function featureList(): array
     {
         return $this->features ?? self::defaultFeatures($this->type);

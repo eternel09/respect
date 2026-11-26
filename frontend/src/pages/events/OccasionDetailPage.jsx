@@ -293,7 +293,7 @@ export default function OccasionDetailPage() {
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-2">
               <span>📅 {fmtDate(o.date)}{fmtTime(o.starts_at) && ` · ${fmtTime(o.starts_at)}${fmtTime(o.ends_at) ? ' → ' + fmtTime(o.ends_at) : ''}`}</span>
-              {o.location && <span>📍 {o.location}</span>}
+              {(o.location || o.address) && <span>📍 {[o.location, o.address].filter(Boolean).join(', ')}</span>}
             </div>
           </div>
           {!isEventAgent && (
@@ -820,6 +820,7 @@ function EditOccasionModal({ occasion, onClose, onDone }) {
     starts_at: dtLocal(occasion.starts_at),
     ends_at: dtLocal(occasion.ends_at),
     location: occasion.location || '',
+    address: occasion.address || '',
     features: occasion.features || [],
   })
   const [saving, setSaving] = useState(false)
@@ -838,6 +839,7 @@ function EditOccasionModal({ occasion, onClose, onDone }) {
       if (!payload.starts_at) delete payload.starts_at
       if (!payload.ends_at) delete payload.ends_at
       if (!payload.location) delete payload.location
+      payload.address = payload.address.trim() || null // vider le champ efface l'adresse
       await api.put(`/occasions/${occasion.id}`, payload)
       onDone()
     } catch (err) {
@@ -888,6 +890,11 @@ function EditOccasionModal({ occasion, onClose, onDone }) {
             <input type="date" className={inputCls} value={form.date} onChange={(e) => set('date', e.target.value)} /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Lieu</label>
             <input className={inputCls} value={form.location} onChange={(e) => set('location', e.target.value)} placeholder="Salle Bonanza" /></div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Adresse <span className="text-gray-400 font-normal">(opt.)</span></label>
+          <input className={inputCls} value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="12 avenue de la Justice, Gombe, Kinshasa" data-testid="occasion-address" />
+          <p className="text-[11px] text-gray-400 mt-1">Affichée sous le nom de la salle sur l'invitation, et utilisée pour l'itinéraire Maps.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Début <span className="text-gray-400 font-normal">(opt.)</span></label>
