@@ -17,7 +17,7 @@ import HeureDoreeGallery from './HeureDoreeGallery'
 
 const ART = '/invitations/heure-doree'
 const EASE = [0.22, 1, 0.36, 1]
-const FONTS = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Pinyon+Script&display=swap'
+const FONTS = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Pinyon+Script&family=Playfair+Display:ital,wght@1,400&display=swap'
 const GOLD_BG = 'linear-gradient(135deg,#B8924A 0%,#E6CF9A 45%,#C9A55C 55%,#9C7A3C 100%)'
 const pad = (n) => String(n).padStart(2, '0')
 /** QR du serveur (marine sur blanc) recoloré aux tons du design : brun sur ivoire. */
@@ -194,7 +194,16 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
   const fmt = (o) => date.toLocaleDateString('fr-FR', o)
   const longDate = fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^./, s => s.toUpperCase())
   const time = occasion.starts_at ? `${date.getHours()} h ${pad(date.getMinutes())}` : null
-  const [venue, ...rest] = (occasion.location || '').split(',')
+  // La salle saisie dans l'éditeur (« Nom de la salle ») prime sur le lieu de l'événement.
+  const [placeName, ...placeRest] = (occasion.location || '').split(',')
+  const hall = c.reception?.name?.trim()
+  const venue = hall || placeName.trim()
+  const address = hall ? (c.reception?.address?.trim() || '') : placeRest.join(',').trim()
+  const ceremonyPlace = hall && occasion.location && placeName.trim() !== hall ? occasion.location.trim() : null
+  const routes = [
+    ceremonyPlace && { label: 'Cérémonie', to: occasion.location },
+    (hall || occasion.location) && { label: ceremonyPlace ? 'Réception' : 'Itinéraire', to: hall ? [hall, c.reception?.address].filter(Boolean).join(', ') : occasion.location },
+  ].filter(Boolean)
   const max = Number(c.party_max) || null
   const music = !preview && occasion.music_url
   const guestName = guest?.name || 'Marie Exemple'
@@ -303,9 +312,9 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
                 variants={{ hidden: { opacity: 0, y: 16 }, shown: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 + i * 0.22, ease: EASE } } }}>
                 <motion.span aria-hidden className="absolute block w-2 h-2 rounded-full" style={{ left: -36, top: 3, background: GOLD_BG }}
                   variants={{ hidden: { scale: 0 }, shown: { scale: [0, 1.7, 1], transition: { duration: 0.7, delay: 0.3 + i * 0.22 } } }} />
-                <p className="hd-caps m-0" style={{ textIndent: 0 }}>{p.time}</p>
-                <p className="hd-script m-0 mt-1.5" style={{ fontSize: 28, lineHeight: 1.2 }}>{p.label}</p>
-                {p.note && <p className="m-0 mt-0.5" style={{ fontSize: 16, lineHeight: 1.6, color: '#8A7F72' }}>{p.note}</p>}
+                <p className="hd-time hd-gold m-0">{p.time}</p>
+                <p className="hd-serif m-0 mt-1" style={{ fontSize: 23, lineHeight: 1.25 }}>{p.label}</p>
+                {p.note && <p className="m-0 mt-1 italic" style={{ fontSize: 16, lineHeight: 1.55, color: '#8A7F72' }}>{p.note}</p>}
               </motion.li>
             ))}
           </motion.ol>
@@ -324,19 +333,20 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
         ))}
         <div className="absolute flex flex-col items-center text-center" style={{ left: '24.4%', width: '51.3%', top: '54%' }}>
           <Reveal still={still} delay={0.2}><p className="hd-caps m-0" style={{ lineHeight: 1.5 }}>{fmt({ weekday: 'long' })}<br />{fmt({ day: 'numeric', month: 'long', year: 'numeric' })}</p></Reveal>
-          {venue && <Reveal still={still} delay={0.35}><p className="hd-script hd-gold m-0 mt-1 px-2.5 py-0.5 whitespace-nowrap" style={{ fontSize: venue.trim().length > 14 ? 32 : 40, lineHeight: 1.15 }}>{venue.trim()}</p></Reveal>}
-          {rest.length > 0 && <Reveal still={still} delay={0.45}><p className="m-0" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{rest.join(',').trim()}</p></Reveal>}
+          {venue && <Reveal still={still} delay={0.35}><p className="hd-script hd-gold m-0 mt-1 px-2.5 py-0.5" style={{ fontSize: venue.length > 22 ? 28 : venue.length > 14 ? 32 : 40, lineHeight: 1.15, textWrap: 'balance' }} data-testid="hd-venue">{venue}</p></Reveal>}
+          {address && <Reveal still={still} delay={0.45}><p className="m-0" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{address}</p></Reveal>}
           {(time || c.reception?.time) && (
             <Reveal still={still} delay={0.55}><p className="m-0 mt-2.5" style={{ fontSize: 14, lineHeight: 1.5 }}>
               {time && <>{c.ceremony || 'Cérémonie'} · {time}</>}
+              {ceremonyPlace && <><br /><span className="italic" style={{ fontSize: 13, color: '#8A7F72' }}>{ceremonyPlace}</span></>}
               {c.reception?.time && <><br />Réception · {c.reception.time}</>}
             </p></Reveal>
           )}
           {c.dress_title && <Reveal still={still} delay={0.65}><p className="m-0 mt-2" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{c.dress_title}</p></Reveal>}
         </div>
-        {occasion.location && (
-          <Reveal still={still} delay={0.3} className="absolute" style={{ left: '8.2%', right: '8.2%', top: '88%' }}>
-            <a href={mapsUrl(occasion.location)} target="_blank" rel="noreferrer" className="hd-btn hd-btn-line">Itinéraire</a>
+        {routes.length > 0 && (
+          <Reveal still={still} delay={0.3} className="absolute flex gap-3" style={{ left: '8.2%', right: '8.2%', top: '88%' }}>
+            {routes.map(r => <a key={r.label} href={mapsUrl(r.to)} target="_blank" rel="noreferrer" className="hd-btn hd-btn-line">{r.label}</a>)}
           </Reveal>
         )}
         <div className="hd-grain" />

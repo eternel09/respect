@@ -806,7 +806,7 @@ function EditOccasionModal({ occasion, onClose, onDone }) {
       const payload = { ...form }
       if (!payload.starts_at) delete payload.starts_at
       if (!payload.ends_at) delete payload.ends_at
-      if (!payload.location) delete payload.location
+      payload.location = payload.location.trim() || null // vider le champ efface bien le lieu
       await api.put(`/occasions/${occasion.id}`, payload)
       onDone()
     } catch (err) {

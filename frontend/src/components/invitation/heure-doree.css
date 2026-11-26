@@ -7,6 +7,9 @@
 }
 .hd *, .hd *::before, .hd *::after { box-sizing: border-box; }
 .hd-script { font-family: 'Pinyon Script', 'Great Vibes', cursive; font-weight: 400; }
+/* Programme : heures gravées (Cinzel), intitulés en italique de titrage (Playfair) */
+.hd-time { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-weight: 500; font-size: 15px; letter-spacing: .22em; display: inline-block; padding-right: .1em; }
+.hd-serif { font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 400; color: var(--hd-ink); }
 .hd-caps { font-weight: 500; font-size: 11px; letter-spacing: .32em; text-indent: .32em; text-transform: uppercase; color: var(--hd-muted); }
 
 /* Or : dégradé du design, parcouru d'un lent reflet */
