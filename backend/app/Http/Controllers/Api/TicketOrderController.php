@@ -41,6 +41,7 @@ class TicketOrderController extends Controller
                 'name'     => $occasion->name,
                 'date'     => $occasion->date->toDateString(),
                 'location' => $occasion->location,
+                'address'  => $occasion->address,
                 'closed'   => $occasion->isExpired(),
             ],
             'ticket_types' => $types,

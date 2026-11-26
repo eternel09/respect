@@ -75,7 +75,7 @@ export default function OccasionsPage() {
                   <h3 className="text-lg font-bold text-gray-900 mt-3">{o.name}</h3>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-2">
                     <span>📅 {fmtDate(o.date)}</span>
-                    {o.location && <span>📍 {o.location}</span>}
+                    {(o.location || o.address) && <span>📍 {[o.location, o.address].filter(Boolean).join(', ')}</span>}
                   </div>
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <div className="flex justify-between text-[11.5px] text-gray-500 mb-1.5">
@@ -99,7 +99,7 @@ export default function OccasionsPage() {
 }
 
 function CreateOccasionModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', type: 'mariage', date: '', starts_at: '', ends_at: '', location: '', features: defaultModules('mariage') })
+  const [form, setForm] = useState({ name: '', type: 'mariage', date: '', starts_at: '', ends_at: '', location: '', address: '', features: defaultModules('mariage') })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -118,6 +118,7 @@ function CreateOccasionModal({ onClose, onCreated }) {
       // datetime-local → ISO (optionnels)
       if (!payload.starts_at) delete payload.starts_at
       if (!payload.ends_at) delete payload.ends_at
+      if (!payload.address.trim()) delete payload.address
       const res = await api.post('/occasions', payload)
       onCreated(res.data)
     } catch (err) {
@@ -174,6 +175,8 @@ function CreateOccasionModal({ onClose, onCreated }) {
             <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Lieu</label>
               <input className={input} value={form.location} onChange={e => set('location', e.target.value)} placeholder="Salle Bonanza" /></div>
           </div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Adresse <span className="text-gray-400 font-normal">(opt.)</span></label>
+            <input className={input} value={form.address} onChange={e => set('address', e.target.value)} placeholder="12 avenue de la Justice, Gombe, Kinshasa" /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Début <span className="text-gray-400 font-normal">(opt.)</span></label>
               <input type="datetime-local" className={input} value={form.starts_at} onChange={e => set('starts_at', e.target.value)} /></div>

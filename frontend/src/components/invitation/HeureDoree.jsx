@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import './heure-doree.css'
-import { eventNames, mapsUrl, sealOf, startOf } from '../../lib/invitationTheme'
+import { eventNames, mapsUrl, placeOf, sealOf, startOf, venueOf } from '../../lib/invitationTheme'
 import { ACCESS_NOTE, EASE, GOLD_BG, accessDetails, invitationCode, pad, warmQr } from '../../lib/goldInvitation'
 import HeureDoreeGallery from './HeureDoreeGallery'
 import { CardActions, Divider, H2, QrFrame, Reveal, RsvpForm } from './GoldKit'
@@ -146,7 +146,8 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
   const fmt = (o) => date.toLocaleDateString('fr-FR', o)
   const longDate = fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^./, s => s.toUpperCase())
   const time = occasion.starts_at ? `${date.getHours()} h ${pad(date.getMinutes())}` : null
-  const [venue, ...rest] = (occasion.location || '').split(',')
+  const { venue, address } = venueOf(occasion)
+  const place = placeOf(occasion)
   const max = Number(c.party_max) || null
   const music = !preview && occasion.music_url
   const guestName = guest?.name || 'Marie Exemple'
@@ -276,8 +277,8 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
         ))}
         <div className="absolute flex flex-col items-center text-center" style={{ left: '24.4%', width: '51.3%', top: '54%' }}>
           <Reveal still={still} delay={0.2}><p className="hd-caps m-0" style={{ lineHeight: 1.5 }}>{fmt({ weekday: 'long' })}<br />{fmt({ day: 'numeric', month: 'long', year: 'numeric' })}</p></Reveal>
-          {venue && <Reveal still={still} delay={0.35}><p className="hd-script hd-gold m-0 mt-1 px-2.5 py-0.5 whitespace-nowrap" style={{ fontSize: venue.trim().length > 14 ? 32 : 40, lineHeight: 1.15 }}>{venue.trim()}</p></Reveal>}
-          {rest.length > 0 && <Reveal still={still} delay={0.45}><p className="m-0" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{rest.join(',').trim()}</p></Reveal>}
+          {venue && <Reveal still={still} delay={0.35}><p className="hd-script hd-gold m-0 mt-1 px-2.5 py-0.5 whitespace-nowrap" style={{ fontSize: venue.length > 14 ? 32 : 40, lineHeight: 1.15 }}>{venue}</p></Reveal>}
+          {address && <Reveal still={still} delay={0.45}><p className="m-0" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{address}</p></Reveal>}
           {(time || c.reception?.time) && (
             <Reveal still={still} delay={0.55}><p className="m-0 mt-2.5" style={{ fontSize: 14, lineHeight: 1.5 }}>
               {time && <>{c.ceremony || 'Cérémonie'} · {time}</>}
@@ -286,9 +287,9 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
           )}
           {c.dress_title && <Reveal still={still} delay={0.65}><p className="m-0 mt-2" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{c.dress_title}</p></Reveal>}
         </div>
-        {occasion.location && (
+        {place && (
           <Reveal still={still} delay={0.3} className="absolute" style={{ left: '8.2%', right: '8.2%', top: '88%' }}>
-            <a href={mapsUrl(occasion.location)} target="_blank" rel="noreferrer" className="hd-btn hd-btn-line">Itinéraire</a>
+            <a href={mapsUrl(place)} target="_blank" rel="noreferrer" className="hd-btn hd-btn-line">Itinéraire</a>
           </Reveal>
         )}
         <div className="hd-grain" />

@@ -45,6 +45,7 @@ class RsvpController extends Controller
                 'starts_at'     => $occasion->starts_at?->toIso8601String(),
                 'ends_at'       => $occasion->ends_at?->toIso8601String(),
                 'location'      => $occasion->location,
+                'address'       => $occasion->address,
                 'is_expired'    => $occasion->isExpired(),
                 'video_url'     => $occasion->rsvpVideoUrl(),
                 'music_url'     => $occasion->invitationMusicUrl(),
@@ -115,8 +116,8 @@ class RsvpController extends Controller
         ]);
 
         $lines[] = 'SUMMARY:' . $this->icsText($occasion->name);
-        if ($occasion->location) {
-            $lines[] = 'LOCATION:' . $this->icsText($occasion->location);
+        if ($place = $occasion->fullLocation()) {
+            $lines[] = 'LOCATION:' . $this->icsText($place);
         }
         if ($details) {
             $lines[] = 'DESCRIPTION:' . $this->icsText(implode("\n", $details));

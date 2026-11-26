@@ -66,7 +66,7 @@ export default function BilletteriePage() {
           <h1 className="text-2xl font-bold text-gray-900 mt-1 tracking-tight">{occasion.name}</h1>
           <div className="mt-2 text-sm text-gray-500 space-y-0.5">
             <p>📅 {fmtDate(occasion.date)}</p>
-            {occasion.location && <p>📍 {occasion.location}</p>}
+            {(occasion.location || occasion.address) && <p>📍 {[occasion.location, occasion.address].filter(Boolean).join(', ')}</p>}
           </div>
 
           <div className="my-5 h-px bg-gray-100" />

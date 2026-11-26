@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import Icon from '../ui/Icon'
 import { API_BASE } from '../../lib/axios'
-import { PROGRAM_ICONS, calendarHref, eventNames, googleCalendarUrl, isAndroid, mapsUrl, sealOf, startOf } from '../../lib/invitationTheme'
+import { PROGRAM_ICONS, calendarHref, eventNames, googleCalendarUrl, isAndroid, mapsUrl, placeOf, sealOf, startOf, venueOf } from '../../lib/invitationTheme'
 
 /**
  * Modèle « faire-part » de l'invitation en ligne : un faire-part sur papier
@@ -184,8 +184,8 @@ export default function FairePart({ occasion, guest, token, tableLabel, confirme
   const { title, couple } = eventNames(occasion.name)
   const date = startOf(occasion)
   const time = occasion.starts_at ? `${String(date.getHours()).padStart(2, '0')} H ${String(date.getMinutes()).padStart(2, '0')}'` : null
-  const [venue, ...rest] = (occasion.location || '').split(',')
-  const address = rest.join(',').trim()
+  const { venue, address } = venueOf(occasion)
+  const place = placeOf(occasion)
   const families = c.families || (couple ? `${couple[0]} & ${couple[1]}` : occasion.organization)
   const sc = { fontVariantCaps: 'small-caps' }
 
@@ -237,13 +237,13 @@ export default function FairePart({ occasion, guest, token, tableLabel, confirme
         <motion.section {...view(reduced)} className="mt-9">
           <p className="inv-script text-[44px] leading-none">{c.ceremony || CEREMONY[occasion.type] || title}</p>
           <CalendarStrip date={date} reduced={reduced} />
-          {occasion.location && (
+          {place && (
             <div className="relative mt-6">
               <Icon name="location_on" size={28} fill={1} style={{ color: CRIMSON }} />
-              <p className="inv-cinzel text-[30px] font-semibold leading-none mt-1 tracking-wide">{venue.trim()}</p>
+              <p className="inv-cinzel text-[30px] font-semibold leading-none mt-1 tracking-wide">{venue}</p>
               {address && <p className="inv-serif text-[14px] mt-1.5 px-6" style={sc}>{address}</p>}
               {time && <p className="inv-cinzel text-[17px] font-semibold mt-2">{time}</p>}
-              <a href={mapsUrl(occasion.location)} target="_blank" rel="noreferrer"
+              <a href={mapsUrl(place)} target="_blank" rel="noreferrer"
                 className="mt-2 inline-flex items-end gap-1 inv-serif text-[13px] font-semibold underline underline-offset-2" style={sc}>
                 <svg viewBox="0 0 60 30" className="w-11 mb-1" fill="none" stroke={t.ink} strokeWidth="1.3" strokeLinecap="round" aria-hidden>
                   <path d="M2 10 C 14 2, 26 4, 30 12 C 33 20, 22 22, 22 14 C 22 6, 40 4, 52 22" /><path d="M46 20 L52 23 L54 16" />
@@ -320,14 +320,14 @@ export default function FairePart({ occasion, guest, token, tableLabel, confirme
               </div>
             )}
             <p className="inv-serif italic text-[15px] mt-3 opacity-80">À présenter à l’accueil le jour J.</p>
-            <div className={`mt-5 grid gap-3 ${occasion.location ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`mt-5 grid gap-3 ${place ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <a href={calendarHref(token, API_BASE)} aria-label="Ajouter l'événement à mon agenda"
                 className="rounded-full py-2.5 inv-cinzel text-[12px] font-semibold tracking-[0.14em] flex items-center justify-center gap-1.5 text-white"
                 style={{ background: t.ink }}>
                 <Icon name="event" size={17} /> AGENDA
               </a>
-              {occasion.location && (
-                <a href={mapsUrl(occasion.location)} target="_blank" rel="noreferrer"
+              {place && (
+                <a href={mapsUrl(place)} target="_blank" rel="noreferrer"
                   className="rounded-full py-2.5 inv-cinzel text-[12px] font-semibold tracking-[0.14em] flex items-center justify-center gap-1.5"
                   style={{ border: `1px solid ${t.ink}55` }}>
                   <Icon name="near_me" size={17} /> ITINÉRAIRE

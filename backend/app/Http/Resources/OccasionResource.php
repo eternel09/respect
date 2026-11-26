@@ -17,6 +17,7 @@ class OccasionResource extends JsonResource
             'starts_at'       => $this->starts_at?->toIso8601String(),
             'ends_at'         => $this->ends_at?->toIso8601String(),
             'location'          => $this->location,
+            'address'           => $this->address,
             'description'       => $this->description,
             'features'          => $this->featureList(),
             'invitation_message' => $this->invitation_message,

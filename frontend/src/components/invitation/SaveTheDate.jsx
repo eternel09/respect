@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useScroll, useTransform } from 'motion/react'
 import './heure-doree.css'
-import { eventNames, mapsUrl, startOf } from '../../lib/invitationTheme'
+import { eventNames, mapsUrl, placeOf, startOf, venueOf } from '../../lib/invitationTheme'
 import { ACCESS_NOTE, EASE, accessDetails, goldBorder, invitationCode, pad, warmQr } from '../../lib/goldInvitation'
 import { CardActions, Divider, H2, QrFrame, Reveal, RsvpForm } from './GoldKit'
 import { Curtained, Lightbox } from './HeureDoreeGallery'
@@ -101,7 +101,8 @@ export default function SaveTheDate({ occasion, guest, token, tableLabel, confir
   const gallery = rest.length > 3 ? rest.slice(3) : rest
   const max = Number(c.party_max) || null
   const guestName = guest?.name || 'Marie Exemple'
-  const [venue, ...addr] = (occasion.location || '').split(',').map(s => s.trim())
+  const { venue, address } = venueOf(occasion)
+  const place = placeOf(occasion)
   const time = occasion.starts_at ? `${date.getHours()} h ${pad(date.getMinutes())}` : null
   const longDate = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   const music = !preview && occasion.music_url
@@ -211,7 +212,7 @@ export default function SaveTheDate({ occasion, guest, token, tableLabel, confir
             <>
               <Reveal still={still} delay={0.1} className="mt-7" style={caps}>Le lieu</Reveal>
               <Reveal still={still} delay={0.2}><p className="hd-script hd-gold m-0 mt-2 px-4 py-1" style={{ fontSize: venue.length > 18 ? 32 : 40, lineHeight: 1.2 }} data-testid="std-venue">{venue}</p></Reveal>
-              {addr.length > 0 && <Reveal still={still} delay={0.3}><p className="m-0 mt-1 mx-8" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{addr.join(', ')}</p></Reveal>}
+              {address && <Reveal still={still} delay={0.3}><p className="m-0 mt-1 mx-8" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>{address}</p></Reveal>}
             </>
           )}
           {time && (
@@ -224,17 +225,17 @@ export default function SaveTheDate({ occasion, guest, token, tableLabel, confir
       )}
 
       {/* 04 · Itinéraire */}
-      {occasion.location && (
+      {place && (
         <div className="flex flex-col items-center w-full" style={{ marginTop: 56 }}>
           <Reveal still={still} style={caps}>Itinéraire</Reveal>
           <Reveal still={still} delay={0.15} className="mt-4" style={{ width: 'min(326px, 83.6%)', height: 200, padding: 8, ...goldBorder('#F8F4EC') }}>
             {preview
               ? <div className="w-full h-full" style={{ background: 'repeating-linear-gradient(45deg,#EFE6D2 0 12px,#E9DEC6 12px 24px)' }} />
-              : <iframe title={`Carte : ${occasion.location}`} src={`https://www.google.com/maps?q=${encodeURIComponent(occasion.location)}&z=16&output=embed`}
+              : <iframe title={`Carte : ${place}`} src={`https://www.google.com/maps?q=${encodeURIComponent(place)}&z=16&output=embed`}
                   loading="lazy" className="block w-full h-full border-0" style={{ background: '#EFE6D2' }} />}
           </Reveal>
           <Reveal still={still} delay={0.25} className="mt-4" style={{ width: 'min(326px, 83.6%)' }}>
-            <a href={mapsUrl(occasion.location)} target="_blank" rel="noopener noreferrer" className="hd-btn hd-btn-line">Ouvrir dans Maps</a>
+            <a href={mapsUrl(place)} target="_blank" rel="noopener noreferrer" className="hd-btn hd-btn-line">Ouvrir dans Maps</a>
           </Reveal>
         </div>
       )}

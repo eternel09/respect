@@ -4,7 +4,7 @@ import Icon from '../ui/Icon'
 import MusicButton from './MusicButton'
 import { API_BASE } from '../../lib/axios'
 import useMusic from '../../lib/useMusic'
-import { PROGRAM_ICONS, calendarHref, eventNames, googleCalendarUrl, isAndroid, mapsUrl, startOf } from '../../lib/invitationTheme'
+import { PROGRAM_ICONS, calendarHref, eventNames, googleCalendarUrl, isAndroid, mapsUrl, placeOf, startOf } from '../../lib/invitationTheme'
 
 /**
  * Modèle « Bohème » de l'invitation en ligne : un faire-part aquarelle aux
@@ -238,8 +238,8 @@ export default function Boheme({ occasion, guest, token, tableLabel, confirmed, 
               )
             })}
           </ol>
-        ) : occasion.location && (
-          <motion.p {...view(reduced)} className="mt-4 text-[14.5px]"><b className="font-semibold">{occasion.location}</b></motion.p>
+        ) : placeOf(occasion) && (
+          <motion.p {...view(reduced)} className="mt-4 text-[14.5px]"><b className="font-semibold">{placeOf(occasion)}</b></motion.p>
         )}
 
         {/* Mot de la fin */}
@@ -293,13 +293,13 @@ export default function Boheme({ occasion, guest, token, tableLabel, confirmed, 
           <motion.section {...view(reduced)} className="mt-10" data-testid="invitation-access">
             <p className="text-[12.5px] font-semibold" style={caps}>Votre pass d’accès</p>
             {guest.qr && <div className="mx-auto mt-3 w-44 rounded-2xl bg-white p-3" style={{ boxShadow: `0 0 0 2px ${OLIVE}` }}><img src={guest.qr} alt="Votre QR d'accès" className="w-full aspect-square" /></div>}
-            <div className={`mt-4 grid gap-2 max-w-[300px] mx-auto ${occasion.location ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`mt-4 grid gap-2 max-w-[300px] mx-auto ${placeOf(occasion) ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <a href={calendarHref(token, API_BASE)} aria-label="Ajouter l'événement à mon agenda"
                 className="rounded-full py-2.5 text-[11.5px] flex items-center justify-center gap-1.5" style={{ ...caps, boxShadow: `inset 0 0 0 1px ${BROWN}55` }}>
                 <Icon name="event" size={15} /> Agenda
               </a>
-              {occasion.location && (
-                <a href={mapsUrl(occasion.location)} target="_blank" rel="noreferrer"
+              {placeOf(occasion) && (
+                <a href={mapsUrl(placeOf(occasion))} target="_blank" rel="noreferrer"
                   className="rounded-full py-2.5 text-[11.5px] flex items-center justify-center gap-1.5" style={{ ...caps, boxShadow: `inset 0 0 0 1px ${BROWN}55` }}>
                   <Icon name="near_me" size={15} /> Itinéraire
                 </a>

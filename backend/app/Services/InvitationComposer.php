@@ -37,7 +37,7 @@ class InvitationComposer
             'eventName'  => $occasion->name,
             'guestName'  => $guestName,
             'dateText'   => $this->dateText($occasion),
-            'location'   => $occasion->location,
+            'location'   => $occasion->fullLocation(),
             'tableLabel' => $tableLabel,
             'qrDataUri'  => 'data:image/svg+xml;base64,' . $this->qr->guest($token),
             'backgroundDataUri' => $occasion->invitationBgDataUri(),

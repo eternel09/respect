@@ -127,7 +127,7 @@ class SendDayReminders extends Command
                 'eventName'     => $occasion->name,
                 'guestName'     => $guest->name,
                 'timeText'      => $occasion->starts_at?->format('H\hi'),
-                'location'      => $occasion->location,
+                'location'      => $occasion->fullLocation(),
                 'tableLabel'    => $composer->tableLabel($guest),
                 'invitationUrl' => $composer->guestUrl($guest),
             ]);
