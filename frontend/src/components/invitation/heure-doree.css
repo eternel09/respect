@@ -64,3 +64,7 @@
 }
 .hd-reduced .hd-gold, .hd-reduced .hd-twinkle { animation: none; }
 .hd-reduced .hd-sheen { display: none; }
+
+/* Pastilles de choix (boissons) : plus serrées, deux par ligne */
+.hd-pill-sm { flex: none; font-size: 12px; letter-spacing: .14em; text-indent: .14em; padding: 0 8px; }
+.hd-pill-sm[aria-checked="true"] { background: linear-gradient(var(--hd-cream), var(--hd-cream)) padding-box, var(--hd-gold) border-box; }

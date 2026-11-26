@@ -9,6 +9,7 @@ import CartonCard from '../../components/invitation/CartonCard'
 import PhotoBackdrop from '../../components/invitation/PhotoBackdrop'
 import FairePart from '../../components/invitation/FairePart'
 import HeureDoree from '../../components/invitation/HeureDoree'
+import SaveTheDate from '../../components/invitation/SaveTheDate'
 import Porcelaine from '../../components/invitation/Porcelaine'
 import Boheme from '../../components/invitation/Boheme'
 import Countdown from '../../components/invitation/Countdown'
@@ -95,6 +96,7 @@ export default function RsvpPage() {
       const res = await api.post(`/rsvp/${token}`, { status, ...extra })
       if ('message' in extra) setData(d => ({ ...d, guest: { ...d.guest, message: extra.message?.trim() || null } }))
       if ('party_size' in extra || status === 'decline') setData(d => ({ ...d, guest: { ...d.guest, party_size: status === 'confirm' ? extra.party_size : null } }))
+      if ('drinks' in extra || status === 'decline') setData(d => ({ ...d, guest: { ...d.guest, drinks: status === 'confirm' ? extra.drinks : [] } }))
       setResult({ status: res.data.status, table: res.data.table, message: res.data.message })
       if (status === 'confirm' && !reduced) {
         burstAt(rsvpRef.current, fx.current, 0.5, 0.3, 160)
@@ -152,11 +154,12 @@ export default function RsvpPage() {
     viewport: { once: true, margin: '-60px' }, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
   }
 
-  // « Heure dorée » : page autonome sur fond crème, sans les paillettes (le modèle a ses propres animations).
-  if (occasion.theme?.template === 'heure-doree') return (
+  // « Heure dorée », « Save the Date » : pages autonomes sur fond crème, sans les paillettes (chaque modèle a ses propres animations).
+  const Golden = { 'heure-doree': HeureDoree, 'save-the-date': SaveTheDate }[occasion.theme?.template]
+  if (Golden) return (
     <div className="min-h-svh" style={{ background: '#EFE6D2' }}>
-      <div className="relative mx-auto max-w-[430px] shadow-[0_0_60px_rgba(91,81,70,.10)]">
-        <HeureDoree occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
+      <div className="relative mx-auto max-w-[430px] shadow-[0_0_60px_rgba(91,81,70,.10)]" style={{ background: '#F8F4EC' }}>
+        <Golden occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
           confirmed={confirmed} declined={declined} busy={busy} err={err} respond={respond} rsvpRef={rsvpRef} reduced={reduced} />
       </div>
     </div>

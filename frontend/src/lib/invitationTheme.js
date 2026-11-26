@@ -220,8 +220,15 @@ export const contentFrom = (o) => {
     gift_text: c.gift_text || '', gift_holder: c.gift_holder || '', gift_iban: c.gift_iban || '',
     faq: (c.faq || []).map(f => ({ q: f.q || '', a: f.a || '' })),
     rsvp_deadline: c.rsvp_deadline || '', party_max: c.party_max ? String(c.party_max) : '',
+    // Carte des boissons : dans l'éditeur, les boissons d'une catégorie se saisissent séparées par des virgules.
+    drinks: (c.drinks || []).map(d => ({ group: d.group || '', name: d.name || '', items: (d.items || []).join(', ') })),
   }
 }
+
+/** Carte des boissons de l'éditeur (boissons en texte) → carte de l'invitation (boissons en liste). */
+export const drinkMenu = (list = []) => list
+  .map(d => ({ group: d.group.trim() || null, name: d.name.trim(), items: [...new Set(d.items.split(',').map(s => s.trim()).filter(Boolean))] }))
+  .filter(d => d.name && d.items.length)
 
 /** Charge une police Google une seule fois (modèles qui ont leur propre famille). */
 export function loadFont(id, family) {

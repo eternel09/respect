@@ -100,32 +100,32 @@ function Fan({ photos, reduced, preview, onOpen, paused }) {
 }
 
 /** Photo pleine largeur : rideau, Ken Burns puis parallaxe. */
-function Curtained({ src, ratio, from = 'top', reduced, preview, onOpen, objectPosition }) {
+export function Curtained({ src, ratio, from = 'top', reduced, preview, onOpen, objectPosition, delay = 0, plain = false }) {
   const ref = useRef(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
   const y = useTransform(scrollYProgress, [0, 1], ['-7%', '7%'])
-  const hidden = { top: 'inset(0% 0% 100% 0%)', left: 'inset(0% 100% 0% 0%)', right: 'inset(0% 0% 0% 100%)' }[from]
+  const hidden = { top: 'inset(0% 0% 100% 0%)', left: 'inset(0% 100% 0% 0%)', right: 'inset(0% 0% 0% 100%)', bottom: 'inset(100% 0% 0% 0%)' }[from]
   const still = reduced || preview
   return (
     <motion.button ref={ref} type="button" onClick={() => !preview && onOpen(src)} aria-label="Agrandir la photo"
-      className="hd-frame block w-full relative cursor-pointer" style={{ aspectRatio: ratio, boxShadow: '0 22px 40px -26px rgba(91,81,70,.5)' }}
+      className={`${plain ? '' : 'hd-frame '}block w-full relative cursor-pointer`} style={{ aspectRatio: ratio, boxShadow: plain ? undefined : '0 22px 40px -26px rgba(91,81,70,.5)' }}
       // Le cadre (visible) déclenche tout : un élément entièrement masqué par clip-path n'est jamais « dans l'écran ».
       initial={still ? false : 'hidden'} whileInView="shown" viewport={{ once: true, margin: '-60px' }}
-      variants={{ hidden: { opacity: 0, y: 28 }, shown: { opacity: 1, y: 0, transition: { duration: 0.9, ease: EASE } } }}>
+      variants={{ hidden: { opacity: 0, y: 28 }, shown: { opacity: 1, y: 0, transition: { duration: 0.9, delay, ease: EASE } } }}>
       <motion.span className="block w-full h-full overflow-hidden relative"
-        variants={{ hidden: { clipPath: hidden }, shown: { clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 1.3, delay: 0.15, ease: [0.77, 0, 0.18, 1] } } }}>
+        variants={{ hidden: { clipPath: hidden }, shown: { clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 1.3, delay: 0.15 + delay, ease: [0.77, 0, 0.18, 1] } } }}>
         <motion.img src={src} alt="" loading="lazy" decoding="async" draggable={false}
           className="absolute left-0 w-full object-cover pointer-events-none" style={{ top: '-8%', height: '116%', objectPosition, y: still ? 0 : y }}
-          variants={{ hidden: { scale: 1.25 }, shown: { scale: 1, transition: { duration: 2.4, delay: 0.15, ease: EASE } } }} />
+          variants={{ hidden: { scale: 1.25 }, shown: { scale: 1, transition: { duration: 2.4, delay: 0.15 + delay, ease: EASE } } }} />
         {!still && <motion.span className="absolute inset-0 pointer-events-none"
-          variants={{ hidden: { opacity: 0 }, shown: { opacity: 1, transition: { delay: 1.1 } } }}><span className="hd-sheen" /></motion.span>}
+          variants={{ hidden: { opacity: 0 }, shown: { opacity: 1, transition: { delay: 1.1 + delay } } }}><span className="hd-sheen" /></motion.span>}
       </motion.span>
     </motion.button>
   )
 }
 
 /** Visionneuse plein écran : glisser, flèches, Échap ; zoom depuis la photo touchée. */
-function Lightbox({ photos, start, onClose }) {
+export function Lightbox({ photos, start, onClose }) {
   const [i, setI] = useState(start)
   const [dir, setDir] = useState(0)
   const n = photos.length

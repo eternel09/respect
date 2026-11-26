@@ -591,6 +591,8 @@ export default function OccasionDetailPage() {
               <button onClick={() => setModal('guest')} className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-xl px-3.5 py-2">+ Ajouter</button>
             </div>
 
+            <DrinkTotals guests={guests} />
+
             {/* Barre de sélection multiple */}
             {selected.size > 0 && (
               <div className="flex items-center gap-3 px-4 py-2.5 bg-brand/5 border-b border-brand/10">
@@ -657,6 +659,12 @@ export default function OccasionDetailPage() {
                               <p className="mt-1.5 max-w-[260px] text-xs text-gray-500 italic flex items-start gap-1" data-testid="rsvp-message">
                                 <Icon name="chat_bubble" size={13} className="mt-0.5 flex-shrink-0 text-gray-400" />
                                 <span className="whitespace-pre-line">« {g.rsvp_message} »</span>
+                              </p>
+                            )}
+                            {g.confirmed && g.drinks?.length > 0 && (
+                              <p className="mt-1.5 max-w-[260px] text-xs text-gray-500 flex items-start gap-1" data-testid="rsvp-drinks">
+                                <Icon name="local_bar" size={13} className="mt-0.5 flex-shrink-0 text-gray-400" />
+                                <span>{g.drinks.join(' · ')}</span>
                               </p>
                             )}
                           </td>
@@ -736,6 +744,29 @@ export default function OccasionDetailPage() {
         )}
       </div>
     </AdminLayout>
+  )
+}
+
+/** Boissons choisies par les invités qui ont confirmé : total par boisson, pour le traiteur. */
+function DrinkTotals({ guests }) {
+  const counts = new Map()
+  guests.forEach(g => { if (g.confirmed) (g.drinks || []).forEach(d => counts.set(d, (counts.get(d) || 0) + 1)) })
+  if (!counts.size) return null
+  const rows = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'))
+  return (
+    <div className="px-4 py-3 border-b border-gray-100 bg-amber-50/40" data-testid="drink-totals">
+      <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+        <Icon name="local_bar" size={15} className="text-amber-700" /> Boissons choisies
+        <span className="normal-case tracking-normal font-normal text-gray-400">· nombre d’invitations confirmées</span>
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {rows.map(([d, n]) => (
+          <span key={d} className="inline-flex items-center gap-1.5 rounded-full bg-white ring-1 ring-amber-200 px-2.5 py-1 text-xs text-gray-700">
+            {d} <span className="font-bold text-amber-800">{n}</span>
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 

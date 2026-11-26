@@ -8,10 +8,11 @@ import PhotoBackdrop from './PhotoBackdrop'
 import FairePart from './FairePart'
 import FairePartEditor from './FairePartEditor'
 import HeureDoree from './HeureDoree'
+import SaveTheDate from './SaveTheDate'
 import Porcelaine from './Porcelaine'
 import Boheme from './Boheme'
 import TemplateThumb from './TemplateThumb'
-import { FONT_SETS, PALETTES, contentFrom, eventNames, loadInvitationFonts, monogram, resolveTheme, sealOf, themeFor } from '../../lib/invitationTheme'
+import { FONT_SETS, PALETTES, contentFrom, drinkMenu, eventNames, loadInvitationFonts, monogram, resolveTheme, sealOf, themeFor } from '../../lib/invitationTheme'
 
 const draftFrom = (o) => {
   const th = o.invitation_theme || {}
@@ -32,11 +33,12 @@ const TEMPLATES = [
   ['enveloppe', 'mail', 'Enveloppe', "Une enveloppe scellée qui s'ouvre au toucher ; la carte en sort."],
   ['faire-part', 'article', 'Faire-part', 'Un faire-part qui se lit en défilant : photos, programme, thème, table.'],
   ['heure-doree', 'auto_awesome', 'Heure dorée', 'Sceau de cire, photo en arche, colonnes fleuries, galerie animée, cadre baroque au lustre et carte personnelle avec QR.'],
+  ['save-the-date', 'event', 'Save the Date', 'Grande photo fondue, calendrier du jour J, lieu et carte, photos en arche, carte des boissons et accès personnel avec QR.'],
   ['porcelaine', 'local_florist', 'Porcelaine', 'Portefeuille noué d’un ruban, pivoines bleues, plans des lieux, liste de cadeaux, questions.'],
   ['boheme', 'spa', 'Bohème', 'Aquarelle et fleurs séchées, photo en arche, Save the Date, programme illustré.'],
 ]
 // Modèles « site » : une page complète par modèle (aperçu défilant, musique).
-const SITES = { 'heure-doree': [HeureDoree, '#F8F4EC'], porcelaine: [Porcelaine, '#e9edf5'], boheme: [Boheme, '#efe9e2'] }
+const SITES = { 'heure-doree': [HeureDoree, '#F8F4EC'], 'save-the-date': [SaveTheDate, '#F8F4EC'], porcelaine: [Porcelaine, '#e9edf5'], boheme: [Boheme, '#efe9e2'] }
 
 const Label = ({ children }) => <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{children}</p>
 
@@ -78,7 +80,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
   const sample = guests[0]
   const preview = {
     ...o, theme: { ...draft, color: draft.palette === 'custom' ? draft.color : null },
-    content, photos: o.invitation_photos || [], cover_url: o.invitation_cover_url, organization: o.name,
+    content: { ...content, drinks: drinkMenu(content.drinks) }, photos: o.invitation_photos || [], cover_url: o.invitation_cover_url, organization: o.name,
   }
   const t = resolveTheme(preview)
   const { title, couple } = eventNames(o.name)
@@ -294,9 +296,9 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
             </div>}
           </div>
 
-          {(golden || draft.template === 'boheme') && (
+          {(golden || draft.template === 'boheme' || draft.template === 'save-the-date') && (
             <div>
-              <Label>{golden ? "Photo d'ouverture" : 'Photo en arche'}</Label>
+              <Label>{golden ? "Photo d'ouverture" : draft.template === 'save-the-date' ? "Grande photo d'en-tête" : 'Photo en arche'}</Label>
               <div className="flex items-center gap-3">
                 {o.invitation_cover_url
                   ? <img src={o.invitation_cover_url} alt="" className="h-20 w-14 object-cover rounded-lg ring-1 ring-black/10" />
@@ -313,7 +315,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
                   )}
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mt-1">{golden ? "Affichée en plein écran à l'ouverture de l'enveloppe." : 'Affichée dans l’arche sous le texte d’invitation.'} Une photo en hauteur rend le mieux.</p>
+              <p className="text-xs text-gray-400 mt-1">{golden ? "Affichée en plein écran à l'ouverture de l'enveloppe." : draft.template === 'save-the-date' ? 'Affichée en tête, fondue dans le papier (vide : la 1ʳᵉ photo de la galerie).' : 'Affichée dans l’arche sous le texte d’invitation.'} Une photo en hauteur rend le mieux.</p>
             </div>
           )}
           {site && (
@@ -333,7 +335,7 @@ export default function InvitationDesignCard({ occasion: o, guests, onSaved, set
                     className="px-3 py-2 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50">Retirer</button>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1">{draft.template === 'boheme' ? "Démarre au premier geste de l'invité" : "Démarre quand l'invité ouvre l'invitation"} ; un bouton lui permet de la couper. MP3, M4A, AAC, OGG ou WAV, 15 Mo max.</p>
+              <p className="text-xs text-gray-400 mt-1">{['boheme', 'save-the-date'].includes(draft.template) ? "Démarre au premier geste de l'invité" : "Démarre quand l'invité ouvre l'invitation"} ; un bouton lui permet de la couper. MP3, M4A, AAC, OGG ou WAV, 15 Mo max.</p>
             </div>
           )}
           {scrolling ? (

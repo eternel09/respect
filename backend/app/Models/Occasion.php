@@ -32,7 +32,7 @@ class Occasion extends Model
      * en défilant, ou « heure dorée » (enveloppe gaufrée, photo plein écran,
      * colonnes et rideaux dorés, histoire du couple).
      */
-    public const THEME_TEMPLATES = ['enveloppe', 'faire-part', 'heure-doree', 'porcelaine', 'boheme'];
+    public const THEME_TEMPLATES = ['enveloppe', 'faire-part', 'heure-doree', 'porcelaine', 'boheme', 'save-the-date'];
     /** Questions fréquentes (modèle « porcelaine »). */
     public const MAX_FAQ = 6;
     /** Étapes de l'histoire du couple (modèle « heure dorée »). */
@@ -42,6 +42,10 @@ class Occasion extends Model
     public const MAX_INVITATION_PHOTOS = 8;
     /** Places par invitation, au plus (réponse « heure dorée »). */
     public const MAX_PARTY_SIZE = 20;
+
+    /** Carte des boissons : catégories et boissons par catégorie, au plus. */
+    public const MAX_DRINK_CATEGORIES = 12;
+    public const MAX_DRINKS_PER_CATEGORY = 24;
     /** Photo de couverture : en arche sous la carte, en fond de page, ou les deux. */
     public const THEME_PHOTO = ['arch', 'background', 'both'];
 
@@ -238,7 +242,40 @@ class Occasion extends Model
             'rsvp_deadline' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($c['rsvp_deadline'] ?? '')) ? $c['rsvp_deadline'] : null,
             'party_max'     => isset($c['party_max']) && (int) $c['party_max'] >= 1
                 ? min((int) $c['party_max'], self::MAX_PARTY_SIZE) : null,
+            // Carte des boissons proposée à l'invité : [{group, name, items[]}].
+            'drinks'        => self::drinkMenu($c['drinks'] ?? []),
         ];
+    }
+
+    /** Carte des boissons nettoyée : catégories nommées, boissons uniques et non vides. */
+    public static function drinkMenu(mixed $menu): array
+    {
+        if (! is_array($menu)) {
+            return [];
+        }
+        $out = [];
+        foreach (array_slice($menu, 0, self::MAX_DRINK_CATEGORIES) as $cat) {
+            $name = trim((string) ($cat['name'] ?? ''));
+            $items = array_values(array_unique(array_filter(array_map(
+                fn ($i) => trim((string) $i), is_array($cat['items'] ?? null) ? $cat['items'] : [],
+            ), fn ($i) => $i !== '')));
+            if ($name === '' || $items === []) {
+                continue;
+            }
+            $out[] = [
+                'group' => trim((string) ($cat['group'] ?? '')) ?: null,
+                'name'  => $name,
+                'items' => array_slice($items, 0, self::MAX_DRINKS_PER_CATEGORY),
+            ];
+        }
+
+        return $out;
+    }
+
+    /** Toutes les boissons de la carte (pour valider le choix d'un invité). */
+    public function drinkChoices(): array
+    {
+        return array_merge([], ...array_column($this->invitationContent()['drinks'], 'items'));
     }
 
     /** Photos du couple (galerie du faire-part) : URL publiques, dans l'ordre. */
