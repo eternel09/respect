@@ -94,6 +94,7 @@ export default function RsvpPage() {
     try {
       const res = await api.post(`/rsvp/${token}`, { status, ...extra })
       if ('message' in extra) setData(d => ({ ...d, guest: { ...d.guest, message: extra.message?.trim() || null } }))
+      if ('party_size' in extra || status === 'decline') setData(d => ({ ...d, guest: { ...d.guest, party_size: status === 'confirm' ? extra.party_size : null } }))
       setResult({ status: res.data.status, table: res.data.table, message: res.data.message })
       if (status === 'confirm' && !reduced) {
         burstAt(rsvpRef.current, fx.current, 0.5, 0.3, 160)
@@ -151,7 +152,17 @@ export default function RsvpPage() {
     viewport: { once: true, margin: '-60px' }, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
   }
 
-  // Modèles « heure dorée », « porcelaine », « bohème » : pages autonomes.
+  // « Heure dorée » : page autonome sur fond crème, sans les paillettes (le modèle a ses propres animations).
+  if (occasion.theme?.template === 'heure-doree') return (
+    <div className="min-h-svh" style={{ background: '#EFE6D2' }}>
+      <div className="relative mx-auto max-w-[430px] shadow-[0_0_60px_rgba(91,81,70,.10)]">
+        <HeureDoree occasion={occasion} guest={guest} token={token} tableLabel={tableLabel}
+          confirmed={confirmed} declined={declined} busy={busy} err={err} respond={respond} rsvpRef={rsvpRef} reduced={reduced} />
+      </div>
+    </div>
+  )
+
+  // Modèles « porcelaine », « bohème » : pages autonomes.
   if (Site) return (
     <div className="relative min-h-svh overflow-x-hidden" style={{ background: { porcelaine: '#e9edf5', boheme: '#efe9e2' }[occasion.theme.template] || '#efe8da', ...t.fontVars }}>
       {sparkles && <ParticleField ref={fx} kind="sparkles" colors={t.sparkles} density={0.4} calm={!!reduced} />}

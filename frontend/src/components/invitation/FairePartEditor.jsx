@@ -3,7 +3,7 @@ import api, { apiErrorMessage } from '../../lib/axios'
 import Icon from '../ui/Icon'
 import { PROGRAM_ICONS } from '../../lib/invitationTheme'
 
-const MAX_PHOTOS = 4
+const MAX_PHOTOS = 8
 const MAX_STORY = 6
 const MAX_FAQ = 6
 const field = 'rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30'
@@ -57,18 +57,18 @@ const SAMPLE_STORY = [
 /** Champs proposés pour chaque modèle (un modèle n'affiche que ce qu'il utilise). */
 const FIELDS = {
   'faire-part':  ['photos', 'families', 'ceremony', 'verse', 'program', 'icons', 'dress', 'intro', 'closing'],
-  'heure-doree': ['photos', 'ceremony', 'verse', 'story', 'program', 'notes', 'dress', 'intro', 'closing'],
+  'heure-doree': ['photos', 'ceremony', 'reception', 'verse', 'program', 'notes', 'dress', 'rsvp', 'intro'],
   porcelaine:    ['subtitle', 'ceremony', 'reception', 'travel', 'program', 'notes', 'dress', 'gift', 'faq', 'intro', 'closing'],
   boheme:        ['photos', 'subtitle', 'families', 'verse', 'program', 'icons', 'notes', 'intro', 'closing'],
 }
 
 /** Libellés et exemples qui changent d'un modèle à l'autre. */
 const COPY = {
-  photos: { 'faire-part': '3 en tête, la 4ᵉ en bas de page', 'heure-doree': 'la 1ʳᵉ en grand à l’ouverture (sans photo d’ouverture), les suivantes dans la galerie', boheme: 'la 1ʳᵉ dans l’arche (sans photo en arche), la dernière en bas de page' },
-  verse: { 'heure-doree': ['Phrase d’accueil', 'Là où l’amour commence, l’éternité se dessine doucement.'] },
+  photos: { 'faire-part': '3 en tête, la 4ᵉ en bas de page', 'heure-doree': 'la 1ʳᵉ dans l’arche d’accueil (sans photo d’ouverture), les suivantes dans la galerie animée : 5 photos donnent l’éventail et deux photos pleine largeur', boheme: 'la 1ʳᵉ dans l’arche (sans photo en arche), la dernière en bas de page' },
+  verse: { 'heure-doree': ['Citation', 'Et ils choisirent de s’aimer pour toujours.'] },
   subtitle: { porcelaine: ['Ligne sous les prénoms', 'Kinshasa · Gombe'], boheme: ['Phrase d’ouverture', 'Deux cœurs, un même chemin.'] },
   intro: {
-    'heure-doree': ['Mot de la réponse (RSVP)', 'Votre présence rendrait cette journée encore plus belle. Merci de nous confirmer votre venue.'],
+    'heure-doree': ['Mot d’accueil (sous la photo)', 'Cher(e) [nom de l’invité], nous serions honorés de votre présence.'],
     porcelaine: ['Mot de la réponse (RSVP)', 'Votre présence compte énormément pour nous. Merci de nous répondre.'],
     boheme: ['Texte d’invitation', 'Sous le regard de Celui qui unit et bénit, … ont choisi de marcher ensemble…'],
   },
@@ -107,6 +107,8 @@ export default function FairePartEditor({ occasion: o, template = 'faire-part', 
         program: content.program.filter(s => s.time.trim() || s.label.trim()),
         story: content.story.filter(s => s.title.trim() || s.text.trim() || s.year.trim()),
         faq: content.faq.filter(s => s.q.trim() || s.a.trim()),
+        rsvp_deadline: content.rsvp_deadline || null,
+        party_max: content.party_max === '' || content.party_max == null ? null : Number(content.party_max),
       })
       onSaved({ invitation_content: res.data.invitation_content })
       setFlash({ ok: true, text: res.data.message })
@@ -299,6 +301,20 @@ export default function FairePartEditor({ occasion: o, template = 'faire-part', 
           <div>
             <Label hint="facultatif">Dress code</Label>
             <textarea className={input} rows={2} value={content.dress_text} maxLength={600} onChange={e => set({ dress_text: e.target.value })} placeholder="Tenue noire rehaussée d'une touche d'or." />
+          </div>
+        </div>
+      )}
+
+      {has('rsvp') && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label hint="facultatif">Répondre avant le</Label>
+            <input type="date" className={input} value={content.rsvp_deadline} onChange={e => set({ rsvp_deadline: e.target.value })} aria-label="Date limite de réponse" />
+          </div>
+          <div>
+            <Label hint="vide : non précisé">Places par invitation</Label>
+            <input type="number" min={1} max={20} inputMode="numeric" className={input} value={content.party_max}
+              onChange={e => set({ party_max: e.target.value })} placeholder="2" aria-label="Nombre de personnes par invitation" />
           </div>
         </div>
       )}

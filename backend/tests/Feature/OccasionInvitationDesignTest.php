@@ -317,18 +317,18 @@ class OccasionInvitationDesignTest extends TestCase
         $this->theme(['template' => 'parchemin'])->assertStatus(422)->assertJsonValidationErrors('template');
     }
 
-    public function test_photo_gallery_holds_four_photos(): void
+    public function test_photo_gallery_holds_eight_photos(): void
     {
         $url = "/api/occasions/{$this->occasion->id}/invitation-photos";
-        foreach (range(1, 4) as $i) {
+        foreach (range(1, 8) as $i) {
             $this->asAdmin()->post($url, ['photo' => UploadedFile::fake()->image("p{$i}.jpg", 800, 1000)])->assertOk();
         }
-        $this->asAdmin()->post($url, ['photo' => UploadedFile::fake()->image('p5.jpg')], ['Accept' => 'application/json'])
+        $this->asAdmin()->post($url, ['photo' => UploadedFile::fake()->image('p9.jpg')], ['Accept' => 'application/json'])
             ->assertStatus(422);
-        $this->assertCount(4, $this->getJson("/api/rsvp/{$this->guest->token}")->json('occasion.photos'));
+        $this->assertCount(8, $this->getJson("/api/rsvp/{$this->guest->token}")->json('occasion.photos'));
 
         $first = $this->occasion->fresh()->invitation_photos[0];
-        $this->asAdmin()->deleteJson("{$url}/0")->assertOk()->assertJsonCount(3, 'invitation_photos');
+        $this->asAdmin()->deleteJson("{$url}/0")->assertOk()->assertJsonCount(7, 'invitation_photos');
         Storage::disk('public')->assertMissing($first);
         $this->asAdmin()->deleteJson("{$url}/7")->assertNotFound();
     }
