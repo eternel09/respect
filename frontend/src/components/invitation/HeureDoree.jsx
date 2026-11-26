@@ -17,7 +17,7 @@ import HeureDoreeGallery from './HeureDoreeGallery'
 
 const ART = '/invitations/heure-doree'
 const EASE = [0.22, 1, 0.36, 1]
-const FONTS = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Pinyon+Script&display=swap'
+const FONTS = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Pinyon+Script&family=Playfair+Display:ital,wght@1,400&display=swap'
 const GOLD_BG = 'linear-gradient(135deg,#B8924A 0%,#E6CF9A 45%,#C9A55C 55%,#9C7A3C 100%)'
 const pad = (n) => String(n).padStart(2, '0')
 /** QR du serveur (marine sur blanc) recoloré aux tons du design : brun sur ivoire. */
@@ -303,9 +303,9 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
                 variants={{ hidden: { opacity: 0, y: 16 }, shown: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.15 + i * 0.22, ease: EASE } } }}>
                 <motion.span aria-hidden className="absolute block w-2 h-2 rounded-full" style={{ left: -36, top: 3, background: GOLD_BG }}
                   variants={{ hidden: { scale: 0 }, shown: { scale: [0, 1.7, 1], transition: { duration: 0.7, delay: 0.3 + i * 0.22 } } }} />
-                <p className="hd-caps m-0" style={{ textIndent: 0 }}>{p.time}</p>
-                <p className="hd-script m-0 mt-1.5" style={{ fontSize: 28, lineHeight: 1.2 }}>{p.label}</p>
-                {p.note && <p className="m-0 mt-0.5" style={{ fontSize: 16, lineHeight: 1.6, color: '#8A7F72' }}>{p.note}</p>}
+                <p className="hd-time hd-gold m-0">{p.time}</p>
+                <p className="hd-serif m-0 mt-1" style={{ fontSize: 23, lineHeight: 1.25 }}>{p.label}</p>
+                {p.note && <p className="m-0 mt-1 italic" style={{ fontSize: 16, lineHeight: 1.55, color: '#8A7F72' }}>{p.note}</p>}
               </motion.li>
             ))}
           </motion.ol>
