@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import './heure-doree.css'
-import { API_BASE } from '../../lib/axios'
-import { calendarHref, eventNames, mapsUrl, sealOf, startOf } from '../../lib/invitationTheme'
-import { downloadInvitationCard } from '../../lib/heureDoreeCard'
+import { eventNames, mapsUrl, sealOf, startOf } from '../../lib/invitationTheme'
+import { ACCESS_NOTE, EASE, GOLD_BG, accessDetails, invitationCode, pad, warmQr } from '../../lib/goldInvitation'
 import HeureDoreeGallery from './HeureDoreeGallery'
+import { CardActions, Divider, H2, QrFrame, Reveal, RsvpForm } from './GoldKit'
 
 /**
  * Modèle « Heure dorée » (design « Ben & Sarah ») : enveloppe au sceau de
@@ -16,50 +16,11 @@ import HeureDoreeGallery from './HeureDoreeGallery'
  */
 
 const ART = '/invitations/heure-doree'
-const EASE = [0.22, 1, 0.36, 1]
 const FONTS = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Pinyon+Script&family=Playfair+Display:ital,wght@1,400&display=swap'
-const GOLD_BG = 'linear-gradient(135deg,#B8924A 0%,#E6CF9A 45%,#C9A55C 55%,#9C7A3C 100%)'
-const pad = (n) => String(n).padStart(2, '0')
-/** QR du serveur (marine sur blanc) recoloré aux tons du design : brun sur ivoire. */
-const warmQr = (src) => {
-  const m = /^data:image\/svg\+xml;base64,(.+)$/.exec(src || '')
-  if (!m) return src
-  try {
-    const svg = atob(m[1]).replace(/#1e3a5f/gi, '#2E2620').replace(/#ffffff/gi, '#FBF8F2')
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-  } catch { return src }
-}
 const seenKey = (t) => `inv-open:${t}`
 const store = {
   get: (k) => { try { return localStorage.getItem(k) } catch { return null } },
   set: (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k) } catch { /* indisponible */ } },
-}
-
-/** Apparition au défilement : fondu + 24 px. */
-function Reveal({ still, delay = 0, y = 24, className, style, children, as = 'div' }) {
-  const M = as === 'li' ? motion.li : as === 'p' ? motion.p : motion.div
-  return (
-    <M className={className} style={style} initial={still ? false : { opacity: 0, y }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.8, delay, ease: EASE }}>
-      {children}
-    </M>
-  )
-}
-
-function Divider({ width = 56, still }) {
-  const line = (left) => (
-    <motion.span className="block h-px" style={{ width, transformOrigin: left ? 'right' : 'left',
-      background: left ? 'linear-gradient(90deg, rgba(184,146,74,0) 0%, #C9A55C 100%)' : 'linear-gradient(90deg, #C9A55C 0%, rgba(184,146,74,0) 100%)' }}
-      initial={still ? false : { scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }} transition={{ duration: 1.1, ease: EASE }} />
-  )
-  return (
-    <div className="flex items-center justify-center gap-3" aria-hidden>
-      {line(true)}
-      <motion.span className="block w-[5px] h-[5px] rotate-45" style={{ background: GOLD_BG }}
-        initial={still ? false : { scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} />
-      {line(false)}
-    </div>
-  )
 }
 
 function Seal({ letters, size = 104 }) {
@@ -165,15 +126,6 @@ function Countdown({ target, still }) {
         ))}
       </div>
     </div>
-  )
-}
-
-function H2({ children, still, kicker, id }) {
-  return (
-    <Reveal still={still} className="text-center">
-      {kicker && <p className="hd-caps m-0">{kicker}</p>}
-      <h2 id={id} className="hd-script hd-gold inline-block m-0 mt-3 px-4 py-1.5" style={{ fontSize: 40, lineHeight: 1.2 }}>{children}</h2>
-    </Reveal>
   )
 }
 
@@ -351,7 +303,7 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
             : 'Merci de nous confirmer votre présence.'}
         </Reveal>
         {!occasion.is_expired && (
-          <RsvpForm guest={guest} confirmed={confirmed} declined={declined} busy={busy} err={err} respond={respond} max={max}
+          <RsvpForm guest={guest} confirmed={confirmed} declined={declined} busy={busy} err={err} respond={respond} max={max} drinks={c.drinks || []}
             still={still} preview={preview} onConfirmed={() => setTimeout(() => cardRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }), 1200)} />
         )}
         <div className="hd-grain" />
@@ -370,129 +322,29 @@ export default function HeureDoree({ occasion, guest, token, tableLabel, confirm
   )
 }
 
-/** 06 · Formulaire : présence, nombre de personnes, un mot pour les mariés. */
-function RsvpForm({ guest, confirmed, declined, busy, err, respond, max, still, preview, onConfirmed }) {
-  const answered = confirmed || declined
-  const [editing, setEditing] = useState(!answered)
-  const [choice, setChoice] = useState(declined ? 'decline' : 'confirm')
-  const [party, setParty] = useState(guest?.party_size || Math.min(max || 1, 2))
-  const [message, setMessage] = useState(guest?.message || '')
-  const n = Math.min(Math.max(1, party), max || 1)
-
-  if (answered && !editing) {
-    return (
-      <motion.div className="mt-10" data-testid="rsvp-done" role="status" initial={still ? false : { opacity: 0, scale: 0.94, filter: 'blur(6px)' }}
-        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} transition={{ duration: 0.9, ease: EASE }}>
-        <p className={`hd-script m-0 inline-block px-2 ${confirmed ? 'hd-gold' : ''}`} style={{ fontSize: 40, lineHeight: 1.2 }}>
-          {confirmed ? 'Merci, à très bientôt !' : 'Vous nous manquerez.'}
-        </p>
-        <p className="hd-caps m-0 mt-2">{confirmed ? `Présence confirmée${max ? ` · ${guest?.party_size || n} pers.` : ''}` : 'Réponse enregistrée'}</p>
-        {guest?.message && <p className="m-0 mt-3 italic" style={{ fontSize: 16 }}>« {guest.message} »</p>}
-        <button type="button" onClick={() => setEditing(true)} className="mt-4 italic underline underline-offset-4" style={{ fontSize: 15, color: '#8A7F72' }}>Modifier ma réponse</button>
-      </motion.div>
-    )
-  }
-
-  const submit = async (e) => {
-    e.preventDefault()
-    await respond(choice, { message, ...(max && choice === 'confirm' ? { party_size: n } : {}) })
-    setEditing(false)
-    if (choice === 'confirm') onConfirmed()
-  }
-
-  return (
-    <form onSubmit={submit} className="mt-12 w-full max-w-[326px] flex flex-col gap-10 text-left" data-testid="rsvp-form">
-      <Reveal still={still} delay={0.2} className="flex flex-col gap-3.5">
-        <p className="hd-caps m-0" style={{ textIndent: 0 }} id="hd-answer">Votre réponse</p>
-        <div className="flex gap-3" role="radiogroup" aria-labelledby="hd-answer">
-          {[['confirm', 'Avec joie'], ['decline', 'À regret']].map(([k, label]) => (
-            <motion.button key={k} type="button" role="radio" aria-checked={choice === k} className="hd-pill" onClick={() => setChoice(k)}
-              whileTap={{ scale: 0.96 }}>{label}</motion.button>
-          ))}
-        </div>
-      </Reveal>
-      <AnimatePresence initial={false}>
-        {max > 1 && choice === 'confirm' && (
-          <motion.div className="flex flex-col gap-1.5 overflow-hidden" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-            <p className="hd-caps m-0" style={{ textIndent: 0 }} id="hd-party">Nombre de personnes</p>
-            <div className="flex items-center justify-between h-11" style={{ borderBottom: '1px solid #C9A55C' }} role="group" aria-labelledby="hd-party">
-              <button type="button" aria-label="Une personne de moins" disabled={n <= 1} onClick={() => setParty(n - 1)}
-                className="w-11 h-11 flex items-center justify-start text-2xl" style={{ color: n <= 1 ? '#D9C9A3' : '#8A7F72' }}>−</button>
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span key={n} className="text-2xl leading-none" aria-live="polite" initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }}>{n}</motion.span>
-              </AnimatePresence>
-              <button type="button" aria-label="Une personne de plus" disabled={n >= max} onClick={() => setParty(n + 1)}
-                className="w-11 h-11 flex items-center justify-end text-2xl" style={{ color: n >= max ? '#D9C9A3' : '#8A7F72' }}>+</button>
-            </div>
-            <p className="m-0" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72' }}>Votre invitation est valable pour {max} personnes au plus.</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <Reveal still={still} delay={0.3} className="flex flex-col gap-1.5">
-        <label htmlFor="hd-msg" className="hd-caps" style={{ textIndent: 0 }}>Un mot pour les mariés</label>
-        <textarea id="hd-msg" className="hd-field" rows={1} maxLength={500} value={message} placeholder="Votre message…"
-          onChange={e => { setMessage(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px` }} />
-      </Reveal>
-      {err && <p className="m-0 text-sm" style={{ color: '#9b4a3e' }} role="alert">{err}</p>}
-      <Reveal still={still} delay={0.4}>
-        <button type="submit" className="hd-btn hd-btn-gold" disabled={busy || preview}>
-          {busy ? <span className="h-4 w-4 rounded-full border-2 border-[#F8F4EC] border-t-transparent animate-spin" /> : choice === 'confirm' ? 'Confirmer ma présence' : 'Envoyer ma réponse'}
-        </button>
-      </Reveal>
-    </form>
-  )
-}
-
 /** 07 · Carte d'invitation personnelle : nom, places, table, QR, code ; à enregistrer en PNG. */
 function InvitationCard({ guest, guestName, letters, tableLabel, max, token, still, preview }) {
-  const [saving, setSaving] = useState(false)
-  const places = guest?.party_size || max
-  const details = [places && `${places} place${places > 1 ? 's' : ''}`, tableLabel].filter(Boolean).join(' · ')
-  const raw = (token || '').replace(/-/g, '')
-  const code = raw ? `INV-${raw.slice(0, 4)}-${raw.slice(4, 6)}`.toUpperCase() : 'INV-XXXX-XX'
+  const details = accessDetails(guest?.party_size || max, tableLabel)
+  const code = invitationCode(token)
   const mono = letters.length === 2 ? `${letters[0]} & ${letters[1]}` : letters[0]
-  const note = 'Présentez ce code à l’entrée. Invitation strictement personnelle.'
   const qr = warmQr(guest?.qr)
-  const save = async () => {
-    setSaving(true)
-    try { await downloadInvitationCard({ monogram: mono, name: guestName, details, qr, code, note, fileName: `invitation-${guestName.replace(/[^\p{L}\d]+/gu, '-').toLowerCase()}.png` }) }
-    finally { setSaving(false) }
-  }
-  const goldBorder = { border: '1px solid transparent', background: `linear-gradient(#FBF8F2,#FBF8F2) padding-box, ${GOLD_BG} border-box` }
+  const card = { monogram: mono, name: guestName, details, qr, code, note: ACCESS_NOTE, fileName: `invitation-${guestName.replace(/[^\p{L}\d]+/gu, '-').toLowerCase()}.png` }
   return (
     <>
       <motion.div className="relative flex flex-col items-center text-center rounded px-5 pt-[34px] pb-[30px]"
         style={{ width: 'min(350px, 89.7%)', background: '#FBF8F2', boxShadow: '0 1px 2px rgba(91,81,70,0.06), 0 18px 40px rgba(91,81,70,0.12)' }}
         initial={still ? false : { opacity: 0, y: 50, rotateX: 18 }} whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
         viewport={{ once: true, margin: '-60px' }} transition={{ duration: 1.1, ease: EASE }}>
-        <span aria-hidden className="absolute inset-2 rounded-sm pointer-events-none" style={goldBorder} />
+        <span aria-hidden className="absolute inset-2 rounded-sm pointer-events-none" style={{ border: '1px solid transparent', background: `linear-gradient(#FBF8F2,#FBF8F2) padding-box, ${GOLD_BG} border-box` }} />
         <p className="relative hd-script hd-gold m-0 px-3" style={{ fontSize: 34, lineHeight: 1.2 }}>{mono}</p>
         <p className="relative hd-caps m-0 mt-2.5">Invitation personnelle</p>
         <p className="relative hd-script hd-gold m-0 mt-3.5 px-3 py-1.5" style={{ fontSize: 36, lineHeight: 1.1 }}>{guestName}</p>
         {details && <p className="relative m-0 mt-2 font-medium uppercase" style={{ fontSize: 12, letterSpacing: '.2em' }}>{details}</p>}
-        <div className="relative mt-6 flex items-center justify-center" style={{ width: 'min(284px, 100%)', aspectRatio: '1', ...goldBorder }}>
-          {['-left-[7px] -top-[7px]', '-right-[7px] -top-[7px]', '-left-[7px] -bottom-[7px]', '-right-[7px] -bottom-[7px]'].map(pos => (
-            <span key={pos} aria-hidden className={`absolute w-[13px] h-[13px] flex items-center justify-center bg-[#FBF8F2] ${pos}`}>
-              <span className="block w-[7px] h-[7px] rotate-45" style={{ background: GOLD_BG }} />
-            </span>
-          ))}
-          {['left-[5px] top-[5px] border-l border-t', 'right-[5px] top-[5px] border-r border-t', 'left-[5px] bottom-[5px] border-l border-b', 'right-[5px] bottom-[5px] border-r border-b'].map(p => (
-            <span key={p} aria-hidden className={`absolute w-[18px] h-[18px] border-[#C9A55C] ${p}`} />
-          ))}
-          <div className="p-6 w-full h-full">
-            {qr ? <img src={qr} alt={`QR code ${code}`} className="w-full h-full block" style={{ imageRendering: 'pixelated' }} />
-              : <div className="w-full h-full" style={{ background: 'repeating-conic-gradient(#2E2620 0 25%, #FBF8F2 0 50%) 0 0 / 22px 22px', opacity: 0.12 }} />}
-          </div>
-        </div>
+        <div className="relative mt-6 w-full flex justify-center"><QrFrame qr={qr} code={code} still={still} /></div>
         <p className="relative m-0 mt-5 font-medium" style={{ fontSize: 13, letterSpacing: '.32em', textIndent: '.32em' }}>{code}</p>
-        <p className="relative m-0 mt-3 max-w-[250px]" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72', textWrap: 'balance' }}>{note}</p>
+        <p className="relative m-0 mt-3 max-w-[250px]" style={{ fontSize: 13, lineHeight: 1.5, color: '#8A7F72', textWrap: 'balance' }}>{ACCESS_NOTE}</p>
       </motion.div>
-      <Reveal still={still} delay={0.2} className="relative mt-[22px] flex flex-col gap-2.5" style={{ width: 'min(326px, 83.6%)' }}>
-        <button type="button" className="hd-btn hd-btn-gold" onClick={save} disabled={saving || preview}>
-          {saving ? 'Préparation…' : 'Enregistrer l’invitation'}
-        </button>
-        {token && <a href={calendarHref(token, API_BASE)} className="hd-btn hd-btn-line">Ajouter au calendrier</a>}
-      </Reveal>
+      <CardActions card={card} token={token} still={still} preview={preview} style={{ marginTop: 22 }} />
     </>
   )
 }

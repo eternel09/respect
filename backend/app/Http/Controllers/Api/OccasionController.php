@@ -309,7 +309,18 @@ class OccasionController extends Controller
             'faq.*.a'           => ['required', 'string', 'max:600'],
             'rsvp_deadline'     => ['nullable', 'date_format:Y-m-d'],
             'party_max'         => ['nullable', 'integer', 'min:1', 'max:' . Occasion::MAX_PARTY_SIZE],
+            'drinks'            => ['nullable', 'array', 'max:' . Occasion::MAX_DRINK_CATEGORIES],
+            'drinks.*.group'    => ['nullable', 'string', 'max:40'],
+            'drinks.*.name'     => ['required', 'string', 'max:40'],
+            'drinks.*.items'    => ['required', 'array', 'min:1', 'max:' . Occasion::MAX_DRINKS_PER_CATEGORY],
+            'drinks.*.items.*'  => ['required', 'string', 'max:40'],
         ], [
+            'drinks.max'                => 'La carte des boissons accepte ' . Occasion::MAX_DRINK_CATEGORIES . ' catégories au plus.',
+            'drinks.*.name.required'    => 'Nommez chaque catégorie de boissons.',
+            'drinks.*.items.required'   => 'Ajoutez au moins une boisson à chaque catégorie.',
+            'drinks.*.items.min'        => 'Ajoutez au moins une boisson à chaque catégorie.',
+            'drinks.*.items.max'        => 'Une catégorie accepte ' . Occasion::MAX_DRINKS_PER_CATEGORY . ' boissons au plus.',
+            'drinks.*.items.*.max'      => 'Nom de boisson trop long (40 caractères au plus).',
             'rsvp_deadline.date_format' => 'Date limite de réponse invalide.',
             'party_max.max'             => 'Une invitation vaut ' . Occasion::MAX_PARTY_SIZE . ' personnes au plus.',
             'faq.max'                  => 'Les questions fréquentes sont limitées à ' . Occasion::MAX_FAQ . '.',
@@ -332,6 +343,7 @@ class OccasionController extends Controller
             fn ($i) => ['year' => trim((string) ($i['year'] ?? '')), 'title' => trim($i['title']), 'text' => trim((string) ($i['text'] ?? ''))],
             $data['story'] ?? [],
         ));
+        $data['drinks'] = Occasion::drinkMenu($data['drinks'] ?? []);
         $occasion->invitation_content = $data;
         $occasion->save();
 

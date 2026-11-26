@@ -33,6 +33,8 @@ class RsvpController extends Controller
                 'message'   => $guest->rsvp_message,
                 // Nombre de personnes annoncé (lui compris).
                 'party_size' => $guest->party_size,
+                // Boissons choisies dans la carte des hôtes.
+                'drinks'     => $guest->drinks ?? [],
                 // QR d'accès à présenter à l'accueil (même contenu que sur le carton).
                 'qr'        => 'data:image/svg+xml;base64,' . $qr->guest($guest->token),
             ],
@@ -168,6 +170,9 @@ class RsvpController extends Controller
             'message'    => ['nullable', 'string', 'max:500'],
             // Nombre de personnes (lui compris), dans la limite des places de l'invitation.
             'party_size' => ['nullable', 'integer', 'min:1', 'max:' . $max],
+            // Boissons choisies (plusieurs possibles) ; absent = inchangé.
+            'drinks'     => ['nullable', 'array', 'max:60'],
+            'drinks.*'   => ['string', 'max:40'],
         ], [
             'message.max'    => 'Votre mot ne peut dépasser 500 caractères.',
             'party_size.max' => $max > 1
@@ -177,6 +182,12 @@ class RsvpController extends Controller
 
         if ($request->has('party_size')) {
             $guest->party_size = $data['status'] === 'confirm' ? ($data['party_size'] ?? 1) : null;
+        }
+        if ($request->has('drinks')) {
+            // Seules les boissons de la carte sont retenues, dans l'ordre de la carte.
+            $chosen = array_map('trim', $data['drinks'] ?? []);
+            $kept = array_values(array_filter($guest->occasion->drinkChoices(), fn ($d) => in_array($d, $chosen, true)));
+            $guest->drinks = $data['status'] === 'confirm' && $kept !== [] ? array_values(array_unique($kept)) : null;
         }
         if ($request->has('message')) {
             $message = trim((string) ($data['message'] ?? ''));

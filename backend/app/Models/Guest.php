@@ -24,6 +24,7 @@ class Guest extends Model
         'declined'      => 'boolean',
         'reminded_at'   => 'datetime',
         'party_size'    => 'integer',
+        'drinks'        => 'array',
     ];
 
     // Défauts hydratés dès la création (miroir des defaults SQL).

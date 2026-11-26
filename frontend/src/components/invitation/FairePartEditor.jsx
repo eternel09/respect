@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
 import api, { apiErrorMessage } from '../../lib/axios'
 import Icon from '../ui/Icon'
-import { PROGRAM_ICONS } from '../../lib/invitationTheme'
+import { PROGRAM_ICONS, drinkMenu } from '../../lib/invitationTheme'
 
 const MAX_PHOTOS = 8
 const MAX_STORY = 6
 const MAX_FAQ = 6
+const MAX_DRINK_CATEGORIES = 12
 const field = 'rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30'
 const input = `w-full ${field}`
 const Label = ({ children, hint }) => (
@@ -54,21 +55,31 @@ const SAMPLE_STORY = [
   { year: '2025', title: 'Le oui', text: 'Une question, une bague, et une évidence.' },
 ]
 
+/** Carte des boissons type (celle du design « Save the Date »), proposée en un clic. */
+const SAMPLE_DRINKS = [
+  { group: 'Locales', name: 'Bières', items: 'Castel, Beaufort, Nkoy, Likofi, 33 sport, Mützig, Heineken, Turbo' },
+  { group: 'Locales', name: 'Sucrées', items: 'Coca, Fanta, Vitalo, Sprite, Maltina, Energy malt, Xxl, Eau' },
+  { group: 'Liqueurs', name: 'Apéro', items: 'Jus Naturel Bissap, Martini Rosso, Martini Bianco, Tropical, Mojito' },
+  { group: 'Liqueurs', name: 'Autres', items: 'Vin blanc, Vin Rouge, Vin mousseux, Whisky' },
+]
+
 /** Champs proposés pour chaque modèle (un modèle n'affiche que ce qu'il utilise). */
 const FIELDS = {
   'faire-part':  ['photos', 'families', 'ceremony', 'verse', 'program', 'icons', 'dress', 'intro', 'closing'],
-  'heure-doree': ['photos', 'ceremony', 'reception', 'verse', 'program', 'notes', 'dress', 'rsvp', 'intro'],
+  'heure-doree': ['photos', 'ceremony', 'reception', 'verse', 'program', 'notes', 'dress', 'rsvp', 'drinks', 'intro'],
+  'save-the-date': ['photos', 'rsvp', 'drinks', 'intro'],
   porcelaine:    ['subtitle', 'ceremony', 'reception', 'travel', 'program', 'notes', 'dress', 'gift', 'faq', 'intro', 'closing'],
   boheme:        ['photos', 'subtitle', 'families', 'verse', 'program', 'icons', 'notes', 'intro', 'closing'],
 }
 
 /** Libellés et exemples qui changent d'un modèle à l'autre. */
 const COPY = {
-  photos: { 'faire-part': '3 en tête, la 4ᵉ en bas de page', 'heure-doree': 'la 1ʳᵉ dans l’arche d’accueil (sans photo d’ouverture), les suivantes dans la galerie animée : 5 photos donnent l’éventail et deux photos pleine largeur', boheme: 'la 1ʳᵉ dans l’arche (sans photo en arche), la dernière en bas de page' },
+  photos: { 'faire-part': '3 en tête, la 4ᵉ en bas de page', 'heure-doree': 'la 1ʳᵉ dans l’arche d’accueil (sans photo d’ouverture), les suivantes dans la galerie animée : 5 photos donnent l’éventail et deux photos pleine largeur', boheme: 'la 1ʳᵉ dans l’arche (sans photo en arche), la dernière en bas de page', 'save-the-date': 'la 1ʳᵉ en grand en tête (sans photo d’ouverture), la 2ᵉ à côté du calendrier, les 3ᵉ et 4ᵉ en arche, les suivantes dans la galerie' },
   verse: { 'heure-doree': ['Citation', 'Et ils choisirent de s’aimer pour toujours.'] },
   subtitle: { porcelaine: ['Ligne sous les prénoms', 'Kinshasa · Gombe'], boheme: ['Phrase d’ouverture', 'Deux cœurs, un même chemin.'] },
   intro: {
     'heure-doree': ['Mot d’accueil (sous la photo)', 'Cher(e) [nom de l’invité], nous serions honorés de votre présence.'],
+    'save-the-date': ['Texte d’invitation (sous les prénoms)', 'Accompagnés de leurs familles, … ont le plaisir de vous inviter à la célébration de leur mariage…'],
     porcelaine: ['Mot de la réponse (RSVP)', 'Votre présence compte énormément pour nous. Merci de nous répondre.'],
     boheme: ['Texte d’invitation', 'Sous le regard de Celui qui unit et bénit, … ont choisi de marcher ensemble…'],
   },
@@ -109,6 +120,7 @@ export default function FairePartEditor({ occasion: o, template = 'faire-part', 
         faq: content.faq.filter(s => s.q.trim() || s.a.trim()),
         rsvp_deadline: content.rsvp_deadline || null,
         party_max: content.party_max === '' || content.party_max == null ? null : Number(content.party_max),
+        drinks: drinkMenu(content.drinks),
       })
       onSaved({ invitation_content: res.data.invitation_content })
       setFlash({ ok: true, text: res.data.message })
@@ -317,6 +329,31 @@ export default function FairePartEditor({ occasion: o, template = 'faire-part', 
               onChange={e => set({ party_max: e.target.value })} placeholder="2" aria-label="Nombre de personnes par invitation" />
           </div>
         </div>
+      )}
+
+      {has('drinks') && (
+        <Group title="Carte des boissons (facultatif)">
+          <p className="text-xs text-gray-500 -mt-2">L’invité qui confirme coche ses boissons ; ses choix apparaissent dans la liste des invités.</p>
+          <div className="space-y-2">
+            {content.drinks.map((d, i) => (
+              <div key={i} className="rounded-xl bg-gray-50 p-2.5 space-y-2" data-testid="drink-category">
+                <div className="flex gap-2 items-center">
+                  <input className={`${field} w-28 sm:w-32 min-w-0 bg-white`} value={d.group} maxLength={40} placeholder="Groupe" aria-label={`Groupe de la catégorie ${i + 1}`}
+                    onChange={e => setIn('drinks', i, { group: e.target.value })} />
+                  <input className={`${field} flex-1 min-w-0 bg-white`} value={d.name} maxLength={40} placeholder="Catégorie (ex. Bières)" aria-label={`Nom de la catégorie ${i + 1}`}
+                    onChange={e => setIn('drinks', i, { name: e.target.value })} />
+                  <DeleteBtn onClick={() => set({ drinks: content.drinks.filter((_, j) => j !== i) })} label={`Supprimer la catégorie ${i + 1}`} />
+                </div>
+                <textarea className={`${input} bg-white`} rows={2} value={d.items} placeholder="Boissons séparées par des virgules : Castel, Beaufort, …" aria-label={`Boissons de la catégorie ${i + 1}`}
+                  onChange={e => setIn('drinks', i, { items: e.target.value })} />
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-x-5">
+            {content.drinks.length < MAX_DRINK_CATEGORIES && <AddBtn onClick={() => set({ drinks: [...content.drinks, { group: content.drinks.at(-1)?.group || '', name: '', items: '' }] })}>Ajouter une catégorie</AddBtn>}
+            {content.drinks.length === 0 && <AddBtn onClick={() => set({ drinks: SAMPLE_DRINKS.map(d => ({ ...d })) })}>Partir de la carte type</AddBtn>}
+          </div>
+        </Group>
       )}
 
       {has('gift') && (
