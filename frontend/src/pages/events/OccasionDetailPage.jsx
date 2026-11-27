@@ -314,6 +314,7 @@ export default function OccasionDetailPage() {
                 <Icon name="download" size={18} />
                 Liste (PDF)
               </button>
+              <ReportMenu occasionId={id} disabled={!o.guests_count} />
               <button onClick={sendInvites} disabled={sending || o.invites_sending} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5b] rounded-xl px-4 py-2.5 transition-colors disabled:opacity-60">
                 {sending || o.invites_sending
                   ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -748,6 +749,47 @@ export default function OccasionDetailPage() {
 }
 
 /** Boissons choisies par les invités qui ont confirmé : total par boisson, pour le traiteur. */
+/** Rapport des réponses (réponse, personnes, boissons, mot) : PDF ou Excel (CSV). */
+function ReportMenu({ occasionId, disabled }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc) }
+  }, [open])
+  const get = (format) => {
+    setOpen(false)
+    downloadFile(`/download/occasions/${occasionId}/rsvp-report${format === 'csv' ? '?format=csv' : ''}`, `reponses.${format}`)
+  }
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(v => !v)} disabled={disabled} aria-haspopup="menu" aria-expanded={open}
+        title={disabled ? 'Aucun invité pour l’instant' : 'Réponses des invités : confirmation, personnes, boissons choisies, mot'}
+        className="inline-flex items-center gap-2 text-sm font-semibold text-brand bg-brand/10 hover:bg-brand/20 rounded-xl px-4 py-2.5 transition-colors disabled:opacity-50"
+        data-testid="rsvp-report">
+        <Icon name="summarize" size={18} />
+        Rapport des réponses
+        <Icon name="expand_more" size={18} />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 z-30 mt-1.5 w-60 rounded-xl bg-white shadow-lg ring-1 ring-gray-100 p-1.5">
+          {[['pdf', 'picture_as_pdf', 'PDF', 'À imprimer ou partager'], ['csv', 'table_view', 'Excel (CSV)', 'À trier ou filtrer']].map(([f, icon, label, hint]) => (
+            <button key={f} type="button" role="menuitem" onClick={() => get(f)}
+              className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-sand">
+              <Icon name={icon} size={20} className="text-brand" />
+              <span><span className="block text-sm font-medium text-gray-800">{label}</span><span className="block text-[11px] text-gray-400">{hint}</span></span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DrinkTotals({ guests }) {
   const counts = new Map()
   guests.forEach(g => { if (g.confirmed) (g.drinks || []).forEach(d => counts.set(d, (counts.get(d) || 0) + 1)) })

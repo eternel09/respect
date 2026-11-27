@@ -43,6 +43,7 @@ Route::get('/download/cards', [MemberCardController::class, 'batch']);
 
 // Liste PDF des invités déjà contactés d'une occasion (auth par token en query)
 Route::get('/download/occasions/{occasion}/invited-guests', [\App\Http\Controllers\Api\OccasionExportController::class, 'invitedGuestsPdf']);
+Route::get('/download/occasions/{occasion}/rsvp-report', [\App\Http\Controllers\Api\OccasionExportController::class, 'rsvpReport']);
 
 // APK de l'app scanner (public : lien partagé au staff)
 Route::get('/download/app', [AppDistributionController::class, 'latest']);
