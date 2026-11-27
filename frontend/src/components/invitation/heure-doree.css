@@ -20,6 +20,14 @@
   animation: hd-shine 7s ease-in-out infinite alternate;
 }
 @keyframes hd-shine { to { background-position: 0% 0; } }
+/* « Save the Date » : or uni, sans reflet clair ni balayage (lisibilité) */
+.hd-std .hd-gold {
+  background-image: linear-gradient(180deg, #AE8A44 0%, #9C7A3C 55%, #8A6B31 100%);
+  background-size: 100% 100%; background-position: 0 0; animation: none;
+}
+/* Bande défilante sans barre de défilement */
+.hd-noscroll { scrollbar-width: none; -ms-overflow-style: none; }
+.hd-noscroll::-webkit-scrollbar { display: none; }
 .hd-frame { padding: 8px; border: 1px solid transparent; background: linear-gradient(var(--hd-ivory), var(--hd-ivory)) padding-box, var(--hd-gold) border-box; }
 
 /* Grain du papier */

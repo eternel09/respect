@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, useScroll, useTransform } from 'motion/react'
+import { AnimatePresence, motion, useInView, useScroll, useTransform } from 'motion/react'
 import './heure-doree.css'
 import { eventNames, mapsUrl, placeOf, startOf, venueOf } from '../../lib/invitationTheme'
 import { ACCESS_NOTE, EASE, accessDetails, goldBorder, invitationCode, pad, warmQr } from '../../lib/goldInvitation'
 import { CardActions, Divider, H2, QrFrame, Reveal, RsvpForm } from './GoldKit'
-import { Curtained, Lightbox } from './HeureDoreeGallery'
+import { Lightbox } from './HeureDoreeGallery'
 
 /**
  * Modèle « Save the Date » (design « Ben & Sarah ») : grande photo fondue
@@ -67,23 +67,81 @@ function ArchPhoto({ src, delay, still, onOpen, position }) {
   )
 }
 
-/** Galerie : une photo large, deux côte à côte, une large… chacune dévoilée en rideau ; plein écran au toucher. */
-function Gallery({ photos, reduced, preview, onOpen }) {
-  const rows = []
-  for (let i = 0, wide = true; i < photos.length; wide = !wide) {
-    if (wide || i === photos.length - 1) { rows.push([photos[i]]); i += 1 } else { rows.push([photos[i], photos[i + 1]]); i += 2 }
+/**
+ * Galerie défilante : bande de photos qui avance seule (pause au toucher, hors
+ * écran ou visionneuse ouverte), glissable au doigt, points de navigation ;
+ * plein écran au toucher. Sans défilement auto en mouvement réduit / aperçu.
+ */
+function Gallery({ photos, reduced, preview, onOpen, paused: held = false }) {
+  const root = useRef(null)
+  const track = useRef(null)
+  const resume = useRef(null)
+  const [active, setActive] = useState(0)
+  const [touched, setTouched] = useState(false)
+  const inView = useInView(root, { amount: 0.4 })
+  const n = photos.length
+  const auto = !reduced && !preview && n > 1
+
+  const goTo = useCallback((i) => {
+    const el = track.current
+    const card = el?.children[i]
+    if (!card) return
+    el.scrollTo({ left: card.offsetLeft - (el.clientWidth - card.clientWidth) / 2, behavior: reduced ? 'auto' : 'smooth' })
+  }, [reduced])
+
+  // Photo active = la plus proche du centre de la bande.
+  const onScroll = () => {
+    const el = track.current
+    if (!el) return
+    const center = el.scrollLeft + el.clientWidth / 2
+    let best = 0, gap = Infinity
+    Array.from(el.children).forEach((c, i) => {
+      const d = Math.abs(c.offsetLeft + c.clientWidth / 2 - center)
+      if (d < gap) { gap = d; best = i }
+    })
+    setActive(best)
   }
-  let wides = 0
+
+  // Avance d'une photo toutes les 3,8 s ; revient au début après la dernière.
+  useEffect(() => {
+    if (!auto || touched || held || !inView) return
+    const t = setTimeout(() => goTo((active + 1) % n), 3800)
+    return () => clearTimeout(t)
+  }, [auto, touched, held, inView, active, n, goTo])
+
+  // Le doigt (ou la souris) met en pause ; reprise 5 s après le dernier geste.
+  const hold = () => { clearTimeout(resume.current); setTouched(true) }
+  const release = () => { clearTimeout(resume.current); resume.current = setTimeout(() => setTouched(false), 5000) }
+  useEffect(() => () => clearTimeout(resume.current), [])
+
   return (
-    <div className="mx-auto mt-10 flex flex-col gap-4" style={{ width: 'min(326px, 83.6%)' }} data-testid="std-gallery">
-      {rows.map((row, r) => row.length === 1
-        ? <Curtained key={r} src={row[0]} ratio="326 / 217" from={wides++ % 2 ? 'right' : 'left'} plain reduced={reduced} preview={preview} onOpen={onOpen} objectPosition="center 40%" />
-        : (
-          <div key={r} className="grid grid-cols-2 gap-4">
-            {row.map((src, k) => <Curtained key={src + k} src={src} ratio="155 / 226" from="bottom" delay={k * 0.18} plain reduced={reduced} preview={preview} onOpen={onOpen} objectPosition="center 25%" />)}
-          </div>
+    <motion.div ref={root} className="mt-10 w-full" data-testid="std-gallery"
+      initial={preview || reduced ? false : { opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true, margin: '-60px' }} transition={{ duration: 1.1, ease: EASE }}>
+      <div ref={track} onScroll={onScroll} role="region" aria-roledescription="carrousel" aria-label="Galerie de photos"
+        onPointerDown={hold} onPointerUp={release} onPointerCancel={release}
+        onPointerEnter={(e) => e.pointerType === 'mouse' && hold()} onPointerLeave={(e) => e.pointerType === 'mouse' && release()}
+        onFocus={(e) => e.target.matches(':focus-visible') && hold()} onBlur={release}
+        className="hd-noscroll flex gap-3 overflow-x-auto snap-x snap-mandatory" style={{ paddingInline: '13%', scrollPaddingInline: '13%' }}>{/* photo = zone intérieure (74 %), voisines visibles dans les marges */}
+        {photos.map((src, i) => (
+          <button key={src + i} type="button" onClick={() => !preview && onOpen(src)}
+            aria-label={`Agrandir la photo ${i + 1} sur ${n}`} aria-current={i === active ? 'true' : undefined}
+            className="shrink-0 snap-center block overflow-hidden cursor-pointer"
+            style={{ width: '100%', aspectRatio: '4 / 5', transform: `scale(${i === active ? 1 : 0.9})`, opacity: i === active ? 1 : 0.6,
+              transition: reduced ? 'none' : 'transform .7s cubic-bezier(.22,1,.36,1), opacity .7s', boxShadow: i === active ? '0 22px 40px -26px rgba(91,81,70,.55)' : 'none' }}>
+            <img src={src} alt="" loading="lazy" decoding="async" draggable={false} className="w-full h-full object-cover block pointer-events-none" style={{ objectPosition: 'center 30%' }} />
+          </button>
         ))}
-    </div>
+      </div>
+      {n > 1 && (
+        <div className="mt-5 flex justify-center gap-2" role="group" aria-label="Choisir une photo">
+          {photos.map((_, i) => (
+            <button key={i} type="button" onClick={() => { hold(); release(); goTo(i) }} aria-label={`Photo ${i + 1}`} aria-pressed={i === active}
+              className="h-1.5 rounded-full p-0 border-0" style={{ width: i === active ? 22 : 6, background: i === active ? '#9C7A3C' : '#D9C9A3', transition: 'width .5s, background .5s' }} />
+          ))}
+        </div>
+      )}
+    </motion.div>
   )
 }
 
@@ -143,7 +201,7 @@ export default function SaveTheDate({ occasion, guest, token, tableLabel, confir
   })
 
   return (
-    <div className={`hd relative flex flex-col items-center text-center pb-24${reduced ? ' hd-reduced' : ''}`} data-testid="save-the-date">
+    <div className={`hd hd-std relative flex flex-col items-center text-center pb-24${reduced ? ' hd-reduced' : ''}`} data-testid="save-the-date">
       {music && (
         <>
           <audio ref={audio} src={occasion.music_url} loop preload="none" />
@@ -281,7 +339,7 @@ export default function SaveTheDate({ occasion, guest, token, tableLabel, confir
       {gallery.length > 0 && (
         <section className="w-full" style={{ marginTop: 96 }}>
           <H2 still={still} kicker="Galerie">Nos plus beaux instants</H2>
-          <Gallery photos={gallery} reduced={!!reduced} preview={preview} onOpen={show(gallery)} />
+          <Gallery photos={gallery} reduced={!!reduced} preview={preview} onOpen={show(gallery)} paused={!!open} />
         </section>
       )}
 
