@@ -7,6 +7,7 @@ Statuts : 🟩 mergée · 🟦 ouverte · ⬜ brouillon
 
 | PR | Produit · Étape | Titre | Statut | Commit / SHA |
 |---|---|---|:--:|---|
+| #91 | Invitations · 2.18 (retouche) | « Save the Date » : **or uni sans reflet** sur les textes dorés (prénoms, « the », salle, heure, titres) — le reflet clair animé rendait des lettres presque blanches, illisibles | 🟦 | `style(invitations): plain gold text in "save the date"` |
 | [#90](https://github.com/eternel09/respect/pull/90) | Invitations · 2.19 | **Adresse de l'événement** : champ « Adresse » à la création et à l'édition, affichée sous la salle sur l'invitation et reprise par Maps, l'agenda, le carton et WhatsApp | 🟩 | `feat(events): event address alongside the venue` |
 | [#89](https://github.com/eternel09/respect/pull/89) | Invitations · 2.18 | **Modèle « Save the Date »** (maquette « Ben & Sarah ») : photo fondue, calendrier au jour J entouré, lieu, heure et carte, photos en arche, galerie en rideaux ; **carte des boissons** (éditeur, choix de l'invité, total par boisson dans la liste des invités) | 🟩 | `feat(invitations): "save the date" template with a drinks menu` |
 | [#88](https://github.com/eternel09/respect/pull/88) | Invitations · 2.17 (retouche) | « Heure dorée » : **polices variées** dans le programme (heures en Cinzel, intitulés en Playfair Display italique, notes en Cormorant italique) | 🟩 | `style(invitations): varied fonts in the "heure dorée" program` |

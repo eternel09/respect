@@ -143,7 +143,7 @@ export default function SaveTheDate({ occasion, guest, token, tableLabel, confir
   })
 
   return (
-    <div className={`hd relative flex flex-col items-center text-center pb-24${reduced ? ' hd-reduced' : ''}`} data-testid="save-the-date">
+    <div className={`hd hd-std relative flex flex-col items-center text-center pb-24${reduced ? ' hd-reduced' : ''}`} data-testid="save-the-date">
       {music && (
         <>
           <audio ref={audio} src={occasion.music_url} loop preload="none" />
